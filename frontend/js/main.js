@@ -57,12 +57,16 @@ window.addEventListener("DOMContentLoaded", () => {
   updateControlToggleLabel();
   controlToggleBtn.addEventListener("click", toggleControlMode);
 
+  // Umfang des SVG-Fortschrittsrings bei r=44 (siehe .dash-progress-fill in
+  // style.css) - stroke-dashoffset 0 = voll sichtbar (100%), == Umfang = leer (0%).
+  const DASH_RING_CIRCUMFERENCE = 2 * Math.PI * 44;
+
   function updateDashMeter(charge, dashing) {
     // Beide Anzeigen (kompakter HUD-Ring für Desktop, großer Button für Touch)
-    // teilen sich dieselbe kreisförmige Füllung + Bereit/Aktiv-Farblogik.
-    const chargePercent = `${Math.round(charge * 100)}%`;
+    // teilen sich dieselbe Ring-Füllung + Bereit/Aktiv-Farblogik.
+    const offset = DASH_RING_CIRCUMFERENCE * (1 - charge);
     for (const el of [dashRing, dashBtn]) {
-      el.style.setProperty("--dash-charge", chargePercent);
+      el.querySelector(".dash-progress-fill").style.strokeDashoffset = offset;
       el.classList.toggle("active", !!dashing);
       el.classList.toggle("ready", !dashing && charge >= 1);
     }

@@ -1,13 +1,3 @@
-/* Registriert --dash-charge als typisierten (interpolierbaren) Custom-Property-
-   Wert - ohne das kann der Browser den conic-gradient()-Stop nicht animieren und
-   die Ladeanzeige (#dash-ring/#dash-btn) springt bei jedem State-Update (30/s)
-   sichtbar ruckartig statt sanft zu füllen. */
-@property --dash-charge {
-  syntax: "<percentage>";
-  inherits: false;
-  initial-value: 0%;
-}
-
 html, body {
   margin: 0;
   height: 100%;
@@ -62,9 +52,14 @@ html, body {
 }
 
 /* Kreisförmige Dash-Ladeanzeige fürs Desktop-HUD - dieselbe Optik (Füllung per
-   conic-gradient, Farbwechsel bei bereit/aktiv) wie #dash-btn für Touch, nur
-   kompakt und nicht klickbar, da Dash hier über die Umschalt-Taste ausgelöst wird. */
+   SVG-Fortschrittsring, Farbwechsel bei bereit/aktiv) wie #dash-btn für Touch,
+   nur kompakt und nicht klickbar, da Dash hier über die Umschalt-Taste ausgelöst
+   wird. Ein SVG-Ring (stroke-dashoffset) statt conic-gradient: Letzteres zeigte
+   auf manchen mobilen Browsern einen sichtbaren Rendering-Fehler (ein zweiter,
+   loser Farbklecks gegenüber dem eigentlichen Füllstand) - stroke-dashoffset ist
+   eine normale, überall zuverlässig animierbare CSS-Eigenschaft ohne dieses Risiko. */
 #dash-ring {
+  position: relative;
   margin-top: 10px;
   width: 40px;
   height: 40px;
@@ -73,10 +68,9 @@ html, body {
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  --dash-charge: 0%;
-  background: conic-gradient(#4b7bec var(--dash-charge), #23233a var(--dash-charge));
+  background: #1a1a2e;
   border: 2px solid rgba(255, 255, 255, 0.15);
-  transition: background-color 0.15s ease, --dash-charge 0.1s linear;
+  transition: background-color 0.15s ease;
 }
 
 #dash-ring.ready {
@@ -87,6 +81,48 @@ html, body {
 #dash-ring.active {
   background: #ff5d5d;
   box-shadow: 0 0 10px rgba(255, 93, 93, 0.7);
+}
+
+/* Der Fortschrittsring wird per JS über stroke-dashoffset gefüllt (siehe
+   updateDashMeter in main.js) - der Kreisumfang bei r=44 ist ~276.46, das ist
+   der volle stroke-dasharray-Wert (== 0% gefüllt). Um -90deg gedreht, damit
+   der Ring bei 12 statt 3 Uhr beginnt (SVG-Winkel starten rechts). */
+.dash-progress {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+
+.dash-progress-track {
+  fill: none;
+  stroke: #33334d;
+  stroke-width: 10;
+}
+
+.dash-progress-fill {
+  fill: none;
+  stroke: #4b7bec;
+  stroke-width: 10;
+  stroke-dasharray: 276.46;
+  stroke-dashoffset: 276.46;
+  transition: stroke-dashoffset 0.1s linear;
+}
+
+.dash-icon {
+  position: relative;
+}
+
+/* #dash-btn/#dash-ring wechseln bei bereit/aktiv auf eine flächige Farbe
+   (statt Fortschrittsring) als deutliches Signal - der Ring wird dafür
+   ausgeblendet. */
+#dash-ring.ready .dash-progress,
+#dash-ring.active .dash-progress,
+#dash-btn.ready .dash-progress,
+#dash-btn.active .dash-progress {
+  display: none;
 }
 
 #leaderboard {
@@ -236,12 +272,12 @@ html, body {
   margin-top: 0;
   touch-action: none;
   user-select: none;
-  /* Ladestand als kreisförmige Füllung direkt im Button, per JS gesetzt
-     (siehe updateDashMeter in main.js) - spart die separate Balken-Anzeige
-     aus dem HUD, die auf Touch ohnehin weit vom Daumen entfernt wäre. */
-  --dash-charge: 0%;
-  background: conic-gradient(#4b7bec var(--dash-charge), #23233a var(--dash-charge));
-  transition: background-color 0.15s ease, --dash-charge 0.1s linear;
+  /* Ladestand als Fortschrittsring direkt im Button, per JS gesetzt (siehe
+     updateDashMeter in main.js und .dash-progress-fill oben) - spart die
+     separate Balken-Anzeige aus dem HUD, die auf Touch ohnehin weit vom
+     Daumen entfernt wäre. */
+  background: #1a1a2e;
+  transition: background-color 0.15s ease;
   border: 2px solid rgba(255, 255, 255, 0.15);
   color: #eee;
   font-weight: 700;

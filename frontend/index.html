@@ -13,10 +13,22 @@
 <div id="hud">
   <div id="score">Score: 0</div>
   <button id="control-toggle" class="hud-btn"></button>
-  <div id="dash-ring" title="Dash (Umschalt)">⚡</div>
+  <div id="dash-ring" title="Dash (Umschalt)">
+    <svg class="dash-progress" viewBox="0 0 100 100">
+      <circle class="dash-progress-track" cx="50" cy="50" r="44"></circle>
+      <circle class="dash-progress-fill" cx="50" cy="50" r="44"></circle>
+    </svg>
+    <span class="dash-icon">⚡</span>
+  </div>
 </div>
 
-<div id="dash-btn">DASH</div>
+<div id="dash-btn">
+  <svg class="dash-progress" viewBox="0 0 100 100">
+    <circle class="dash-progress-track" cx="50" cy="50" r="44"></circle>
+    <circle class="dash-progress-fill" cx="50" cy="50" r="44"></circle>
+  </svg>
+  <span class="dash-icon">DASH</span>
+</div>
 
 <div id="leaderboard">
   <h3>Leaderboard</h3>

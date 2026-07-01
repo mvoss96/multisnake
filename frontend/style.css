@@ -188,8 +188,7 @@ html, body {
   color: #cfcfe0;
 }
 
-#name-input,
-#server-input {
+#name-input {
   display: block;
   width: 100%;
   box-sizing: border-box;

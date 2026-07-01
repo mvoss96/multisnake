@@ -7,7 +7,6 @@ window.addEventListener("DOMContentLoaded", () => {
   const restartBtn = document.getElementById("restart-btn");
   const connectionBanner = document.getElementById("connection-banner");
   const nameModal = document.getElementById("name-modal");
-  const serverInput = document.getElementById("server-input");
   const nameInput = document.getElementById("name-input");
   const joinBtn = document.getElementById("join-btn");
   const controlToggleBtn = document.getElementById("control-toggle");
@@ -33,12 +32,8 @@ window.addEventListener("DOMContentLoaded", () => {
       "Berühren & halten: Richtung zeigen · Button unten rechts: Dash · Dein goldener Ring markiert deine Schlange";
   }
 
-  // Namens-Modal wird immer zuerst gezeigt (kein Auto-Connect mehr beim Laden),
-  // da der Server erst dort ausgewählt wird. Beide Felder werden aus dem
-  // Storage vorbefüllt, sodass wiederkehrende Spieler nur noch Enter/Klick
-  // brauchen, statt komplett am Modal vorbeizulaufen.
-  serverInput.value =
-    localStorage.getItem("snakeServer") || window.location.hostname || "localhost";
+  // Namens-Modal wird immer zuerst gezeigt. Name wird aus dem Storage
+  // vorbefüllt, sodass wiederkehrende Spieler nur noch Enter/Klick brauchen.
   nameInput.value = sessionStorage.getItem("snakeName") || "";
 
   function updateControlToggleLabel() {
@@ -80,9 +75,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   function doJoin() {
-    const server = (serverInput.value || "").trim() || "localhost";
     const name = (nameInput.value || "").trim().slice(0, 20) || "Spieler";
-    localStorage.setItem("snakeServer", server);
     sessionStorage.setItem("snakeName", name);
     pendingName = name;
     nameModal.classList.add("hidden");
@@ -90,7 +83,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (client) return; // already connected from an earlier submit
 
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    client = new WebSocketClient(`${protocol}://${server}:${window.location.port}/ws`);
+    client = new WebSocketClient(`${protocol}://${window.location.host}/ws`);
     window.__debugClient = client; // Konsole: window.__debugClient.sendDebugTeleport(x, y) etc.
 
     client.onConnectionChange = (isConnected) => {
@@ -135,9 +128,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   joinBtn.addEventListener("click", doJoin);
-  for (const input of [serverInput, nameInput]) {
-    input.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") doJoin();
-    });
-  }
+  nameInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") doJoin();
+  });
 });

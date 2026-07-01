@@ -9,6 +9,7 @@ class Player:
         self.name = name
         self.snake: Snake | None = None
         self.color: str | None = None
+        self.pattern: str | None = None
 
     def get_input_direction(self, context: DecisionContext) -> float | None:
         raise NotImplementedError

@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from game.game_room import GameRoom
+from game.game_room import _PATTERNS, GameRoom
 from game.vector import Vector2
 
 from ..conftest import SpawnSnakeAt
@@ -343,3 +343,35 @@ def test_debug_set_bot_count_removal_frees_name_and_color_for_reuse(
 
     assert room.players.unique_name(bot_name) == bot_name  # no longer taken
     assert all(p.color != bot_color for p in room.players.all())  # no longer reserved
+
+
+def test_pattern_is_chosen_from_the_valid_set(game_room: GameRoom) -> None:
+    player = game_room.add_human_player("p1")
+    assert player.snake is not None
+    assert player.snake.pattern in _PATTERNS
+
+
+def test_pattern_persists_across_human_respawn(
+    game_room: GameRoom, spawn_snake_at: SpawnSnakeAt
+) -> None:
+    player = spawn_snake_at("p1", 100, 100)
+    assert player.snake is not None
+    original_pattern = player.snake.pattern
+
+    game_room.respawn_player("p1")
+
+    assert player.snake is not None
+    assert player.snake.pattern == original_pattern
+
+
+def test_pattern_persists_across_bot_auto_respawn(game_room: GameRoom) -> None:
+    game_room.add_ai_players(1)
+    bot_player = next(p for p in game_room.players.all() if p.player_type == "ai")
+    assert bot_player.snake is not None
+    original_pattern = bot_player.snake.pattern
+    bot_player.snake.points = [Vector2(-100, -100)]  # force out-of-bounds death
+
+    game_room.tick(0.0)
+
+    assert bot_player.snake is not None
+    assert bot_player.snake.pattern == original_pattern

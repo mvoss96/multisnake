@@ -23,7 +23,7 @@ def config() -> SimpleNamespace:
 
 
 def make_snake(config: SimpleNamespace, pos: Vector2 | None = None) -> Snake:
-    return Snake("id1", "p1", "Test", "#fff", pos or Vector2(0, 0), 0.0, config)
+    return Snake("id1", "p1", "Test", "#fff", "solid", pos or Vector2(0, 0), 0.0, config)
 
 
 def test_new_snake_starts_fully_charged_and_not_dashing(config: SimpleNamespace) -> None:

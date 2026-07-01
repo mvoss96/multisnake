@@ -33,7 +33,7 @@ def snake_config() -> SimpleNamespace:
 
 
 def make_snake(pos: Vector2, direction: float = 0.0) -> Snake:
-    return Snake("id1", "p1", "Test", "#fff", pos, direction, snake_config())
+    return Snake("id1", "p1", "Test", "#fff", "solid", pos, direction, snake_config())
 
 
 def test_avoids_danger_when_lookahead_is_out_of_bounds() -> None:

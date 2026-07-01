@@ -97,6 +97,7 @@ class SnakeState(BaseModel):
     player_id: str
     name: str
     color: str
+    pattern: str
     radius: float
     score: int
     direction: float

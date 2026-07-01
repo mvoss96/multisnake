@@ -112,6 +112,15 @@ function createRenderer(canvas) {
     ctx.shadowColor = "transparent";
   }
 
+  // Breite/Radius am Punkt-Index i (0 = Kopf, n-1 = Schwanzende) unter
+  // Berücksichtigung der Verjüngung - von drawTaperedBody und den
+  // Muster-Zeichenfunktionen gemeinsam genutzt, damit Streifen/Punkte mit
+  // der tatsächlichen Körperbreite an ihrer Position mitschrumpfen.
+  function taperFactorAt(index, n) {
+    const t = index / (n - 1); // 0 am Kopf, 1 am Schwanzende
+    return 1 - t * (1 - SNAKE_TAIL_TAPER_FACTOR);
+  }
+
   // Zeichnet den Körperpfad in mehreren Teilstücken mit zum Schwanz hin
   // abnehmender Linienbreite - eine einzelne stroke()-Anweisung kann keine
   // variable Breite entlang eines Pfads, daher die Aufteilung in Segmente.
@@ -125,8 +134,8 @@ function createRenderer(canvas) {
       const startIdx = s * pointsPerSegment;
       if (startIdx >= n - 1) break;
       const endIdx = Math.min(n - 1, startIdx + pointsPerSegment);
-      const t = (startIdx + endIdx) / 2 / (n - 1); // 0 am Kopf, 1 am Schwanzende
-      ctx.lineWidth = maxWidth * (1 - t * (1 - SNAKE_TAIL_TAPER_FACTOR));
+      const midIdx = (startIdx + endIdx) / 2;
+      ctx.lineWidth = maxWidth * taperFactorAt(midIdx, n);
       ctx.beginPath();
       ctx.moveTo(points[startIdx][0], points[startIdx][1]);
       for (let i = startIdx + 1; i <= endIdx; i++) {
@@ -135,6 +144,41 @@ function createRenderer(canvas) {
       ctx.stroke();
     }
     if (alpha !== undefined) ctx.globalAlpha = 1;
+  }
+
+  // Zeichnet die optionale Oberflächen-Textur ("stripes"/"dots") auf den
+  // bereits gezeichneten Körper - "solid" braucht keine Zusatzzeichnung.
+  function drawSnakePattern(snake, points) {
+    const n = points.length;
+    if (n < 2 || snake.pattern === "solid") return;
+    const interval = SNAKE_PATTERN_POINT_INTERVAL;
+
+    if (snake.pattern === "stripes") {
+      ctx.strokeStyle = SNAKE_STRIPE_COLOR;
+      ctx.lineWidth = SNAKE_STRIPE_WIDTH;
+      for (let i = interval; i < n - 1; i += interval) {
+        const localRadius = snake.radius * taperFactorAt(i, n);
+        const [x1, y1] = points[i - 1];
+        const [x2, y2] = points[i + 1];
+        const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+        const perpX = (-(y2 - y1) / len) * localRadius;
+        const perpY = ((x2 - x1) / len) * localRadius;
+        const [px, py] = points[i];
+        ctx.beginPath();
+        ctx.moveTo(px + perpX, py + perpY);
+        ctx.lineTo(px - perpX, py - perpY);
+        ctx.stroke();
+      }
+    } else if (snake.pattern === "dots") {
+      ctx.fillStyle = SNAKE_DOT_COLOR;
+      for (let i = interval; i < n - 1; i += interval) {
+        const localRadius = snake.radius * taperFactorAt(i, n);
+        const [px, py] = points[i];
+        ctx.beginPath();
+        ctx.arc(px, py, localRadius * SNAKE_DOT_RADIUS_FACTOR, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
   }
 
   function drawCrown(x, y) {
@@ -225,6 +269,7 @@ function createRenderer(canvas) {
       drawTaperedBody(points, snake.radius * 2 + SNAKE_OUTLINE_WIDTH * 2, SNAKE_OUTLINE_COLOR);
       drawTaperedBody(points, snake.radius * 2, snake.color);
       drawTaperedBody(points, snake.radius * 2 * SNAKE_SHINE_WIDTH_FACTOR, "#ffffff", SNAKE_SHINE_ALPHA);
+      drawSnakePattern(snake, points);
 
       if (snake.dashing) {
         ctx.shadowBlur = 0;

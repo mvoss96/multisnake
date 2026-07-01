@@ -11,6 +11,7 @@ class Snake:
         player_id: str,
         name: str,
         color: str,
+        pattern: str,
         start_pos: Vector2,
         start_direction: float,
         config: SnakeConfig,
@@ -19,6 +20,7 @@ class Snake:
         self.player_id = player_id
         self.name = name
         self.color = color
+        self.pattern = pattern
         self.direction = start_direction
         self.desired_direction = start_direction
         self.speed = config.SNAKE_SPEED

@@ -68,3 +68,10 @@ const SNAKE_EYE_FORWARD_OFFSET = 0.4;
 const SNAKE_EYE_SIDE_OFFSET = 0.55;
 const SNAKE_EYE_RADIUS_FACTOR = 0.32;
 const SNAKE_PUPIL_RADIUS_FACTOR = 0.16;
+// Muster (server-zugewiesen und pro Spieler stabil, siehe GameRoom._PATTERNS im
+// Backend - "solid" braucht keine Zusatzzeichnung, hier nicht gelistet).
+const SNAKE_PATTERN_POINT_INTERVAL = 4; // Punkte zwischen zwei Muster-Markierungen
+const SNAKE_STRIPE_COLOR = "rgba(0, 0, 0, 0.35)";
+const SNAKE_STRIPE_WIDTH = 2;
+const SNAKE_DOT_COLOR = "rgba(255, 255, 255, 0.55)";
+const SNAKE_DOT_RADIUS_FACTOR = 0.4; // relativ zum lokalen Körperradius am jeweiligen Punkt

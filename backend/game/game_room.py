@@ -23,6 +23,9 @@ _COLORS = [
     "#2bcbba",
 ]
 
+# Rein optisch, siehe frontend/js/renderer.js für die jeweilige Zeichenlogik.
+_PATTERNS = ["solid", "stripes", "dots"]
+
 
 class GameRoom:
     def __init__(self, config: GameConfig) -> None:
@@ -56,6 +59,11 @@ class GameRoom:
             player.color = self._rng.choice(available or _COLORS)
         return player.color
 
+    def _pattern_for(self, player: Player) -> str:
+        if player.pattern is None:
+            player.pattern = self._rng.choice(_PATTERNS)
+        return player.pattern
+
     def _spawn_snake_for(self, player: Player) -> Snake:
         pos = self._find_safe_spawn_point()
         direction = self._rng.uniform(0, 2 * math.pi)
@@ -64,6 +72,7 @@ class GameRoom:
             player.player_id,
             player.name,
             self._color_for(player),
+            self._pattern_for(player),
             pos,
             direction,
             self.config,
@@ -122,6 +131,7 @@ class GameRoom:
             player.player_id,
             player.name,
             self._color_for(player),
+            self._pattern_for(player),
             Vector2(x, y),
             direction,
             self.config,
@@ -283,6 +293,7 @@ class GameRoom:
                     player_id=player.player_id,
                     name=player.name,
                     color=snake.color,
+                    pattern=snake.pattern,
                     radius=snake.radius,
                     score=snake.score,
                     direction=snake.direction,

@@ -48,7 +48,6 @@ exclude = ["^\\.venv/"]
 [[tool.mypy.overrides]]
 module = [
     "main",
-    "game.game_room",
     "game.protocol",
 ]
 ignore_errors = true

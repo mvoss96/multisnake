@@ -42,4 +42,16 @@ class BotConfig(Protocol):
 
 
 class GameConfig(FoodConfig, SnakeConfig, BotConfig, Protocol):
-    """Union of every module's config needs - for consumers touching all of them (e.g. GameRoom)."""
+    """Union of every module's config needs, plus attributes only GameRoom itself reads."""
+
+    BOARD_WIDTH: float
+    BOARD_HEIGHT: float
+    MAX_TURN_RATE: float
+    SPIKE_ZONE_DEPTH: float
+    FOOD_RADIUS: float
+    FOOD_MEDIUM_RADIUS: float
+    FOOD_BIG_RADIUS: float
+    FOOD_DROP_SAMPLE_STEP: int
+    FOOD_MAX_CONSOLIDATE_GAP: float
+    FOOD_MAGNET_RADIUS: float
+    FOOD_MAGNET_SPEED: float

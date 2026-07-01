@@ -13,6 +13,7 @@ RUN chown -R snake:snake /app
 USER snake
 
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV UV_CACHE_DIR=/tmp/uv-cache
 
 EXPOSE 8000
 

@@ -295,6 +295,7 @@ class GameRoom:
                     color=snake.color,
                     pattern=snake.pattern,
                     radius=snake.radius,
+                    length=round(snake.target_length, 1),
                     score=snake.score,
                     direction=snake.direction,
                     points=[[round(p.x, 1), round(p.y, 1)] for p in snake.points],

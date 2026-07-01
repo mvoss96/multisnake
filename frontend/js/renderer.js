@@ -32,8 +32,11 @@ function createRenderer(canvas) {
     canvas.height = window.innerHeight;
   }
 
-  function worldScale() {
-    const heightScale = canvas.height / VIEW_WORLD_HEIGHT;
+  // viewWorldHeight ist nicht mehr konstant - main.js interpoliert sie anhand der
+  // eigenen Schlangenlänge zwischen VIEW_WORLD_HEIGHT_MIN/MAX (siehe config.js) und
+  // reicht sie pro Frame durch, damit die Kamera beim Wachsen rauszoomt.
+  function worldScale(viewWorldHeight) {
+    const heightScale = canvas.height / viewWorldHeight;
     const widthScale = canvas.width / MIN_VISIBLE_WORLD_WIDTH;
     return Math.min(heightScale, widthScale);
   }
@@ -41,8 +44,8 @@ function createRenderer(canvas) {
   // Höhe (in CSS-Pixeln) des tatsächlich fürs Spielfeld genutzten Canvas-Bereichs.
   // Weicht von canvas.height ab, sobald worldScale() durch die Mindest-Weltbreite
   // geklemmt wurde (schmale Hochformat-Viewports) - der Rest wird letterboxed.
-  function viewportHeightPx(scale) {
-    return Math.min(canvas.height, VIEW_WORLD_HEIGHT * scale);
+  function viewportHeightPx(scale, viewWorldHeight) {
+    return Math.min(canvas.height, viewWorldHeight * scale);
   }
 
   // Das Muster beginnt mit einem festen Rand (SPIKE_CORNER_MARGIN) statt
@@ -201,9 +204,9 @@ function createRenderer(canvas) {
     ctx.restore();
   }
 
-  function draw(state, camera) {
-    const scale = worldScale();
-    const viewH = viewportHeightPx(scale);
+  function draw(state, camera, viewWorldHeight) {
+    const scale = worldScale(viewWorldHeight);
+    const viewH = viewportHeightPx(scale, viewWorldHeight);
     const barHeight = (canvas.height - viewH) / 2;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);

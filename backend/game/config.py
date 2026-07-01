@@ -32,7 +32,10 @@ FOOD_RADIUS: Final[float] = 5.0
 FOOD_MEDIUM_RADIUS: Final[float] = 7.0
 FOOD_BIG_RADIUS: Final[float] = 9.0
 FOOD_GROWTH_VALUE: Final[float] = SEGMENT_SPACING * 1.5
-MAX_SNAKE_LENGTH: Final[float] = 60 * SEGMENT_SPACING
+# Deutlich höher als der bisherige 60er-Wert, damit lange Partien wirklich lang
+# aussehen - Frontend zoomt die Kamera passend dazu raus (siehe SnakeState.length,
+# VIEW_WORLD_HEIGHT_MIN/MAX in frontend/js/config.js).
+MAX_SNAKE_LENGTH: Final[float] = 200 * SEGMENT_SPACING
 FOOD_DROP_SAMPLE_STEP: Final[int] = 2
 # Mittlere/große Futterstücke sind X kleine wert (Wachstum + Score)
 FOOD_MEDIUM_VALUE_MULTIPLIER: Final[int] = 2

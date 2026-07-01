@@ -17,6 +17,9 @@ window.addEventListener("DOMContentLoaded", () => {
   let camera = { x: 0, y: 0 };
   let client = null;
   let pendingName = "";
+  // Zoomstufe, interpoliert anhand der eigenen Schlangenlänge (siehe onState) -
+  // startet bei der kleinsten Zoomstufe (VIEW_WORLD_HEIGHT_MIN aus config.js).
+  let viewWorldHeight = VIEW_WORLD_HEIGHT_MIN;
 
   renderer.resizeToWindow();
   window.addEventListener("resize", () => renderer.resizeToWindow());
@@ -114,9 +117,18 @@ window.addEventListener("DOMContentLoaded", () => {
         GameState.ownDirection = mySnake.direction;
         scoreEl.textContent = `Score: ${mySnake.score}`;
         updateDashMeter(mySnake.dash_charge, mySnake.dashing);
+
+        // Kamera zoomt mit wachsender eigener Länge kontinuierlich raus, damit
+        // man sich selbst weiterhin gut im Blick behält (0 bei Start-, 1 bei
+        // Maximallänge, siehe SNAKE_MIN_LENGTH/SNAKE_MAX_LENGTH in config.js).
+        const growth = Math.min(
+          1,
+          Math.max(0, (mySnake.length - SNAKE_MIN_LENGTH) / (SNAKE_MAX_LENGTH - SNAKE_MIN_LENGTH))
+        );
+        viewWorldHeight = VIEW_WORLD_HEIGHT_MIN + growth * (VIEW_WORLD_HEIGHT_MAX - VIEW_WORLD_HEIGHT_MIN);
       }
 
-      renderer.draw({ snakes: msg.snakes, food: msg.food }, camera);
+      renderer.draw({ snakes: msg.snakes, food: msg.food }, camera, viewWorldHeight);
       updateLeaderboard(msg.snakes);
     };
 

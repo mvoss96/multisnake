@@ -2,7 +2,15 @@
 // Gegenstücke im Backend stehen in backend/game/config.py (dort kommentiert, wo Werte
 // zusammenpassen müssen, z.B. Futter-Radien oder die Spike-Zonentiefe).
 
-const VIEW_WORLD_HEIGHT = 600; // fester Weltausschnitt (Einheiten) - unabhängig von Bildschirmauflösung
+// Weltausschnitt (Einheiten), zwischen dem abhängig von der eigenen Schlangenlänge
+// interpoliert wird (siehe main.js) - kurze Schlange = reingezoomt (MIN), lange
+// Schlange = rausgezoomt (MAX), damit man sich selbst im Blick behält.
+const VIEW_WORLD_HEIGHT_MIN = 600;
+const VIEW_WORLD_HEIGHT_MAX = 1400;
+// Spiegelt SNAKE_START_LENGTH*SEGMENT_SPACING bzw. MAX_SNAKE_LENGTH aus
+// backend/game/config.py - Normierung für die Zoom-Interpolation oben.
+const SNAKE_MIN_LENGTH = 80;
+const SNAKE_MAX_LENGTH = 1600;
 
 // Mobile / Touch
 // Mindest-Weltbreite, die auf jedem Viewport sichtbar sein muss (Fairness-Fix

@@ -99,6 +99,7 @@ class SnakeState(BaseModel):
     color: str
     pattern: str
     radius: float
+    length: float
     score: int
     direction: float
     points: list[list[float]]

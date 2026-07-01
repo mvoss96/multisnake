@@ -7,6 +7,8 @@ TICK_DT: Final[float] = 1.0 / TICK_RATE
 BOARD_WIDTH: Final[float] = 1500
 BOARD_HEIGHT: Final[float] = 1500
 
+# Ziel-Gesamtpopulation (Bots + Menschen), nicht nur eine einmalige Startanzahl:
+# GameRoom._rebalance_bots() haelt die Bot-Anzahl staendig bei max(0, NUM_BOTS - human_count).
 NUM_BOTS: Final[int] = 6
 
 SNAKE_START_LENGTH: Final[int] = 10  # Segmente

@@ -1,3 +1,13 @@
+/* Registriert --dash-charge als typisierten (interpolierbaren) Custom-Property-
+   Wert - ohne das kann der Browser den conic-gradient()-Stop nicht animieren und
+   die Ladeanzeige (#dash-ring/#dash-btn) springt bei jedem State-Update (30/s)
+   sichtbar ruckartig statt sanft zu füllen. */
+@property --dash-charge {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+
 html, body {
   margin: 0;
   height: 100%;
@@ -66,7 +76,7 @@ html, body {
   --dash-charge: 0%;
   background: conic-gradient(#4b7bec var(--dash-charge), #23233a var(--dash-charge));
   border: 2px solid rgba(255, 255, 255, 0.15);
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, --dash-charge 0.1s linear;
 }
 
 #dash-ring.ready {
@@ -231,6 +241,7 @@ html, body {
      aus dem HUD, die auf Touch ohnehin weit vom Daumen entfernt wäre. */
   --dash-charge: 0%;
   background: conic-gradient(#4b7bec var(--dash-charge), #23233a var(--dash-charge));
+  transition: background-color 0.15s ease, --dash-charge 0.1s linear;
   border: 2px solid rgba(255, 255, 255, 0.15);
   color: #eee;
   font-weight: 700;

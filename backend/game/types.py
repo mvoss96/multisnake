@@ -1,17 +1,18 @@
 """Shared structural types.
 
 `config.py` is used throughout the codebase as a plain module passed around
-as an object (e.g. `Snake.__init__(self, ..., config)`). `GameConfig` types
-that usage pattern via a `Protocol` instead of `types.ModuleType`, so mypy can
-check which attributes each consumer actually relies on without requiring
-`config.py` to become a class/dataclass. Grows incrementally as more modules
-are typed - each consumer only needs the attributes it reads.
+as an object (e.g. `Snake.__init__(self, ..., config)`). These `Protocol`s
+type that usage pattern instead of `types.ModuleType`, so mypy can check
+which attributes each consumer actually relies on without requiring
+`config.py` to become a class/dataclass. Split per consumer (rather than one
+big protocol) so a minimal fake config in a test only needs to satisfy the
+attributes that particular module actually reads.
 """
 
 from typing import Protocol
 
 
-class GameConfig(Protocol):
+class FoodConfig(Protocol):
     FOOD_BIG_SPAWN_CHANCE: float
     FOOD_MEDIUM_SPAWN_CHANCE: float
     FOOD_BIG_VALUE_MULTIPLIER: int
@@ -19,3 +20,26 @@ class GameConfig(Protocol):
     FOOD_GROWTH_VALUE: float
     FOOD_LIFETIME_SECONDS: float
     FOOD_COUNT_TARGET: int
+
+
+class SnakeConfig(Protocol):
+    SNAKE_SPEED: float
+    SNAKE_RADIUS: float
+    SNAKE_START_LENGTH: int
+    SEGMENT_SPACING: float
+    MAX_SNAKE_LENGTH: float
+    DASH_DURATION: float
+    DASH_SPEED_MULTIPLIER: float
+    DASH_RECHARGE_SECONDS: float
+
+
+class BotConfig(Protocol):
+    BOT_LOOKAHEAD: float
+    BOT_DANGER_MARGIN: float
+    BOT_AVOID_TURN: float
+    BOT_SIGHT_RADIUS: float
+    BOT_WANDER_TICKS: int
+
+
+class GameConfig(FoodConfig, SnakeConfig, BotConfig, Protocol):
+    """Union of every module's config needs - for consumers touching all of them (e.g. GameRoom)."""

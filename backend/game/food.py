@@ -3,7 +3,7 @@ import uuid
 from dataclasses import dataclass
 
 from .board import Board
-from .types import GameConfig
+from .types import FoodConfig
 from .vector import Vector2
 
 
@@ -18,7 +18,7 @@ class Food:
 
 
 class FoodManager:
-    def __init__(self, config: GameConfig) -> None:
+    def __init__(self, config: FoodConfig) -> None:
         self.config = config
         self.foods: dict[str, Food] = {}
 

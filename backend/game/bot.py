@@ -1,18 +1,29 @@
 import math
 import random
+from typing import TypedDict
 
+from .board import Board
+from .food import Food
+from .snake import Snake
+from .types import BotConfig
 from .vector import Vector2
+
+
+class DecisionContext(TypedDict):
+    board: Board
+    foods: list[Food]
+    other_snakes: list[Snake]
 
 
 class Bot:
     """Einfache Heuristik: Gefahr meiden > nächstes Futter ansteuern > wandern."""
 
-    def __init__(self, config):
+    def __init__(self, config: BotConfig) -> None:
         self.config = config
         self._wander_angle = random.uniform(0, 2 * math.pi)
         self._wander_timer = 0
 
-    def decide(self, snake, context):
+    def decide(self, snake: Snake, context: DecisionContext) -> float:
         board = context["board"]
         foods = context["foods"]
         other_snakes = context["other_snakes"]
@@ -26,7 +37,8 @@ class Bot:
         if not danger:
             for other in other_snakes:
                 for point in other.points[::3]:
-                    if lookahead.distance_to(point) < snake.radius + other.radius + self.config.BOT_DANGER_MARGIN:
+                    safe_dist = snake.radius + other.radius + self.config.BOT_DANGER_MARGIN
+                    if lookahead.distance_to(point) < safe_dist:
                         danger = True
                         break
                 if danger:

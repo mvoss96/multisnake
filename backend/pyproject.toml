@@ -49,9 +49,6 @@ exclude = ["^\\.venv/"]
 module = [
     "main",
     "game.game_room",
-    "game.snake",
-    "game.bot",
-    "game.player",
     "game.protocol",
 ]
 ignore_errors = true

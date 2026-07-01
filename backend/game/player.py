@@ -1,54 +1,59 @@
+from .bot import Bot, DecisionContext
+from .snake import Snake
+
+
 class Player:
-    def __init__(self, player_id, player_type, name):
+    def __init__(self, player_id: str, player_type: str, name: str) -> None:
         self.player_id = player_id
         self.player_type = player_type
         self.name = name
-        self.snake = None
+        self.snake: Snake | None = None
 
-    def get_input_direction(self, context):
+    def get_input_direction(self, context: DecisionContext) -> float | None:
         raise NotImplementedError
 
 
 class HumanPlayer(Player):
-    def __init__(self, player_id, name="Player"):
+    def __init__(self, player_id: str, name: str = "Player") -> None:
         super().__init__(player_id, "human", name)
-        self._direction = None
+        self._direction: float | None = None
 
-    def set_direction(self, angle):
+    def set_direction(self, angle: float) -> None:
         self._direction = angle
 
-    def get_input_direction(self, context):
+    def get_input_direction(self, context: DecisionContext) -> float | None:
         return self._direction
 
 
 class AIPlayer(Player):
-    def __init__(self, player_id, name, bot):
+    def __init__(self, player_id: str, name: str, bot: Bot) -> None:
         super().__init__(player_id, "ai", name)
         self.bot = bot
 
-    def get_input_direction(self, context):
+    def get_input_direction(self, context: DecisionContext) -> float | None:
+        assert self.snake is not None
         return self.bot.decide(self.snake, context)
 
 
 class PlayerManager:
-    def __init__(self):
-        self.players = {}
+    def __init__(self) -> None:
+        self.players: dict[str, Player] = {}
 
-    def add_human(self, player_id, name="Player"):
+    def add_human(self, player_id: str, name: str = "Player") -> HumanPlayer:
         player = HumanPlayer(player_id, name)
         self.players[player_id] = player
         return player
 
-    def add_ai(self, player_id, name, bot):
+    def add_ai(self, player_id: str, name: str, bot: Bot) -> AIPlayer:
         player = AIPlayer(player_id, name, bot)
         self.players[player_id] = player
         return player
 
-    def remove(self, player_id):
+    def remove(self, player_id: str) -> None:
         self.players.pop(player_id, None)
 
-    def get(self, player_id):
+    def get(self, player_id: str) -> Player | None:
         return self.players.get(player_id)
 
-    def all(self):
+    def all(self) -> list[Player]:
         return list(self.players.values())

@@ -21,6 +21,7 @@ def config() -> SimpleNamespace:
         DASH_RECHARGE_SECONDS=6.0,
         DASH_CHARGE_PER_FOOD=0.1,
         SCORE_MULTIPLIER=1,
+        SCORE_AT_MAX_LENGTH=100,
     )
 
 
@@ -92,31 +93,40 @@ def test_dash_charge_fully_recharges_after_enough_time(config: SimpleNamespace) 
     assert snake.try_dash() is True
 
 
-def test_grow_increases_target_length_and_score(config: SimpleNamespace) -> None:
+def test_grow_increases_score(config: SimpleNamespace) -> None:
     snake = make_snake(config)
-    initial_length = snake.target_length
-    snake.grow(amount=16.0, score_value=2)
-    assert snake.target_length == initial_length + 16.0
+    snake.grow(score_value=2)
     assert snake.score == 2
 
 
-def test_grow_never_exceeds_max_length(config: SimpleNamespace) -> None:
+def test_grow_derives_length_and_radius_directly_from_score(config: SimpleNamespace) -> None:
     snake = make_snake(config)
-    snake.grow(amount=10_000.0)
+    snake.grow(score_value=25)  # score=25, SCORE_AT_MAX_LENGTH=100 -> 25% gewachsen
+    min_length = config.SNAKE_START_LENGTH * config.SEGMENT_SPACING
+    expected_length = min_length + (config.MAX_SNAKE_LENGTH - min_length) * 0.25
+    expected_radius = config.SNAKE_RADIUS + (config.SNAKE_MAX_RADIUS - config.SNAKE_RADIUS) * 0.25
+    assert snake.target_length == pytest.approx(expected_length)
+    assert snake.radius == pytest.approx(expected_radius)
+
+
+def test_grow_caps_length_and_radius_at_score_at_max_length(config: SimpleNamespace) -> None:
+    snake = make_snake(config)
+    snake.grow(score_value=10_000)  # weit über SCORE_AT_MAX_LENGTH hinaus
     assert snake.target_length == config.MAX_SNAKE_LENGTH
+    assert snake.radius == config.SNAKE_MAX_RADIUS
 
 
-def test_score_is_scaled_by_score_multiplier_independent_of_growth(
+def test_score_multiplier_scales_score_and_therefore_growth_speed(
     config: SimpleNamespace,
 ) -> None:
-    scaled_config = SimpleNamespace(**{**vars(config), "SCORE_MULTIPLIER": 8})
+    scaled_config = SimpleNamespace(**{**vars(config), "SCORE_MULTIPLIER": 4})
     snake = make_snake(scaled_config)
-    initial_length = snake.target_length
 
-    snake.grow(amount=16.0, score_value=2)
+    snake.grow(score_value=25)  # score = 25*4 = 100 = SCORE_AT_MAX_LENGTH -> voll gewachsen
 
-    assert snake.score == 2 * 8  # Score skaliert, Wachstum bleibt unverändert
-    assert snake.target_length == initial_length + 16.0
+    assert snake.score == 100
+    assert snake.target_length == config.MAX_SNAKE_LENGTH
+    assert snake.radius == config.SNAKE_MAX_RADIUS
 
 
 def test_new_snake_starts_at_the_minimum_radius(config: SimpleNamespace) -> None:
@@ -124,39 +134,24 @@ def test_new_snake_starts_at_the_minimum_radius(config: SimpleNamespace) -> None
     assert snake.radius == config.SNAKE_RADIUS
 
 
-def test_grow_increases_radius_toward_the_maximum(config: SimpleNamespace) -> None:
-    snake = make_snake(config)
-    initial_radius = snake.radius
-    snake.grow(amount=100.0)
-    assert snake.radius > initial_radius
-    assert snake.radius < config.SNAKE_MAX_RADIUS
-
-
-def test_grow_radius_reaches_maximum_at_max_length(config: SimpleNamespace) -> None:
-    snake = make_snake(config)
-    snake.grow(amount=10_000.0)
-    assert snake.target_length == config.MAX_SNAKE_LENGTH
-    assert snake.radius == config.SNAKE_MAX_RADIUS
-
-
 def test_grow_also_charges_dash_scaled_by_score_value(config: SimpleNamespace) -> None:
     snake = make_snake(config)
     snake.dash_charge = 0.0  # not currently dashing, just depleted
-    snake.grow(amount=1.0, score_value=2)
+    snake.grow(score_value=2)
     assert snake.dash_charge == pytest.approx(config.DASH_CHARGE_PER_FOOD * 2)
 
 
 def test_grow_dash_charge_never_exceeds_one(config: SimpleNamespace) -> None:
     snake = make_snake(config)
     snake.dash_charge = 0.0
-    snake.grow(amount=1.0, score_value=100)
+    snake.grow(score_value=100)
     assert snake.dash_charge == 1.0
 
 
 def test_grow_does_not_charge_dash_while_dashing(config: SimpleNamespace) -> None:
     snake = make_snake(config)
     snake.try_dash()  # dash_charge -> 0.0, dash_time_remaining -> DASH_DURATION
-    snake.grow(amount=1.0, score_value=100)
+    snake.grow(score_value=100)
     assert snake.dash_charge == 0.0
 
 

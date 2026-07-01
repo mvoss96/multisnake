@@ -17,7 +17,6 @@ class FoodConfig(Protocol):
     FOOD_MEDIUM_SPAWN_CHANCE: float
     FOOD_BIG_VALUE_MULTIPLIER: int
     FOOD_MEDIUM_VALUE_MULTIPLIER: int
-    FOOD_GROWTH_VALUE: float
     FOOD_LIFETIME_SECONDS: float
     FOOD_COUNT_TARGET: int
 
@@ -34,6 +33,7 @@ class SnakeConfig(Protocol):
     DASH_RECHARGE_SECONDS: float
     DASH_CHARGE_PER_FOOD: float
     SCORE_MULTIPLIER: int
+    SCORE_AT_MAX_LENGTH: int
 
 
 class BotConfig(Protocol):

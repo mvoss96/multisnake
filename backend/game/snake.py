@@ -89,19 +89,15 @@ class Snake:
         if cutoff_index is not None:
             del self.points[cutoff_index + 1 :]
 
-    def grow(self, amount: float, score_value: int = 1) -> None:
-        self.target_length = min(self.target_length + amount, self.max_length)
-        # Score-Anzeige ist bewusst mit SCORE_MULTIPLIER hochskaliert, unabhängig
-        # vom (unveränderten) score_value fürs Längen-/Radius-Wachstum unten und
-        # die Dash-Aufladung - siehe Kommentar bei SCORE_MULTIPLIER in config.py.
+    def grow(self, score_value: int = 1) -> None:
         self.score += score_value * self.config.SCORE_MULTIPLIER
 
-        # Radius wächst linear mit der Länge mit - eine lange Schlange wird so
-        # auch sichtbar dicker, nicht nur länger (wirkt sich über self.radius
-        # auch auf Kollisions-/Futter-Reichweite aus, nicht nur die Optik).
-        length_span = self.max_length - self._min_length
-        growth = (self.target_length - self._min_length) / length_span if length_span > 0 else 1.0
-        growth = min(1.0, max(0.0, growth))
+        # Länge UND Radius sind direkt aus dem Score abgeleitet (nicht mehr aus
+        # einer separat mitgeführten Wachstumsmenge) - beide erreichen ihr
+        # Maximum exakt bei score == SCORE_AT_MAX_LENGTH, unabhängig davon,
+        # durch welchen Futter-Mix der Score zustande kam.
+        growth = min(1.0, self.score / self.config.SCORE_AT_MAX_LENGTH)
+        self.target_length = self._min_length + (self.max_length - self._min_length) * growth
         self.radius = self._min_radius + (self._max_radius - self._min_radius) * growth
 
         if self.dash_time_remaining <= 0:  # kein Aufladen durch Futter während des Dashs

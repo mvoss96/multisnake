@@ -14,7 +14,6 @@ def config() -> SimpleNamespace:
         FOOD_MEDIUM_SPAWN_CHANCE=0.0,
         FOOD_BIG_VALUE_MULTIPLIER=5,
         FOOD_MEDIUM_VALUE_MULTIPLIER=2,
-        FOOD_GROWTH_VALUE=10.0,
         FOOD_LIFETIME_SECONDS=25.0,
         FOOD_COUNT_TARGET=3,
     )
@@ -22,10 +21,9 @@ def config() -> SimpleNamespace:
 
 def test_spawn_at_creates_food_with_full_lifetime(config: SimpleNamespace) -> None:
     manager = FoodManager(config)
-    food = manager.spawn_at(Vector2(1, 2), value=15.0, score_value=1)
+    food = manager.spawn_at(Vector2(1, 2), score_value=1)
     assert food.id in manager.foods
     assert food.position == Vector2(1, 2)
-    assert food.value == 15.0
     assert food.remaining_life == config.FOOD_LIFETIME_SECONDS
     assert food.max_life == config.FOOD_LIFETIME_SECONDS
 
@@ -37,7 +35,6 @@ def test_spawn_random_defaults_to_small_tier_when_chances_are_zero(
     board = Board(width=100, height=100)
     food = manager.spawn_random(board)
     assert food.score_value == 1
-    assert food.value == config.FOOD_GROWTH_VALUE
 
 
 def test_spawn_random_always_picks_big_tier_when_chance_is_certain(
@@ -48,7 +45,6 @@ def test_spawn_random_always_picks_big_tier_when_chance_is_certain(
     board = Board(width=100, height=100)
     food = manager.spawn_random(board)
     assert food.score_value == config.FOOD_BIG_VALUE_MULTIPLIER
-    assert food.value == config.FOOD_GROWTH_VALUE * config.FOOD_BIG_VALUE_MULTIPLIER
 
 
 def test_ensure_min_food_tops_up_to_target(config: SimpleNamespace) -> None:
@@ -68,7 +64,7 @@ def test_ensure_min_food_does_not_overshoot_target(config: SimpleNamespace) -> N
 
 def test_remove_deletes_existing_food(config: SimpleNamespace) -> None:
     manager = FoodManager(config)
-    food = manager.spawn_at(Vector2(0, 0), value=1.0)
+    food = manager.spawn_at(Vector2(0, 0))
     manager.remove(food.id)
     assert food.id not in manager.foods
 
@@ -80,7 +76,7 @@ def test_remove_unknown_id_is_a_no_op(config: SimpleNamespace) -> None:
 
 def test_tick_expires_food_once_lifetime_elapses(config: SimpleNamespace) -> None:
     manager = FoodManager(config)
-    food = manager.spawn_at(Vector2(0, 0), value=1.0)
+    food = manager.spawn_at(Vector2(0, 0))
     manager.tick(config.FOOD_LIFETIME_SECONDS - 0.01)
     assert food.id in manager.foods
     manager.tick(0.02)
@@ -89,6 +85,6 @@ def test_tick_expires_food_once_lifetime_elapses(config: SimpleNamespace) -> Non
 
 def test_tick_decrements_remaining_life(config: SimpleNamespace) -> None:
     manager = FoodManager(config)
-    food = manager.spawn_at(Vector2(0, 0), value=1.0)
+    food = manager.spawn_at(Vector2(0, 0))
     manager.tick(1.0)
     assert food.remaining_life == pytest.approx(config.FOOD_LIFETIME_SECONDS - 1.0)

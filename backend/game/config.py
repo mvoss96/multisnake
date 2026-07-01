@@ -15,9 +15,12 @@ SNAKE_START_LENGTH: Final[int] = 10  # Segmente
 SEGMENT_SPACING: Final[float] = 8.0  # Distanz-Einheiten pro Segment
 SNAKE_SPEED: Final[float] = 90.0  # Einheiten pro Sekunde
 SNAKE_RADIUS: Final[float] = 7.0
-# Radius wächst linear mit target_length von SNAKE_RADIUS (Startlänge) bis
-# SNAKE_MAX_RADIUS (MAX_SNAKE_LENGTH), siehe Snake.grow - eine lange Schlange
-# wird so auch sichtbar dicker, nicht nur länger.
+# Radius UND Länge werden direkt aus dem aktuellen Score berechnet (siehe
+# Snake.grow): beide wachsen linear von ihrem Startwert (SNAKE_RADIUS bzw.
+# Startlänge) bis zum Maximum (SNAKE_MAX_RADIUS bzw. MAX_SNAKE_LENGTH), sobald
+# score / SCORE_AT_MAX_LENGTH die 1.0 erreicht - eine lange Schlange wird so
+# auch sichtbar dicker, nicht nur länger, und beides ist exakt am Score
+# ablesbar statt an einer separat mitgeführten Wachstumsmenge.
 SNAKE_MAX_RADIUS: Final[float] = 14.0
 MAX_TURN_RATE: Final[float] = math.pi * 1.4  # Radiant pro Sekunde
 DASH_SPEED_MULTIPLIER: Final[float] = 2.2  # Geschwindigkeitsfaktor während des Dash
@@ -35,17 +38,20 @@ FOOD_COUNT_TARGET: Final[int] = 90
 FOOD_RADIUS: Final[float] = 5.0
 FOOD_MEDIUM_RADIUS: Final[float] = 7.0
 FOOD_BIG_RADIUS: Final[float] = 9.0
-FOOD_GROWTH_VALUE: Final[float] = SEGMENT_SPACING * 1.5
 # Deutlich höher als der bisherige 60er-Wert, damit lange Partien wirklich lang
 # aussehen - Frontend zoomt die Kamera passend dazu raus (siehe SnakeState.length,
 # VIEW_WORLD_HEIGHT_MIN/MAX in frontend/js/config.js).
 MAX_SNAKE_LENGTH: Final[float] = 200 * SEGMENT_SPACING
-# Score-Anzeige ist bewusst vom Wachstum entkoppelt (Snake.grow() nutzt score_value
-# weiterhin unverändert fürs Längen-/Radius-Wachstum und die Dash-Aufladung) - nur
-# der angezeigte Score wird zusätzlich mit diesem Faktor skaliert, kalibriert so,
-# dass die Maximallänge bei einem Score von ungefähr 1000 erreicht wird
-# ((MAX_SNAKE_LENGTH - Startlänge) / FOOD_GROWTH_VALUE * SCORE_MULTIPLIER ≈ 1000).
+# Faktor, mit dem score_value beim Fressen den Score erhöht. Da Länge/Radius jetzt
+# direkt aus score/SCORE_AT_MAX_LENGTH berechnet werden (siehe SNAKE_MAX_RADIUS-
+# Kommentar oben, Snake.grow), bestimmt dieser Faktor zusammen mit SCORE_AT_MAX_LENGTH
+# auch das Wachstumstempo (wie viele Futterstücke bis zur Maximallänge nötig sind) -
+# bewusst so gewählt (8), dass die effektive Futter-Anzahl bis zum Maximum ungefähr
+# der vorherigen Kalibrierung entspricht (~1000/8 = 125 score_value-Punkte).
 SCORE_MULTIPLIER: Final[int] = 8
+# Score, bei dem Länge/Radius ihr Maximum erreichen - eine exakte, bewusst gewählte
+# Schwelle (statt einer Annäherung wie zuvor).
+SCORE_AT_MAX_LENGTH: Final[int] = 1000
 FOOD_DROP_SAMPLE_STEP: Final[int] = 2
 # Mittlere/große Futterstücke sind X kleine wert (Wachstum + Score)
 FOOD_MEDIUM_VALUE_MULTIPLIER: Final[int] = 2

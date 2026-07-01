@@ -31,6 +31,7 @@ def snake_config() -> SimpleNamespace:
         DASH_RECHARGE_SECONDS=6.0,
         DASH_CHARGE_PER_FOOD=0.1,
         SCORE_MULTIPLIER=1,
+        SCORE_AT_MAX_LENGTH=100,
     )
 
 
@@ -66,8 +67,8 @@ def test_seeks_nearest_food_within_sight_when_no_danger() -> None:
     bot = Bot(bot_config())
     board = Board(width=1000, height=1000)
     snake = make_snake(Vector2(500, 500))
-    near_food = Food(id="near", position=Vector2(520, 500), value=1.0)
-    far_food = Food(id="far", position=Vector2(800, 500), value=1.0)
+    near_food = Food(id="near", position=Vector2(520, 500))
+    far_food = Food(id="far", position=Vector2(800, 500))
     context = DecisionContext(board=board, foods=[far_food, near_food], other_snakes=[])
 
     result = bot.decide(snake, context)
@@ -79,7 +80,7 @@ def test_ignores_food_outside_sight_radius() -> None:
     bot = Bot(bot_config())
     board = Board(width=2000, height=2000)
     snake = make_snake(Vector2(1000, 1000))
-    far_food = Food(id="far", position=Vector2(1000 + 351, 1000), value=1.0)
+    far_food = Food(id="far", position=Vector2(1000 + 351, 1000))
     context = DecisionContext(board=board, foods=[far_food], other_snakes=[])
 
     result = bot.decide(snake, context)

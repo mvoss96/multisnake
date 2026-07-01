@@ -11,7 +11,6 @@ from .vector import Vector2
 class Food:
     id: str
     position: Vector2
-    value: float
     score_value: int = 1
     remaining_life: float = 0.0
     max_life: float = 1.0
@@ -31,15 +30,13 @@ class FoodManager:
             score_value = self.config.FOOD_MEDIUM_VALUE_MULTIPLIER
         else:
             score_value = 1
-        value = self.config.FOOD_GROWTH_VALUE * score_value
-        return self.spawn_at(pos, value, score_value)
+        return self.spawn_at(pos, score_value)
 
-    def spawn_at(self, position: Vector2, value: float, score_value: int = 1) -> Food:
+    def spawn_at(self, position: Vector2, score_value: int = 1) -> Food:
         life = self.config.FOOD_LIFETIME_SECONDS
         food = Food(
             id=str(uuid.uuid4()),
             position=position,
-            value=value,
             score_value=score_value,
             remaining_life=life,
             max_life=life,

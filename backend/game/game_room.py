@@ -188,9 +188,7 @@ class GameRoom:
             count = self._rng.choices(feasible, weights=[tier_weights[t] for t in feasible])[0]
             chunk = drop_points[i : i + count]
             mid_point = chunk[len(chunk) // 2]
-            self.food_manager.spawn_at(
-                mid_point, self.config.FOOD_GROWTH_VALUE * count, score_value=count
-            )
+            self.food_manager.spawn_at(mid_point, score_value=count)
             i += count
 
     def _apply_food_magnet(self, alive_snakes: list[Snake], dt: float) -> None:
@@ -262,7 +260,7 @@ class GameRoom:
             head = snake.head()
             for food in list(self.food_manager.foods.values()):
                 if head.distance_to(food.position) < snake.radius + self._food_radius(food):
-                    snake.grow(food.value, score_value=food.score_value)
+                    snake.grow(score_value=food.score_value)
                     eaten_ids.append(food.id)
         for food_id in eaten_ids:
             self.food_manager.remove(food_id)

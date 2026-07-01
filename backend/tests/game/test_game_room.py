@@ -96,7 +96,7 @@ def test_eating_food_grows_snake_and_removes_food(
     game_room: GameRoom, test_config: SimpleNamespace, spawn_snake_at: SpawnSnakeAt
 ) -> None:
     player = spawn_snake_at("p1", 150, 150)
-    food = game_room.food_manager.spawn_at(Vector2(150, 150), value=20.0, score_value=1)
+    food = game_room.food_manager.spawn_at(Vector2(150, 150), score_value=1)
 
     game_room.tick(0.0)
 
@@ -117,7 +117,7 @@ def test_food_magnet_pulls_food_toward_nearest_snake(
     game_room: GameRoom, test_config: SimpleNamespace, spawn_snake_at: SpawnSnakeAt
 ) -> None:
     spawn_snake_at("p1", 150, 150)
-    food = game_room.food_manager.spawn_at(Vector2(190, 150), value=1.0)
+    food = game_room.food_manager.spawn_at(Vector2(190, 150))
 
     distance_before = food.position.distance_to(Vector2(150, 150))
     game_room.tick(1 / 30)
@@ -131,7 +131,7 @@ def test_food_outside_magnet_radius_is_unaffected(
 ) -> None:
     spawn_snake_at("p1", 0, 0)
     far_position = Vector2(0 + test_config.FOOD_MAGNET_RADIUS + 50, 0)
-    food = game_room.food_manager.spawn_at(far_position, value=1.0)
+    food = game_room.food_manager.spawn_at(far_position)
 
     game_room.tick(1 / 30)
 

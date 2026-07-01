@@ -184,7 +184,7 @@ function createRenderer(canvas) {
       ctx.lineWidth = snake.radius * 2 + SNAKE_OUTLINE_WIDTH * 2;
       ctx.stroke(bodyPath);
 
-      ctx.strokeStyle = isMe ? "#ffd700" : snake.color;
+      ctx.strokeStyle = snake.color;
       ctx.lineWidth = snake.radius * 2;
       ctx.stroke(bodyPath);
 
@@ -214,7 +214,7 @@ function createRenderer(canvas) {
       ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
       ctx.lineWidth = 3;
       ctx.strokeText(snake.name, hx, labelY);
-      ctx.fillStyle = isMe ? "#ffd700" : snake.color;
+      ctx.fillStyle = snake.color;
       ctx.fillText(snake.name, hx, labelY);
 
       if (leader && snake.id === leader.id) {

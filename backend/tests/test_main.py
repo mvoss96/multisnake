@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Iterator
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -15,12 +16,19 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     """A fresh, isolated GameRoom + connections dict per test.
 
     Deliberately NOT using `with TestClient(...)`: that would trigger the
-    app's lifespan (adds NUM_BOTS bots and starts the real 30Hz game_loop
-    background task), which would make these tests slow/non-deterministic.
-    Without lifespan, `game_room`/`connections` stay exactly as set here and
-    `broadcast_tick()` can be awaited explicitly where a test needs a tick.
+    app's lifespan (starts the real 30Hz game_loop background task), which
+    would make these tests slow/non-deterministic. Without lifespan,
+    `game_room`/`connections` stay exactly as set here and `broadcast_tick()`
+    can be awaited explicitly where a test needs a tick.
+
+    Built with NUM_BOTS=0 (rather than the real config's NUM_BOTS=6):
+    GameRoom.__init__ now self-populates bots, and letting 6 real bots tick
+    in every test would reintroduce the non-determinism this fixture exists
+    to avoid. Tests that need bot-rebalancing behavior build their own
+    GameRoom with a non-zero NUM_BOTS override instead of using this fixture.
     """
-    monkeypatch.setattr(main, "game_room", GameRoom(config))
+    zero_bots_config = SimpleNamespace(**{**vars(config), "NUM_BOTS": 0})
+    monkeypatch.setattr(main, "game_room", GameRoom(zero_bots_config))
     monkeypatch.setattr(main, "connections", {})
     yield TestClient(main.app)
 
@@ -187,3 +195,38 @@ async def test_debug_spawn_at_places_a_fresh_snake(client: TestClient) -> None:
         player = main.game_room.players.get(player_id)
         assert player is not None and player.snake is not None
         assert (player.snake.points[0].x, player.snake.points[0].y) == (7.0, 8.0)
+
+
+def _bot_count(room: GameRoom) -> int:
+    return len([p for p in room.players.all() if p.player_type == "ai"])
+
+
+@pytest.mark.asyncio
+async def test_sequential_joins_reduce_the_visible_bot_count(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bots_config = SimpleNamespace(**{**vars(config), "NUM_BOTS": 2})
+    monkeypatch.setattr(main, "game_room", GameRoom(bots_config))
+    assert _bot_count(main.game_room) == 2
+
+    with client.websocket_connect("/ws") as ws1, client.websocket_connect("/ws") as ws2:
+        ws1.receive_json()  # welcome
+        ws2.receive_json()  # welcome
+        await _send_and_settle(ws1, {"type": "join", "name": "Alice"})
+        await _send_and_settle(ws2, {"type": "join", "name": "Bob"})
+
+        # Checked while both connections are still open — closing the `with`
+        # block below disconnects both humans again, which would refill bots.
+        assert _bot_count(main.game_room) == 0
+
+
+def test_disconnect_refills_a_bot(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    bots_config = SimpleNamespace(**{**vars(config), "NUM_BOTS": 1})
+    monkeypatch.setattr(main, "game_room", GameRoom(bots_config))
+    assert _bot_count(main.game_room) == 1
+
+    with client.websocket_connect("/ws") as ws:
+        ws.receive_json()  # welcome
+        ws.send_json({"type": "join", "name": "Carol"})
+
+    assert _bot_count(main.game_room) == 1

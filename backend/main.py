@@ -63,7 +63,6 @@ async def game_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    game_room.add_ai_players(config.NUM_BOTS)
     asyncio.create_task(game_loop())
     yield
 

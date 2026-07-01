@@ -46,9 +46,10 @@ MAX_SNAKE_LENGTH: Final[float] = 200 * SEGMENT_SPACING
 # direkt aus score/SCORE_AT_MAX_LENGTH berechnet werden (siehe SNAKE_MAX_RADIUS-
 # Kommentar oben, Snake.grow), bestimmt dieser Faktor zusammen mit SCORE_AT_MAX_LENGTH
 # auch das Wachstumstempo (wie viele Futterstücke bis zur Maximallänge nötig sind) -
-# bewusst so gewählt (8), dass die effektive Futter-Anzahl bis zum Maximum ungefähr
-# der vorherigen Kalibrierung entspricht (~1000/8 = 125 score_value-Punkte).
-SCORE_MULTIPLIER: Final[int] = 8
+# bewusst 1, damit ein kleines Futterstück exakt 1 Punkt gibt und der Score direkt
+# als Futter-Zähler lesbar bleibt (mittlere/große Stücke skalieren wie gehabt über
+# FOOD_MEDIUM_VALUE_MULTIPLIER/FOOD_BIG_VALUE_MULTIPLIER).
+SCORE_MULTIPLIER: Final[int] = 1
 # Score, bei dem Länge/Radius ihr Maximum erreichen - eine exakte, bewusst gewählte
 # Schwelle (statt einer Annäherung wie zuvor).
 SCORE_AT_MAX_LENGTH: Final[int] = 1000

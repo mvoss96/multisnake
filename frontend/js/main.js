@@ -17,12 +17,6 @@ window.addEventListener("DOMContentLoaded", () => {
   let camera = { x: 0, y: 0 };
   let client = null;
   let pendingName = "";
-  // Zoomstufe, interpoliert anhand der eigenen Schlangenlänge (siehe onState) -
-  // startet bei der kleinsten Zoomstufe (VIEW_WORLD_HEIGHT_MIN aus config.js).
-  let viewWorldHeight = VIEW_WORLD_HEIGHT_MIN;
-
-  renderer.resizeToWindow();
-  window.addEventListener("resize", () => renderer.resizeToWindow());
 
   // Eine einzige Erkennung steuert alle Touch-spezifischen CSS-/Text-Unterschiede
   // (siehe body.touch-device in style.css). Die Event-Verdrahtung selbst
@@ -33,6 +27,14 @@ window.addEventListener("DOMContentLoaded", () => {
   if (isTouchDevice) {
     document.body.classList.add("touch-device");
   }
+
+  const minViewWorldHeight = isTouchDevice ? VIEW_WORLD_HEIGHT_MIN_MOBILE : VIEW_WORLD_HEIGHT_MIN;
+  // Aktuelle (geglättete) und Ziel-Zoomstufe, siehe Angleichung in onState.
+  let viewWorldHeight = minViewWorldHeight;
+  let targetViewWorldHeight = minViewWorldHeight;
+
+  renderer.resizeToWindow();
+  window.addEventListener("resize", () => renderer.resizeToWindow());
 
   // Namens-Modal wird immer zuerst gezeigt. Name wird aus dem Storage
   // vorbefüllt, sodass wiederkehrende Spieler nur noch Enter/Klick brauchen.
@@ -122,7 +124,13 @@ window.addEventListener("DOMContentLoaded", () => {
           1,
           Math.max(0, (mySnake.radius - SNAKE_RADIUS_MIN) / (SNAKE_RADIUS_MAX - SNAKE_RADIUS_MIN))
         );
-        viewWorldHeight = VIEW_WORLD_HEIGHT_MIN + growth * (VIEW_WORLD_HEIGHT_MAX - VIEW_WORLD_HEIGHT_MIN);
+        targetViewWorldHeight = minViewWorldHeight + growth * (VIEW_WORLD_HEIGHT_MAX - minViewWorldHeight);
+        // Nähert sich dem Ziel pro State-Update nur graduell an (statt zu springen),
+        // damit Zoomstufen-Wechsel nicht ruckartig wirken - Rauszoomen bewusst
+        // langsamer als Reinzoomen (siehe ZOOM_LERP_FACTOR_OUT/IN in config.js).
+        const zoomLerpFactor =
+          targetViewWorldHeight > viewWorldHeight ? ZOOM_LERP_FACTOR_OUT : ZOOM_LERP_FACTOR_IN;
+        viewWorldHeight += (targetViewWorldHeight - viewWorldHeight) * zoomLerpFactor;
       }
 
       renderer.draw({ snakes: msg.snakes, food: msg.food }, camera, viewWorldHeight);

@@ -7,12 +7,21 @@
 // reingezoomt (MIN), dicke Schlange = rausgezoomt (MAX). Bewusst am Radius statt
 // an der Länge festgemacht, auch wenn beide über dieselbe Wachstumsrate
 // zusammenhängen - der Radius ist die optisch spürbare "Größe" der Schlange.
-const VIEW_WORLD_HEIGHT_MIN = 600;
+const VIEW_WORLD_HEIGHT_MIN = 480;
+// Auf Touch-Geräten (kleinerer Bildschirm, aus der Hand gehalten) startet die
+// Kamera noch etwas näher dran als auf Desktop.
+const VIEW_WORLD_HEIGHT_MIN_MOBILE = 360;
 const VIEW_WORLD_HEIGHT_MAX = 1400;
 // Spiegelt SNAKE_RADIUS bzw. SNAKE_MAX_RADIUS aus backend/game/config.py -
 // Normierung für die Zoom-Interpolation oben.
 const SNAKE_RADIUS_MIN = 7.0;
 const SNAKE_RADIUS_MAX = 14.0;
+// Die Kamera springt nicht direkt auf ihre Ziel-Zoomstufe, sondern nähert sich ihr
+// pro State-Update (30 Hz) exponentiell an (siehe main.js) - sonst wirkt jedes
+// Wachstums-Tick als spürbarer Zoom-Ruck. Rauszoomen (Schlange wächst) läuft
+// bewusst langsamer als Reinzoomen (z.B. nach einem Neustart).
+const ZOOM_LERP_FACTOR_OUT = 0.02;
+const ZOOM_LERP_FACTOR_IN = 0.08;
 
 // Mobile / Touch
 // Mindest-Weltbreite, die auf jedem Viewport sichtbar sein muss (Fairness-Fix

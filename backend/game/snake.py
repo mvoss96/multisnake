@@ -29,6 +29,9 @@ class Snake:
         self.points: list[Vector2] = [start_pos]
         self.target_length = config.SNAKE_START_LENGTH * config.SEGMENT_SPACING
         self.max_length = config.MAX_SNAKE_LENGTH
+        self._min_length = self.target_length
+        self._min_radius = config.SNAKE_RADIUS
+        self._max_radius = config.SNAKE_MAX_RADIUS
         self.score = 0
         self.config = config
         self.dash_charge = 1.0  # 0..1, bei 1.0 einsatzbereit
@@ -89,6 +92,15 @@ class Snake:
     def grow(self, amount: float, score_value: int = 1) -> None:
         self.target_length = min(self.target_length + amount, self.max_length)
         self.score += score_value
+
+        # Radius wächst linear mit der Länge mit - eine lange Schlange wird so
+        # auch sichtbar dicker, nicht nur länger (wirkt sich über self.radius
+        # auch auf Kollisions-/Futter-Reichweite aus, nicht nur die Optik).
+        length_span = self.max_length - self._min_length
+        growth = (self.target_length - self._min_length) / length_span if length_span > 0 else 1.0
+        growth = min(1.0, max(0.0, growth))
+        self.radius = self._min_radius + (self._max_radius - self._min_radius) * growth
+
         if self.dash_time_remaining <= 0:  # kein Aufladen durch Futter während des Dashs
             charge_gain = self.config.DASH_CHARGE_PER_FOOD * score_value
             self.dash_charge = min(1.0, self.dash_charge + charge_gain)

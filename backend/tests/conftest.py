@@ -25,6 +25,7 @@ def test_config() -> SimpleNamespace:
         SPIKE_ZONE_DEPTH=14.0,
         SNAKE_SPEED=90.0,
         SNAKE_RADIUS=7.0,
+        SNAKE_MAX_RADIUS=14.0,
         SNAKE_START_LENGTH=10,
         SEGMENT_SPACING=8.0,
         MAX_SNAKE_LENGTH=480.0,

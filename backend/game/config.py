@@ -15,6 +15,10 @@ SNAKE_START_LENGTH: Final[int] = 10  # Segmente
 SEGMENT_SPACING: Final[float] = 8.0  # Distanz-Einheiten pro Segment
 SNAKE_SPEED: Final[float] = 90.0  # Einheiten pro Sekunde
 SNAKE_RADIUS: Final[float] = 7.0
+# Radius wächst linear mit target_length von SNAKE_RADIUS (Startlänge) bis
+# SNAKE_MAX_RADIUS (MAX_SNAKE_LENGTH), siehe Snake.grow - eine lange Schlange
+# wird so auch sichtbar dicker, nicht nur länger.
+SNAKE_MAX_RADIUS: Final[float] = 14.0
 MAX_TURN_RATE: Final[float] = math.pi * 1.4  # Radiant pro Sekunde
 DASH_SPEED_MULTIPLIER: Final[float] = 2.2  # Geschwindigkeitsfaktor während des Dash
 DASH_DURATION: Final[float] = 1.8  # Sekunden, die der Dash anhält

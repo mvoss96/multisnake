@@ -12,6 +12,7 @@ def config() -> SimpleNamespace:
     return SimpleNamespace(
         SNAKE_SPEED=90.0,
         SNAKE_RADIUS=7.0,
+        SNAKE_MAX_RADIUS=14.0,
         SNAKE_START_LENGTH=10,
         SEGMENT_SPACING=8.0,
         MAX_SNAKE_LENGTH=480.0,
@@ -102,6 +103,26 @@ def test_grow_never_exceeds_max_length(config: SimpleNamespace) -> None:
     snake = make_snake(config)
     snake.grow(amount=10_000.0)
     assert snake.target_length == config.MAX_SNAKE_LENGTH
+
+
+def test_new_snake_starts_at_the_minimum_radius(config: SimpleNamespace) -> None:
+    snake = make_snake(config)
+    assert snake.radius == config.SNAKE_RADIUS
+
+
+def test_grow_increases_radius_toward_the_maximum(config: SimpleNamespace) -> None:
+    snake = make_snake(config)
+    initial_radius = snake.radius
+    snake.grow(amount=100.0)
+    assert snake.radius > initial_radius
+    assert snake.radius < config.SNAKE_MAX_RADIUS
+
+
+def test_grow_radius_reaches_maximum_at_max_length(config: SimpleNamespace) -> None:
+    snake = make_snake(config)
+    snake.grow(amount=10_000.0)
+    assert snake.target_length == config.MAX_SNAKE_LENGTH
+    assert snake.radius == config.SNAKE_MAX_RADIUS
 
 
 def test_grow_also_charges_dash_scaled_by_score_value(config: SimpleNamespace) -> None:

@@ -83,11 +83,29 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Nutzt auf Touch-Geräten den vollen Bildschirm (kein Browser-Chrome wie
+  // Adressleiste) - muss synchron innerhalb eines Nutzer-Gesten-Handlers
+  // aufgerufen werden (hier: der Spielen-Klick), sonst lehnen Browser die
+  // Anfrage ab. Manche Browser (u.a. iOS Safari) unterstützen das für
+  // beliebige Elemente gar nicht - stiller Fallback aufs normale Layout.
+  function requestFullscreenIfSupported() {
+    const el = document.documentElement;
+    const request = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!request) return;
+    try {
+      const result = request.call(el);
+      if (result && typeof result.catch === "function") result.catch(() => {});
+    } catch {
+      // Ignorieren - Vollbild ist ein Nice-to-have, kein Blocker fürs Spiel.
+    }
+  }
+
   function doJoin() {
     const name = (nameInput.value || "").trim().slice(0, 20) || "Spieler";
     sessionStorage.setItem("snakeName", name);
     pendingName = name;
     nameModal.classList.add("hidden");
+    if (isTouchDevice) requestFullscreenIfSupported();
 
     if (client) return; // already connected from an earlier submit
 

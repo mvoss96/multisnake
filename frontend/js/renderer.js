@@ -35,17 +35,18 @@ function createRenderer(canvas) {
   // viewWorldHeight ist nicht mehr konstant - main.js interpoliert sie anhand der
   // eigenen Schlangenlänge zwischen VIEW_WORLD_HEIGHT_MIN/MAX (siehe config.js) und
   // reicht sie pro Frame durch, damit die Kamera beim Wachsen rauszoomt.
+  // Auf schmalen Hochformat-Viewports (Handys) wäre die Höhen-Skalierung allein zu
+  // weit reingezoomt in der Breite (man sieht seitlich kaum etwas) - die
+  // Mindest-Weltbreite MIN_VISIBLE_WORLD_WIDTH verhindert das. Anders als ein
+  // klassisches Letterboxing wird dabei aber nicht mit schwarzen Balken auf die
+  // Ziel-Vertikal-FOV zurückgeschnitten (füllte den Bildschirm nicht mehr aus,
+  // sah auf Mobile wie ein kleiner Ausschnitt aus) - stattdessen zeigt der Canvas
+  // in diesem Fall einfach mehr Welt in der Höhe als viewWorldHeight (voller
+  // Bildschirm ausgenutzt, keine Balken).
   function worldScale(viewWorldHeight) {
     const heightScale = canvas.height / viewWorldHeight;
     const widthScale = canvas.width / MIN_VISIBLE_WORLD_WIDTH;
     return Math.min(heightScale, widthScale);
-  }
-
-  // Höhe (in CSS-Pixeln) des tatsächlich fürs Spielfeld genutzten Canvas-Bereichs.
-  // Weicht von canvas.height ab, sobald worldScale() durch die Mindest-Weltbreite
-  // geklemmt wurde (schmale Hochformat-Viewports) - der Rest wird letterboxed.
-  function viewportHeightPx(scale, viewWorldHeight) {
-    return Math.min(canvas.height, viewWorldHeight * scale);
   }
 
   // Das Muster beginnt mit einem festen Rand (SPIKE_CORNER_MARGIN) statt
@@ -206,23 +207,13 @@ function createRenderer(canvas) {
 
   function draw(state, camera, viewWorldHeight) {
     const scale = worldScale(viewWorldHeight);
-    const viewH = viewportHeightPx(scale, viewWorldHeight);
-    const barHeight = (canvas.height - viewH) / 2;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#000"; // Letterbox-Balken (nur sichtbar, wenn barHeight > 0)
+    ctx.save();
+    ctx.fillStyle = "#050508";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.save();
-    if (barHeight > 0) {
-      ctx.beginPath();
-      ctx.rect(0, barHeight, canvas.width, viewH);
-      ctx.clip();
-    }
-    ctx.fillStyle = "#050508";
-    ctx.fillRect(0, barHeight, canvas.width, viewH);
-
-    ctx.translate(canvas.width / 2, barHeight + viewH / 2);
+    ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.scale(scale, scale);
     ctx.translate(-camera.x, -camera.y);
 

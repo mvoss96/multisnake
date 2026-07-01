@@ -49,7 +49,7 @@ class DebugInvulnerableMessage(BaseModel):
 
 class DebugBotsMessage(BaseModel):
     type: Literal["debug_bots"] = "debug_bots"
-    count: int = Field(ge=0)
+    count: int = Field(ge=0, le=50)
 
 
 ClientMessage = Annotated[

@@ -25,8 +25,11 @@ const ZOOM_LERP_FACTOR_IN = 0.08;
 
 // Mobile / Touch
 // Mindest-Weltbreite, die auf jedem Viewport sichtbar sein muss (Fairness-Fix
-// für schmale/hohe Mobile-Viewports) - siehe worldScale() in renderer.js.
-const MIN_VISIBLE_WORLD_WIDTH = 500;
+// für schmale/hohe Mobile-Viewports) - siehe worldScale() in renderer.js. Auf
+// Hochformat-Handys ist die Bildschirmbreite praktisch immer der limitierende
+// Faktor (nicht VIEW_WORLD_HEIGHT_MIN_MOBILE oben) - dieser Wert steuert dort
+// also den tatsächlichen Zoom. Bewusst kleiner als früher (mehr Zoom).
+const MIN_VISIBLE_WORLD_WIDTH = 420;
 // Drosselung für sendDirection()-Aufrufe während des Touch-Ziehens (verhindert
 // Netzwerk-Spam bei hochfrequenten pointermove-Events).
 const TOUCH_STEER_MIN_INTERVAL_MS = 33; // gleiche Taktung wie RELATIVE_POLL_MS

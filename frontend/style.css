@@ -12,6 +12,12 @@ html, body {
   position: fixed;
   inset: 0;
   background: #111;
+  /* Verhindert das Text-/Copy-Kontextmenü, das ein langer Touch-Halt (unser
+     schwimmender Joystick, siehe touch.js) sonst auslösen würde. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 #hud {
@@ -260,26 +266,36 @@ body.touch-device #dash-ring {
   display: none;
 }
 
+/* Langes Halten auf HUD/Leaderboard soll kein Text-Auswahl-/Kopieren-Menü
+   öffnen - das Namensfeld braucht seine normale Textauswahl aber weiterhin. */
+body.touch-device #hud,
+body.touch-device #leaderboard,
+body.touch-device #dash-btn {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
 @media (max-width: 820px) {
   #hud {
-    /* Muss neben #leaderboard (max-width 42vw) Platz lassen. */
-    max-width: 54vw;
+    /* Muss neben #leaderboard (max-width 46vw) Platz lassen. */
+    max-width: 58vw;
     box-sizing: border-box;
     padding: 6px 12px;
   }
 
   #leaderboard {
     min-width: 0;
-    max-width: 42vw;
+    max-width: 46vw;
     padding: 8px 14px;
   }
 }
 
 @media (max-width: 480px) {
   #hud {
-    /* Muss neben #leaderboard (max-width 38vw, siehe unten) Platz lassen,
+    /* Muss neben #leaderboard (max-width 42vw, siehe unten) Platz lassen,
        sonst überlappen sich beide Boxen auf schmalen Screens. */
-    max-width: 55vw;
+    max-width: 60vw;
     box-sizing: border-box;
     padding: 6px 10px;
   }
@@ -295,7 +311,7 @@ body.touch-device #dash-ring {
   }
 
   #leaderboard {
-    max-width: 38vw;
+    max-width: 42vw;
     padding: 6px 10px;
   }
 

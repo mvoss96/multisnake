@@ -61,4 +61,10 @@ function setupTouchControls(client, canvas) {
     event.stopPropagation();
     client.sendDash();
   });
+
+  // CSS allein (touch-action/user-select/-webkit-touch-callout) unterdrückt das
+  // lange-Halten-Kontextmenü ("Kopieren" etc.) nicht auf jedem Browser
+  // zuverlässig (u.a. Android Chrome) - explizit verhindern.
+  canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+  dashBtn.addEventListener("contextmenu", (event) => event.preventDefault());
 }

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>multiSnake</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+
+<div id="hud">
+  <div id="score">Score: 0</div>
+  <div id="controls-hint">Steuerung: ↑ ↓ ← → oder W A S D &nbsp;·&nbsp; Tab: Steuerung umschalten &nbsp;·&nbsp; Umschalt: Dash &nbsp;·&nbsp; Du bist die goldene Schlange</div>
+  <button id="control-toggle" class="hud-btn"></button>
+  <div id="dash-label">DASH <span id="dash-key-hint">Umschalt</span></div>
+  <div id="dash-meter">
+    <div id="dash-meter-fill"></div>
+  </div>
+</div>
+
+<div id="leaderboard">
+  <h3>Leaderboard</h3>
+  <ol id="leaderboard-list"></ol>
+</div>
+
+<div id="connection-banner" class="hidden">Verbindung getrennt – verbinde neu…</div>
+
+<div id="name-modal">
+  <div class="panel">
+    <h2>multiSnake</h2>
+    <p>Gib deinen Namen ein und leg los</p>
+    <input id="name-input" type="text" maxlength="20" placeholder="Dein Name" autocomplete="off">
+    <button id="join-btn">Spielen</button>
+  </div>
+</div>
+
+<div id="game-over-overlay" class="hidden">
+  <div class="panel">
+    <h2>Game Over</h2>
+    <p id="final-score"></p>
+    <button id="restart-btn">Neu starten</button>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/state.js"></script>
+<script src="js/network.js"></script>
+<script src="js/input.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

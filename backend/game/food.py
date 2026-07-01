@@ -1,0 +1,58 @@
+import random
+import uuid
+from dataclasses import dataclass
+
+from .vector import Vector2
+
+
+@dataclass
+class Food:
+    id: str
+    position: Vector2
+    value: float
+    score_value: int = 1
+    remaining_life: float = 0.0
+    max_life: float = 1.0
+
+
+class FoodManager:
+    def __init__(self, config):
+        self.config = config
+        self.foods = {}
+
+    def spawn_random(self, board):
+        pos = board.random_point(margin=20)
+        roll = random.random()
+        if roll < self.config.FOOD_BIG_SPAWN_CHANCE:
+            score_value = self.config.FOOD_BIG_VALUE_MULTIPLIER
+        elif roll < self.config.FOOD_BIG_SPAWN_CHANCE + self.config.FOOD_MEDIUM_SPAWN_CHANCE:
+            score_value = self.config.FOOD_MEDIUM_VALUE_MULTIPLIER
+        else:
+            score_value = 1
+        value = self.config.FOOD_GROWTH_VALUE * score_value
+        return self.spawn_at(pos, value, score_value)
+
+    def spawn_at(self, position, value, score_value=1):
+        life = self.config.FOOD_LIFETIME_SECONDS
+        food = Food(
+            id=str(uuid.uuid4()), position=position, value=value, score_value=score_value,
+            remaining_life=life, max_life=life,
+        )
+        self.foods[food.id] = food
+        return food
+
+    def ensure_min_food(self, board):
+        while len(self.foods) < self.config.FOOD_COUNT_TARGET:
+            self.spawn_random(board)
+
+    def remove(self, food_id):
+        self.foods.pop(food_id, None)
+
+    def tick(self, dt):
+        expired = []
+        for food in self.foods.values():
+            food.remaining_life -= dt
+            if food.remaining_life <= 0:
+                expired.append(food.id)
+        for food_id in expired:
+            self.foods.pop(food_id, None)

@@ -1,0 +1,46 @@
+// Zentrale Stellschrauben fürs Frontend-Rendering und -Input.
+// Gegenstücke im Backend stehen in backend/game/config.py (dort kommentiert, wo Werte
+// zusammenpassen müssen, z.B. Futter-Radien oder die Spike-Zonentiefe).
+
+const VIEW_WORLD_HEIGHT = 600; // fester Weltausschnitt (Einheiten) - unabhängig von Bildschirmauflösung
+
+// Steuerung
+const RELATIVE_POLL_MS = 33;
+// Turn step per poll must clear the server's MAX_TURN_RATE clamp, otherwise
+// the server becomes the limiting factor as intended (matches absolute-mode feel).
+const RELATIVE_TURN_STEP = 0.2;
+
+// Spikes
+const SPIKE_SPACING = 30;
+const SPIKE_SIZE = 14;
+const SPIKE_FILL_COLOR = "rgba(255, 70, 70, 0.85)";
+const SPIKE_STROKE_COLOR = "rgba(120, 0, 0, 0.9)";
+const SPIKE_GLOW_COLOR = "#ff2020";
+const SPIKE_GLOW_PERIOD_MS = 1400;
+const SPIKE_GLOW_BLUR_MIN = 10;
+const SPIKE_GLOW_BLUR_MAX = 24;
+const SPIKE_GLOW_PROXIMITY = 45; // Einheiten - erst kurz vor der tödlichen Zone beginnt das Glühen
+const SPIKE_CORNER_MARGIN = 9; // Randabstand am Kanten-Anfang/-Ende, frei einstellbar (siehe drawSpikeRow)
+
+// Futter
+const FOOD_BLINK_PERIOD_MS = 900;
+const FOOD_BLINK_MIN_ALPHA = 0.55;
+// Despawn-Countdown: food.life (1 = frisch, 0 = abgelaufen) startet bei
+// FOOD_DEFAULT_ALPHA (leichte Grundtransparenz). Ab FOOD_FADE_START_LIFE nimmt die
+// Transparenz zunehmend zu, bis FOOD_FADE_MIN_ALPHA bei Ablauf erreicht ist.
+// Unter FOOD_BLINK_START_LIFE beginnt es zusätzlich kurz vor dem Verschwinden zu blinken.
+const FOOD_DEFAULT_ALPHA = 0.85;
+const FOOD_FADE_START_LIFE = 0.5;
+const FOOD_FADE_MIN_ALPHA = 0.1;
+const FOOD_BLINK_START_LIFE = 0.2;
+// Radien nach food.value gestaffelt (muss zu den Wert-Stufen in config.py passen).
+const FOOD_RADIUS = 5;
+const FOOD_MEDIUM_RADIUS = 7;
+const FOOD_BIG_RADIUS = 9;
+
+// Schlangen
+// Snakes bekommen eine dunkle Outline, damit sie sich vom bunten Futter abheben.
+const SNAKE_OUTLINE_COLOR = "#05050a";
+const SNAKE_OUTLINE_WIDTH = 2.5;
+const SNAKE_DASH_GLOW_COLOR = "#8fd9ff";
+const SNAKE_DASH_GLOW_BLUR = 16;

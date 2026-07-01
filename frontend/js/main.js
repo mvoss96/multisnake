@@ -12,6 +12,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const controlToggleBtn = document.getElementById("control-toggle");
   const leaderboardList = document.getElementById("leaderboard-list");
   const dashMeterFill = document.getElementById("dash-meter-fill");
+  const dashBtn = document.getElementById("dash-btn");
 
   let camera = { x: 0, y: 0 };
   let client = null;
@@ -57,6 +58,13 @@ window.addEventListener("DOMContentLoaded", () => {
     dashMeterFill.style.width = `${Math.round(charge * 100)}%`;
     dashMeterFill.classList.toggle("active", !!dashing);
     dashMeterFill.classList.toggle("ready", !dashing && charge >= 1);
+
+    // Ladestand zusätzlich direkt im Touch-Dash-Button (kreisförmige Füllung) -
+    // spiegelt denselben Zustand wie der HUD-Balken, nur an einer für den
+    // Daumen erreichbaren Stelle.
+    dashBtn.style.setProperty("--dash-charge", `${Math.round(charge * 100)}%`);
+    dashBtn.classList.toggle("active", !!dashing);
+    dashBtn.classList.toggle("ready", !dashing && charge >= 1);
   }
 
   function updateLeaderboard(snakes) {

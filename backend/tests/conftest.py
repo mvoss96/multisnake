@@ -31,6 +31,7 @@ def test_config() -> SimpleNamespace:
         DASH_DURATION=0.9,
         DASH_SPEED_MULTIPLIER=2.2,
         DASH_RECHARGE_SECONDS=6.0,
+        DASH_CHARGE_PER_FOOD=0.1,
         FOOD_COUNT_TARGET=1,
         FOOD_RADIUS=5.0,
         FOOD_MEDIUM_RADIUS=7.0,

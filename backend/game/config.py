@@ -17,9 +17,13 @@ SNAKE_SPEED: Final[float] = 90.0  # Einheiten pro Sekunde
 SNAKE_RADIUS: Final[float] = 7.0
 MAX_TURN_RATE: Final[float] = math.pi * 1.4  # Radiant pro Sekunde
 DASH_SPEED_MULTIPLIER: Final[float] = 2.2  # Geschwindigkeitsfaktor während des Dash
-DASH_DURATION: Final[float] = 0.9  # Sekunden, die der Dash anhält
-# Sekunden bis der Dash nach Verwendung wieder voll aufgeladen ist
+DASH_DURATION: Final[float] = 1.8  # Sekunden, die der Dash anhält
+# Sekunden bis der Dash nach Verwendung wieder voll aufgeladen ist (rein zeitbasiert)
 DASH_RECHARGE_SECONDS: Final[float] = 6.0
+# Zusätzliche Aufladung beim Fressen, pro "1er"-Futterstück-Äquivalent (skaliert mit
+# score_value der Futterstufe, siehe Snake.grow) - kommt zur zeitbasierten Aufladung
+# oben drauf, ersetzt sie nicht.
+DASH_CHARGE_PER_FOOD: Final[float] = 0.1
 
 FOOD_COUNT_TARGET: Final[int] = 90
 FOOD_RADIUS: Final[float] = 5.0

@@ -243,6 +243,27 @@ html, body {
   margin-top: 0;
   touch-action: none;
   user-select: none;
+  /* Ladestand als kreisförmige Füllung direkt im Button, per JS gesetzt
+     (siehe updateDashMeter in main.js) - spart die separate Balken-Anzeige
+     aus dem HUD, die auf Touch ohnehin weit vom Daumen entfernt wäre. */
+  --dash-charge: 0%;
+  background: conic-gradient(#4b7bec var(--dash-charge), #23233a var(--dash-charge));
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  color: #eee;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+#dash-btn.ready {
+  background: #ffd700;
+  color: #1a1a2e;
+  box-shadow: 0 0 14px rgba(255, 215, 0, 0.7);
+}
+
+#dash-btn.active {
+  background: #ff5d5d;
+  box-shadow: 0 0 14px rgba(255, 93, 93, 0.7);
 }
 
 body.touch-device #dash-btn {

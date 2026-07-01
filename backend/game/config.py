@@ -9,13 +9,13 @@ BOARD_HEIGHT: Final[float] = 1500
 
 NUM_BOTS: Final[int] = 6
 
-SNAKE_START_LENGTH: Final[int] = 10        # Segmente
-SEGMENT_SPACING: Final[float] = 8.0        # Distanz-Einheiten pro Segment
-SNAKE_SPEED: Final[float] = 90.0           # Einheiten pro Sekunde
+SNAKE_START_LENGTH: Final[int] = 10  # Segmente
+SEGMENT_SPACING: Final[float] = 8.0  # Distanz-Einheiten pro Segment
+SNAKE_SPEED: Final[float] = 90.0  # Einheiten pro Sekunde
 SNAKE_RADIUS: Final[float] = 7.0
 MAX_TURN_RATE: Final[float] = math.pi * 1.4  # Radiant pro Sekunde
-DASH_SPEED_MULTIPLIER: Final[float] = 2.2    # Geschwindigkeitsfaktor während des Dash
-DASH_DURATION: Final[float] = 0.9            # Sekunden, die der Dash anhält
+DASH_SPEED_MULTIPLIER: Final[float] = 2.2  # Geschwindigkeitsfaktor während des Dash
+DASH_DURATION: Final[float] = 0.9  # Sekunden, die der Dash anhält
 # Sekunden bis der Dash nach Verwendung wieder voll aufgeladen ist
 DASH_RECHARGE_SECONDS: Final[float] = 6.0
 
@@ -34,12 +34,12 @@ FOOD_MAX_CONSOLIDATE_GAP: Final[float] = 30.0
 # Anteil mittlerer/großer Futterstücke beim unabhängigen Hintergrund-Spawn
 FOOD_MEDIUM_SPAWN_CHANCE: Final[float] = 0.2
 FOOD_BIG_SPAWN_CHANCE: Final[float] = 0.04
-FOOD_MAGNET_RADIUS: Final[float] = 60.0         # Einheiten, ab wann Futter angezogen wird
-FOOD_MAGNET_SPEED: Final[float] = 260.0         # Einheiten pro Sekunde
+FOOD_MAGNET_RADIUS: Final[float] = 60.0  # Einheiten, ab wann Futter angezogen wird
+FOOD_MAGNET_SPEED: Final[float] = 260.0  # Einheiten pro Sekunde
 # Futter despawnt, wenn es nicht rechtzeitig gegessen wird
 FOOD_LIFETIME_SECONDS: Final[float] = 25.0
 
-SPIKE_ZONE_DEPTH: Final[float] = 14          # muss zu SPIKE_SIZE im Frontend-Renderer passen
+SPIKE_ZONE_DEPTH: Final[float] = 14  # muss zu SPIKE_SIZE im Frontend-Renderer passen
 
 BOT_SIGHT_RADIUS: Final[float] = 350.0
 BOT_LOOKAHEAD: Final[float] = 60.0

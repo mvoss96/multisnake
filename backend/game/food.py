@@ -37,8 +37,12 @@ class FoodManager:
     def spawn_at(self, position: Vector2, value: float, score_value: int = 1) -> Food:
         life = self.config.FOOD_LIFETIME_SECONDS
         food = Food(
-            id=str(uuid.uuid4()), position=position, value=value, score_value=score_value,
-            remaining_life=life, max_life=life,
+            id=str(uuid.uuid4()),
+            position=position,
+            value=value,
+            score_value=score_value,
+            remaining_life=life,
+            max_life=life,
         )
         self.foods[food.id] = food
         return food

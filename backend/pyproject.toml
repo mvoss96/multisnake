@@ -43,14 +43,8 @@ disallow_incomplete_defs = true
 check_untyped_defs = true
 exclude = ["^\\.venv/"]
 
-# Gradual strict-typing rollout: modules not yet migrated are exempted here.
-# Remove a module from this list once it's fully annotated (see CLAUDE.md).
-[[tool.mypy.overrides]]
-module = [
-    "main",
-    "game.protocol",
-]
-ignore_errors = true
+# Gradual strict-typing rollout completed: every module is now fully typed
+# and checked under the strict settings above. No per-module overrides left.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

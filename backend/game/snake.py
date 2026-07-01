@@ -29,9 +29,9 @@ class Snake:
         self.max_length = config.MAX_SNAKE_LENGTH
         self.score = 0
         self.config = config
-        self.dash_charge = 1.0       # 0..1, bei 1.0 einsatzbereit
+        self.dash_charge = 1.0  # 0..1, bei 1.0 einsatzbereit
         self.dash_time_remaining = 0.0
-        self.invulnerable = False    # Debug: ignoriert Rand-/Kollisionstod
+        self.invulnerable = False  # Debug: ignoriert Rand-/Kollisionstod
 
     def head(self) -> Vector2:
         return self.points[0]
@@ -82,7 +82,7 @@ class Snake:
                 cutoff_index = i
                 break
         if cutoff_index is not None:
-            del self.points[cutoff_index + 1:]
+            del self.points[cutoff_index + 1 :]
 
     def grow(self, amount: float, score_value: int = 1) -> None:
         self.target_length = min(self.target_length + amount, self.max_length)

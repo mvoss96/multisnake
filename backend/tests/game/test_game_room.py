@@ -192,6 +192,6 @@ def test_serialize_state_contains_snakes_and_food(
 ) -> None:
     spawn_snake_at("p1", 150, 150)
     state = game_room.serialize_state()
-    assert state["type"] == "state"
-    assert len(state["snakes"]) == 1  # type: ignore[arg-type]
-    assert len(state["food"]) >= 1  # type: ignore[arg-type]
+    assert state.type == "state"
+    assert len(state.snakes) == 1
+    assert len(state.food) >= 1

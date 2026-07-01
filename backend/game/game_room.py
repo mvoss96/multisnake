@@ -6,14 +6,21 @@ from .board import Board
 from .bot import Bot, DecisionContext
 from .food import Food, FoodManager
 from .player import HumanPlayer, Player, PlayerManager
+from .protocol import FoodState, SnakeState, StateMessage
 from .snake import Snake
 from .types import GameConfig
 from .vector import Vector2
 
 # Reds (#e94560, #fc5c65) are excluded: reserved for food/spikes in the frontend renderer.
 _COLORS = [
-    "#0f9b8e", "#f7b731", "#4b7bec", "#a55eea",
-    "#26de81", "#fd9644", "#45aaf2", "#2bcbba",
+    "#0f9b8e",
+    "#f7b731",
+    "#4b7bec",
+    "#a55eea",
+    "#26de81",
+    "#fd9644",
+    "#45aaf2",
+    "#2bcbba",
 ]
 
 
@@ -50,8 +57,13 @@ class GameRoom:
         pos = self._find_safe_spawn_point()
         direction = self._rng.uniform(0, 2 * math.pi)
         snake = Snake(
-            str(uuid.uuid4()), player.player_id, player.name, self._pick_color(),
-            pos, direction, self.config,
+            str(uuid.uuid4()),
+            player.player_id,
+            player.name,
+            self._pick_color(),
+            pos,
+            direction,
+            self.config,
         )
         player.snake = snake
         return snake
@@ -93,8 +105,13 @@ class GameRoom:
             return
         direction = self._rng.uniform(0, 2 * math.pi)
         snake = Snake(
-            str(uuid.uuid4()), player.player_id, player.name, self._pick_color(),
-            Vector2(x, y), direction, self.config,
+            str(uuid.uuid4()),
+            player.player_id,
+            player.name,
+            self._pick_color(),
+            Vector2(x, y),
+            direction,
+            self.config,
         )
         player.snake = snake
 
@@ -137,12 +154,13 @@ class GameRoom:
             # Among the usable tiers pick randomly (weighted towards smaller ones)
             # so a trail mixes 1er/2er/5er instead of being uniform throughout.
             feasible = [
-                tier for tier in tiers
+                tier
+                for tier in tiers
                 if i + tier <= n
                 and (tier == 1 or drop_points[i].distance_to(drop_points[i + tier - 1]) <= max_gap)
             ]
             count = self._rng.choices(feasible, weights=[tier_weights[t] for t in feasible])[0]
-            chunk = drop_points[i:i + count]
+            chunk = drop_points[i : i + count]
             mid_point = chunk[len(chunk) // 2]
             self.food_manager.spawn_at(
                 mid_point, self.config.FOOD_GROWTH_VALUE * count, score_value=count
@@ -237,39 +255,40 @@ class GameRoom:
 
         return game_over_events
 
-    def serialize_state(self) -> dict[str, object]:
+    def serialize_state(self) -> StateMessage:
         snakes_data = []
         for player in self.players.all():
             snake = player.snake
             if not snake:
                 continue
-            snakes_data.append({
-                "id": snake.id,
-                "player_id": player.player_id,
-                "name": player.name,
-                "color": snake.color,
-                "radius": snake.radius,
-                "score": snake.score,
-                "direction": snake.direction,
-                "points": [[round(p.x, 1), round(p.y, 1)] for p in snake.points],
-                "dash_charge": round(snake.dash_charge, 3),
-                "dashing": snake.dash_time_remaining > 0,
-                "invulnerable": snake.invulnerable,
-            })
+            snakes_data.append(
+                SnakeState(
+                    id=snake.id,
+                    player_id=player.player_id,
+                    name=player.name,
+                    color=snake.color,
+                    radius=snake.radius,
+                    score=snake.score,
+                    direction=snake.direction,
+                    points=[[round(p.x, 1), round(p.y, 1)] for p in snake.points],
+                    dash_charge=round(snake.dash_charge, 3),
+                    dashing=snake.dash_time_remaining > 0,
+                    invulnerable=snake.invulnerable,
+                )
+            )
         foods_data = [
-            {
-                "id": food.id,
-                "x": round(food.position.x, 1),
-                "y": round(food.position.y, 1),
-                "value": food.score_value,
-                "life": round(max(0.0, food.remaining_life / food.max_life), 3),
-            }
+            FoodState(
+                id=food.id,
+                x=round(food.position.x, 1),
+                y=round(food.position.y, 1),
+                value=food.score_value,
+                life=round(max(0.0, food.remaining_life / food.max_life), 3),
+            )
             for food in self.food_manager.foods.values()
         ]
-        return {
-            "type": "state",
-            "tick": self.tick_count,
-            "snakes": snakes_data,
-            "food": foods_data,
-            "paused": self.paused,
-        }
+        return StateMessage(
+            tick=self.tick_count,
+            snakes=snakes_data,
+            food=foods_data,
+            paused=self.paused,
+        )

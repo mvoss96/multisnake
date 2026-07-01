@@ -195,3 +195,54 @@ def test_serialize_state_contains_snakes_and_food(
     assert state.type == "state"
     assert len(state.snakes) == 1
     assert len(state.food) >= 1
+
+
+def _bot_count(room: GameRoom) -> int:
+    return len([p for p in room.players.all() if p.player_type == "ai"])
+
+
+def _config_with_num_bots(test_config: SimpleNamespace, num_bots: int) -> SimpleNamespace:
+    return SimpleNamespace(**{**vars(test_config), "NUM_BOTS": num_bots})
+
+
+def test_fresh_game_room_fills_with_bots_up_to_num_bots(test_config: SimpleNamespace) -> None:
+    room = GameRoom(_config_with_num_bots(test_config, 3))
+    assert _bot_count(room) == 3
+
+
+def test_joining_human_displaces_exactly_one_bot(test_config: SimpleNamespace) -> None:
+    room = GameRoom(_config_with_num_bots(test_config, 3))
+    room.add_human_player("p1")
+    assert _bot_count(room) == 2
+
+
+def test_enough_humans_drive_bot_count_to_zero_not_negative(
+    test_config: SimpleNamespace,
+) -> None:
+    room = GameRoom(_config_with_num_bots(test_config, 3))
+    for i in range(5):
+        room.add_human_player(f"p{i}")
+    assert _bot_count(room) == 0
+    assert len([p for p in room.players.all() if p.player_type == "human"]) == 5
+
+
+def test_removing_a_human_refills_a_bot_even_after_prior_exhaustion(
+    test_config: SimpleNamespace,
+) -> None:
+    room = GameRoom(_config_with_num_bots(test_config, 2))
+    room.add_human_player("p1")
+    room.add_human_player("p2")  # bot count hits 0
+    room.remove_player("p2")
+    assert _bot_count(room) == 1  # refilled
+
+    room.add_human_player("p3")  # bot count hits 0 again
+    room.remove_player("p3")
+    room.remove_player("p1")
+    # No latch/memory of the earlier exhaustion: rebalances back to the full NUM_BOTS.
+    assert _bot_count(room) == 2
+
+
+def test_debug_set_bot_count_does_not_trigger_rebalance(test_config: SimpleNamespace) -> None:
+    room = GameRoom(_config_with_num_bots(test_config, 3))
+    room.debug_set_bot_count(1)
+    assert _bot_count(room) == 1

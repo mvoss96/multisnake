@@ -33,6 +33,7 @@ class GameRoom:
         self.tick_count = 0
         self._rng = random.Random()
         self.food_manager.ensure_min_food(self.board)
+        self._rebalance_bots()
         self.paused = False
 
     def _find_safe_spawn_point(self) -> Vector2:
@@ -71,6 +72,7 @@ class GameRoom:
     def add_human_player(self, player_id: str, name: str = "Player") -> HumanPlayer:
         player = self.players.add_human(player_id, name)
         self._spawn_snake_for(player)
+        self._rebalance_bots()
         return player
 
     def add_ai_players(self, count: int) -> None:
@@ -82,7 +84,16 @@ class GameRoom:
             self._spawn_snake_for(player)
 
     def remove_player(self, player_id: str) -> None:
+        player = self.players.get(player_id)
+        was_human = player is not None and player.player_type == "human"
         self.players.remove(player_id)
+        if was_human:
+            self._rebalance_bots()
+
+    def _rebalance_bots(self) -> None:
+        human_count = len([p for p in self.players.all() if p.player_type == "human"])
+        target_bots = max(0, self.config.NUM_BOTS - human_count)
+        self._set_bot_count(target_bots)
 
     def respawn_player(self, player_id: str) -> None:
         player = self.players.get(player_id)
@@ -121,6 +132,9 @@ class GameRoom:
             player.snake.invulnerable = enabled
 
     def debug_set_bot_count(self, count: int) -> None:
+        self._set_bot_count(count)
+
+    def _set_bot_count(self, count: int) -> None:
         bots = [p for p in self.players.all() if p.player_type == "ai"]
         if count > len(bots):
             self.add_ai_players(count - len(bots))

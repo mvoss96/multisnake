@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import pytest
+
 from game.game_room import GameRoom
 from game.vector import Vector2
 
@@ -246,3 +248,98 @@ def test_debug_set_bot_count_does_not_trigger_rebalance(test_config: SimpleNames
     room = GameRoom(_config_with_num_bots(test_config, 3))
     room.debug_set_bot_count(1)
     assert _bot_count(room) == 1
+
+
+def test_joining_with_a_taken_human_name_gets_suffixed(game_room: GameRoom) -> None:
+    game_room.add_human_player("p1", "Alice")
+    player2 = game_room.add_human_player("p2", "Alice")
+    assert player2.name == "Alice (2)"
+
+
+def test_joining_with_a_name_matching_an_existing_bot_gets_suffixed(
+    test_config: SimpleNamespace,
+) -> None:
+    room = GameRoom(_config_with_num_bots(test_config, 1))
+    bot_name = next(p.name for p in room.players.all() if p.player_type == "ai")
+    player = room.add_human_player("p1", bot_name)
+    assert player.name == f"{bot_name} (2)"
+
+
+def test_bot_generated_name_colliding_with_a_human_gets_suffixed(
+    game_room: GameRoom, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    game_room.add_human_player("p1", "KI4821")
+    monkeypatch.setattr(game_room._rng, "randint", lambda a, b: 4821)
+    game_room.add_ai_players(1)
+    bot = next(p for p in game_room.players.all() if p.player_type == "ai")
+    assert bot.name == "KI4821 (2)"
+
+
+def test_color_persists_across_human_respawn(
+    game_room: GameRoom, spawn_snake_at: SpawnSnakeAt
+) -> None:
+    player = spawn_snake_at("p1", 100, 100)
+    assert player.snake is not None
+    original_color = player.snake.color
+
+    game_room.respawn_player("p1")
+
+    assert player.snake is not None
+    assert player.snake.color == original_color
+
+
+def test_color_persists_across_bot_auto_respawn(game_room: GameRoom) -> None:
+    game_room.add_ai_players(1)
+    bot_player = next(p for p in game_room.players.all() if p.player_type == "ai")
+    assert bot_player.snake is not None
+    original_color = bot_player.snake.color
+    bot_player.snake.points = [Vector2(-100, -100)]  # force out-of-bounds death
+
+    game_room.tick(0.0)
+
+    assert bot_player.snake is not None
+    assert bot_player.snake.color == original_color
+
+
+def test_color_persists_through_debug_respawn_at(
+    game_room: GameRoom, spawn_snake_at: SpawnSnakeAt
+) -> None:
+    player = spawn_snake_at("p1", 100, 100)
+    assert player.snake is not None
+    original_color = player.snake.color
+
+    game_room.debug_respawn_at("p1", 50, 60)
+
+    assert player.snake is not None
+    assert player.snake.color == original_color
+
+
+def test_dead_but_connected_human_keeps_color_reserved(
+    test_config: SimpleNamespace,
+) -> None:
+    room = GameRoom(_config_with_num_bots(test_config, 0))
+    margin = test_config.SPIKE_ZONE_DEPTH + test_config.SNAKE_RADIUS
+    player = room.add_human_player("p1")
+    assert player.snake is not None
+    dead_color = player.snake.color
+    player.snake.points = [Vector2(margin - 1, 150)]
+
+    room.tick(0.0)
+    assert player.snake is None  # game-over: snake cleared, player still connected
+
+    player2 = room.add_human_player("p2")
+    assert player2.snake is not None
+    assert player2.snake.color != dead_color
+
+
+def test_debug_set_bot_count_removal_frees_name_and_color_for_reuse(
+    test_config: SimpleNamespace,
+) -> None:
+    room = GameRoom(_config_with_num_bots(test_config, 1))
+    bot = next(p for p in room.players.all() if p.player_type == "ai")
+    bot_name, bot_color = bot.name, bot.color
+
+    room.debug_set_bot_count(0)
+
+    assert room.players.unique_name(bot_name) == bot_name  # no longer taken
+    assert all(p.color != bot_color for p in room.players.all())  # no longer reserved

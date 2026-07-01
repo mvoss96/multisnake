@@ -49,10 +49,12 @@ class GameRoom:
                 return candidate
         return self.board.random_point(margin=100)
 
-    def _pick_color(self) -> str:
-        used = {p.snake.color for p in self.players.all() if p.snake and p.snake.alive}
-        available = [c for c in _COLORS if c not in used]
-        return self._rng.choice(available or _COLORS)
+    def _color_for(self, player: Player) -> str:
+        if player.color is None:
+            used = {p.color for p in self.players.all() if p.color}
+            available = [c for c in _COLORS if c not in used]
+            player.color = self._rng.choice(available or _COLORS)
+        return player.color
 
     def _spawn_snake_for(self, player: Player) -> Snake:
         pos = self._find_safe_spawn_point()
@@ -61,7 +63,7 @@ class GameRoom:
             str(uuid.uuid4()),
             player.player_id,
             player.name,
-            self._pick_color(),
+            self._color_for(player),
             pos,
             direction,
             self.config,
@@ -70,7 +72,7 @@ class GameRoom:
         return snake
 
     def add_human_player(self, player_id: str, name: str = "Player") -> HumanPlayer:
-        player = self.players.add_human(player_id, name)
+        player = self.players.add_human(player_id, self.players.unique_name(name))
         self._spawn_snake_for(player)
         self._rebalance_bots()
         return player
@@ -79,7 +81,7 @@ class GameRoom:
         for _ in range(count):
             player_id = f"bot-{uuid.uuid4()}"
             bot = Bot(self.config)
-            name = f"KI{self._rng.randint(1000, 9999)}"
+            name = self.players.unique_name(f"KI{self._rng.randint(1000, 9999)}")
             player = self.players.add_ai(player_id, name, bot)
             self._spawn_snake_for(player)
 
@@ -119,7 +121,7 @@ class GameRoom:
             str(uuid.uuid4()),
             player.player_id,
             player.name,
-            self._pick_color(),
+            self._color_for(player),
             Vector2(x, y),
             direction,
             self.config,

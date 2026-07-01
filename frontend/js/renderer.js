@@ -112,6 +112,31 @@ function createRenderer(canvas) {
     ctx.shadowColor = "transparent";
   }
 
+  // Zeichnet den Körperpfad in mehreren Teilstücken mit zum Schwanz hin
+  // abnehmender Linienbreite - eine einzelne stroke()-Anweisung kann keine
+  // variable Breite entlang eines Pfads, daher die Aufteilung in Segmente.
+  function drawTaperedBody(points, maxWidth, strokeStyle, alpha) {
+    const n = points.length;
+    const segCount = Math.max(1, Math.min(SNAKE_TAPER_SEGMENTS, n - 1));
+    const pointsPerSegment = Math.ceil((n - 1) / segCount);
+    ctx.strokeStyle = strokeStyle;
+    if (alpha !== undefined) ctx.globalAlpha = alpha;
+    for (let s = 0; s < segCount; s++) {
+      const startIdx = s * pointsPerSegment;
+      if (startIdx >= n - 1) break;
+      const endIdx = Math.min(n - 1, startIdx + pointsPerSegment);
+      const t = (startIdx + endIdx) / 2 / (n - 1); // 0 am Kopf, 1 am Schwanzende
+      ctx.lineWidth = maxWidth * (1 - t * (1 - SNAKE_TAIL_TAPER_FACTOR));
+      ctx.beginPath();
+      ctx.moveTo(points[startIdx][0], points[startIdx][1]);
+      for (let i = startIdx + 1; i <= endIdx; i++) {
+        ctx.lineTo(points[i][0], points[i][1]);
+      }
+      ctx.stroke();
+    }
+    if (alpha !== undefined) ctx.globalAlpha = 1;
+  }
+
   function drawCrown(x, y) {
     ctx.save();
     ctx.translate(x, y);
@@ -184,12 +209,7 @@ function createRenderer(canvas) {
       const points = snake.points;
       if (points.length === 0) continue;
       const isMe = snake.player_id === GameState.playerId;
-
-      const bodyPath = new Path2D();
-      bodyPath.moveTo(points[0][0], points[0][1]);
-      for (let i = 1; i < points.length; i++) {
-        bodyPath.lineTo(points[i][0], points[i][1]);
-      }
+      const [hx, hy] = points[0];
 
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
@@ -199,25 +219,42 @@ function createRenderer(canvas) {
         ctx.shadowBlur = SNAKE_DASH_GLOW_BLUR;
       }
 
-      ctx.strokeStyle = SNAKE_OUTLINE_COLOR;
-      ctx.lineWidth = snake.radius * 2 + SNAKE_OUTLINE_WIDTH * 2;
-      ctx.stroke(bodyPath);
-
-      ctx.strokeStyle = snake.color;
-      ctx.lineWidth = snake.radius * 2;
-      ctx.stroke(bodyPath);
+      // Kontur, Körper und ein dezenter heller Glanzstreifen mittig auf dem
+      // Körper - alle drei verjüngen sich zum Schwanz hin für eine organischere
+      // Form statt eines gleichbleibend dicken Schlauchs.
+      drawTaperedBody(points, snake.radius * 2 + SNAKE_OUTLINE_WIDTH * 2, SNAKE_OUTLINE_COLOR);
+      drawTaperedBody(points, snake.radius * 2, snake.color);
+      drawTaperedBody(points, snake.radius * 2 * SNAKE_SHINE_WIDTH_FACTOR, "#ffffff", SNAKE_SHINE_ALPHA);
 
       if (snake.dashing) {
         ctx.shadowBlur = 0;
         ctx.shadowColor = "transparent";
       }
 
-      ctx.fillStyle = "#fff";
-      ctx.beginPath();
-      ctx.arc(points[0][0], points[0][1], snake.radius * 0.5, 0, Math.PI * 2);
-      ctx.fill();
+      // Augen in Blickrichtung statt eines mittigen Punkts - Pupille leicht
+      // nach vorn versetzt, damit die Schlange erkennbar "in eine Richtung schaut".
+      const eyeRadius = snake.radius * SNAKE_EYE_RADIUS_FACTOR;
+      const pupilRadius = snake.radius * SNAKE_PUPIL_RADIUS_FACTOR;
+      const forwardX = Math.cos(snake.direction) * snake.radius * SNAKE_EYE_FORWARD_OFFSET;
+      const forwardY = Math.sin(snake.direction) * snake.radius * SNAKE_EYE_FORWARD_OFFSET;
+      const perpAngle = snake.direction + Math.PI / 2;
+      const sideX = Math.cos(perpAngle) * snake.radius * SNAKE_EYE_SIDE_OFFSET;
+      const sideY = Math.sin(perpAngle) * snake.radius * SNAKE_EYE_SIDE_OFFSET;
+      const pupilForwardX = Math.cos(snake.direction) * eyeRadius * 0.4;
+      const pupilForwardY = Math.sin(snake.direction) * eyeRadius * 0.4;
 
-      const [hx, hy] = points[0];
+      for (const side of [1, -1]) {
+        const eyeX = hx + forwardX + sideX * side;
+        const eyeY = hy + forwardY + sideY * side;
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(eyeX, eyeY, eyeRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#111";
+        ctx.beginPath();
+        ctx.arc(eyeX + pupilForwardX, eyeY + pupilForwardY, pupilRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       if (isMe) {
         ctx.strokeStyle = "#ffd700";

@@ -55,3 +55,16 @@ const SNAKE_OUTLINE_COLOR = "#05050a";
 const SNAKE_OUTLINE_WIDTH = 2.5;
 const SNAKE_DASH_GLOW_COLOR = "#8fd9ff";
 const SNAKE_DASH_GLOW_BLUR = 16;
+// Verjüngung zum Schwanzende hin (Breite des letzten Segments relativ zum Kopf)
+// und Anzahl der Teilstücke, in die der Körper dafür zerlegt wird - mehr
+// Segmente wirken glatter, kosten aber mehr Stroke-Aufrufe pro Schlange/Frame.
+const SNAKE_TAIL_TAPER_FACTOR = 0.35;
+const SNAKE_TAPER_SEGMENTS = 12;
+// Dezenter heller Glanzstreifen mittig auf dem Körper (Tuben-Look statt flacher Fläche).
+const SNAKE_SHINE_WIDTH_FACTOR = 0.35; // relativ zur jeweiligen Körperbreite
+const SNAKE_SHINE_ALPHA = 0.25;
+// Augen: Versatz relativ zum Schlangenradius, in Blickrichtung positioniert.
+const SNAKE_EYE_FORWARD_OFFSET = 0.4;
+const SNAKE_EYE_SIDE_OFFSET = 0.55;
+const SNAKE_EYE_RADIUS_FACTOR = 0.32;
+const SNAKE_PUPIL_RADIUS_FACTOR = 0.16;

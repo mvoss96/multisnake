@@ -25,7 +25,8 @@ window.addEventListener("DOMContentLoaded", () => {
   // da der Server erst dort ausgewählt wird. Beide Felder werden aus dem
   // Storage vorbefüllt, sodass wiederkehrende Spieler nur noch Enter/Klick
   // brauchen, statt komplett am Modal vorbeizulaufen.
-  serverInput.value = localStorage.getItem("snakeServer") || "localhost";
+  serverInput.value =
+    localStorage.getItem("snakeServer") || window.location.hostname || "localhost";
   nameInput.value = sessionStorage.getItem("snakeName") || "";
 
   function updateControlToggleLabel() {

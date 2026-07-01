@@ -4,6 +4,17 @@
 
 const VIEW_WORLD_HEIGHT = 600; // fester Weltausschnitt (Einheiten) - unabhängig von Bildschirmauflösung
 
+// Mobile / Touch
+// Mindest-Weltbreite, die auf jedem Viewport sichtbar sein muss (Fairness-Fix
+// für schmale/hohe Mobile-Viewports) - siehe worldScale() in renderer.js.
+const MIN_VISIBLE_WORLD_WIDTH = 500;
+// Drosselung für sendDirection()-Aufrufe während des Touch-Ziehens (verhindert
+// Netzwerk-Spam bei hochfrequenten pointermove-Events).
+const TOUCH_STEER_MIN_INTERVAL_MS = 33; // gleiche Taktung wie RELATIVE_POLL_MS
+// Totzone um den Bildschirm-Ursprung, unterhalb derer keine Richtungsänderung
+// gesendet wird (verhindert Zittern bei minimalen Fingerbewegungen).
+const TOUCH_STEER_DEADZONE_PX = 12;
+
 // Steuerung
 const RELATIVE_POLL_MS = 33;
 // Turn step per poll must clear the server's MAX_TURN_RATE clamp, otherwise

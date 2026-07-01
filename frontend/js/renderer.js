@@ -33,7 +33,26 @@ function createRenderer(canvas) {
   }
 
   function worldScale() {
-    return canvas.height / VIEW_WORLD_HEIGHT;
+    const heightScale = canvas.height / VIEW_WORLD_HEIGHT;
+    const widthScale = canvas.width / MIN_VISIBLE_WORLD_WIDTH;
+    return Math.min(heightScale, widthScale);
+  }
+
+  // Höhe (in CSS-Pixeln) des tatsächlich fürs Spielfeld genutzten Canvas-Bereichs.
+  // Weicht von canvas.height ab, sobald worldScale() durch die Mindest-Weltbreite
+  // geklemmt wurde (schmale Hochformat-Viewports) - der Rest wird letterboxed.
+  function viewportHeightPx(scale) {
+    return Math.min(canvas.height, VIEW_WORLD_HEIGHT * scale);
+  }
+
+  // Bildschirm-Ursprung des Welt-Koordinatensystems (Zentrum der Kamera/eigener
+  // Kopf) - von touch.js für die Winkelberechnung der Zieh-Steuerung genutzt,
+  // damit die Letterboxing-Mathematik nicht dupliziert wird.
+  function getViewOrigin() {
+    const scale = worldScale();
+    const viewH = viewportHeightPx(scale);
+    const barHeight = (canvas.height - viewH) / 2;
+    return { x: canvas.width / 2, y: barHeight + viewH / 2 };
   }
 
   // Das Muster beginnt mit einem festen Rand (SPIKE_CORNER_MARGIN) statt
@@ -125,13 +144,23 @@ function createRenderer(canvas) {
 
   function draw(state, camera) {
     const scale = worldScale();
+    const viewH = viewportHeightPx(scale);
+    const barHeight = (canvas.height - viewH) / 2;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#050508";
+    ctx.fillStyle = "#000"; // Letterbox-Balken (nur sichtbar, wenn barHeight > 0)
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
+    if (barHeight > 0) {
+      ctx.beginPath();
+      ctx.rect(0, barHeight, canvas.width, viewH);
+      ctx.clip();
+    }
+    ctx.fillStyle = "#050508";
+    ctx.fillRect(0, barHeight, canvas.width, viewH);
+
+    ctx.translate(canvas.width / 2, barHeight + viewH / 2);
     ctx.scale(scale, scale);
     ctx.translate(-camera.x, -camera.y);
 
@@ -225,5 +254,5 @@ function createRenderer(canvas) {
     ctx.restore();
   }
 
-  return { setBoard, resizeToWindow, draw };
+  return { setBoard, resizeToWindow, draw, getViewOrigin };
 }

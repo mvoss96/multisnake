@@ -1,0 +1,68 @@
+[project]
+name = "multisnake-backend"
+version = "0.1.0"
+description = "FastAPI/WebSocket backend for the multiSnake multiplayer game"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.128,<0.129",
+    "uvicorn[standard]>=0.39,<0.40",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=5.0",
+    "mypy>=1.13",
+    "ruff>=0.7",
+    "httpx>=0.27",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+warn_redundant_casts = true
+warn_unused_configs = true
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_optional = true
+strict_equality = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+exclude = ["^\\.venv/"]
+
+# Gradual strict-typing rollout: modules not yet migrated are exempted here.
+# Remove a module from this list once it's fully annotated (see CLAUDE.md).
+[[tool.mypy.overrides]]
+module = [
+    "main",
+    "game.game_room",
+    "game.snake",
+    "game.food",
+    "game.bot",
+    "game.player",
+    "game.board",
+    "game.vector",
+    "game.protocol",
+    "game.config",
+]
+ignore_errors = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["game", "main"]

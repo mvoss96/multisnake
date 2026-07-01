@@ -5,12 +5,12 @@ Backend läuft lokal (FastAPI + WebSocket), UI im Browser (Canvas + Vanilla JS).
 
 ## Setup & Start
 
+Benötigt [uv](https://docs.astral.sh/uv/) (`brew install uv`) — verwaltet Python-Version, venv und Dependencies automatisch.
+
 ```bash
 cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uv sync
+uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Dann im Browser öffnen: http://localhost:8000/

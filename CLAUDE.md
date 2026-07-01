@@ -55,11 +55,10 @@ Multiplayer Snake in the style of slither.io: continuous (non-grid) movement, on
 ### How to run
 ```bash
 cd backend
-python3 -m venv venv && source venv/bin/activate   # first time only
-pip install -r requirements.txt                     # first time only
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uv sync                                                     # first time / after dependency changes
+uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
-Open `http://localhost:8000/`. The same FastAPI process serves the WebSocket API and the static frontend — nothing else needs to run.
+Open `http://localhost:8000/`. The same FastAPI process serves the WebSocket API and the static frontend — nothing else needs to run. `uv` manages the Python 3.12 interpreter, `.venv/`, and locked dependencies (`uv.lock`) automatically — no manual venv activation needed, prefix any command with `uv run`.
 
 `--reload` is required for the normal edit-reload workflow. Without it, `main.py`'s `game_loop()` background task keeps running the stale code and must be manually restarted after every backend change.
 

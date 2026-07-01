@@ -118,12 +118,13 @@ window.addEventListener("DOMContentLoaded", () => {
         scoreEl.textContent = `Score: ${mySnake.score}`;
         updateDashMeter(mySnake.dash_charge, mySnake.dashing);
 
-        // Kamera zoomt mit wachsender eigener Länge kontinuierlich raus, damit
-        // man sich selbst weiterhin gut im Blick behält (0 bei Start-, 1 bei
-        // Maximallänge, siehe SNAKE_MIN_LENGTH/SNAKE_MAX_LENGTH in config.js).
+        // Kamera zoomt mit wachsendem eigenem Radius (Breite) kontinuierlich
+        // raus, damit man sich selbst weiterhin gut im Blick behält (0 bei
+        // minimaler, 1 bei maximaler Breite, siehe SNAKE_RADIUS_MIN/MAX in
+        // config.js) - bewusst an der Breite festgemacht, nicht an der Länge.
         const growth = Math.min(
           1,
-          Math.max(0, (mySnake.length - SNAKE_MIN_LENGTH) / (SNAKE_MAX_LENGTH - SNAKE_MIN_LENGTH))
+          Math.max(0, (mySnake.radius - SNAKE_RADIUS_MIN) / (SNAKE_RADIUS_MAX - SNAKE_RADIUS_MIN))
         );
         viewWorldHeight = VIEW_WORLD_HEIGHT_MIN + growth * (VIEW_WORLD_HEIGHT_MAX - VIEW_WORLD_HEIGHT_MIN);
       }

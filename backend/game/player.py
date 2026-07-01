@@ -8,6 +8,7 @@ class Player:
         self.player_type = player_type
         self.name = name
         self.snake: Snake | None = None
+        self.color: str | None = None
 
     def get_input_direction(self, context: DecisionContext) -> float | None:
         raise NotImplementedError
@@ -57,3 +58,12 @@ class PlayerManager:
 
     def all(self) -> list[Player]:
         return list(self.players.values())
+
+    def unique_name(self, name: str) -> str:
+        existing = {p.name for p in self.players.values()}
+        if name not in existing:
+            return name
+        n = 2
+        while f"{name} ({n})" in existing:
+            n += 1
+        return f"{name} ({n})"

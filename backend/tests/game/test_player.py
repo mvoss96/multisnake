@@ -66,6 +66,25 @@ def test_player_manager_all_returns_every_player() -> None:
     assert set(manager.all()) == {human, bot_player}
 
 
+def test_unique_name_returns_name_unchanged_when_no_collision() -> None:
+    manager = PlayerManager()
+    manager.add_human("p1", "Bob")
+    assert manager.unique_name("Alice") == "Alice"
+
+
+def test_unique_name_appends_suffix_on_single_collision() -> None:
+    manager = PlayerManager()
+    manager.add_human("p1", "Alice")
+    assert manager.unique_name("Alice") == "Alice (2)"
+
+
+def test_unique_name_increments_suffix_until_free() -> None:
+    manager = PlayerManager()
+    manager.add_human("p1", "Alice")
+    manager.add_human("p2", "Alice (2)")
+    assert manager.unique_name("Alice") == "Alice (3)"
+
+
 class _FakeBotConfig:
     BOT_LOOKAHEAD = 60.0
     BOT_DANGER_MARGIN = 10.0

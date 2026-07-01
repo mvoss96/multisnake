@@ -5,9 +5,11 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
+from starlette.middleware.base import RequestResponseEndpoint
+from starlette.responses import Response
 
 from game import config
 from game.game_room import GameRoom
@@ -74,6 +76,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+# StaticFiles serves the frontend without any Cache-Control header, so browsers fall
+# back to heuristic caching - after a deploy, clients can keep running a stale mix of
+# HTML/CSS/JS for a long time without any visible sign of it (confusing bug reports
+# that don't match what a fresh load shows). "no-cache" forces a conditional
+# revalidation (If-None-Match/If-Modified-Since, which StaticFiles already supports)
+# on every request instead - cheap 304s when unchanged, always-fresh content when not.
+@app.middleware("http")
+async def add_no_cache_header(request: Request, call_next: RequestResponseEndpoint) -> Response:
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 @app.websocket("/ws")

@@ -84,15 +84,19 @@ html, body {
 }
 
 /* Der Fortschrittsring wird per JS über stroke-dashoffset gefüllt (siehe
-   updateDashMeter in main.js) - der Kreisumfang bei r=44 ist ~276.46, das ist
-   der volle stroke-dasharray-Wert (== 0% gefüllt). Um -90deg gedreht, damit
-   der Ring bei 12 statt 3 Uhr beginnt (SVG-Winkel starten rechts). */
+   updateDashMeter in main.js) - pathLength="100" auf den <circle>-Elementen
+   (siehe index.html) macht den Kreisumfang immer exakt 100, unabhängig vom
+   Radius, also ist dashoffset direkt ein Prozentwert (0 = voll, 100 = leer).
+   Die Drehung auf 12-Uhr-Start passiert über das SVG-native transform-Attribut
+   auf den <circle>-Elementen selbst (nicht per CSS transform auf der <svg>) -
+   auf manchen mobilen Browsern hat ein CSS-transform auf der <svg> dazu
+   geführt, dass reine stroke-dashoffset-Änderungen nicht neu gezeichnet
+   wurden (Füllung blieb unsichtbar), das SVG-Attribut ist davon nicht betroffen. */
 .dash-progress {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  transform: rotate(-90deg);
   pointer-events: none;
 }
 
@@ -106,8 +110,8 @@ html, body {
   fill: none;
   stroke: #4b7bec;
   stroke-width: 10;
-  stroke-dasharray: 276.46;
-  stroke-dashoffset: 276.46;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
   transition: stroke-dashoffset 0.1s linear;
 }
 

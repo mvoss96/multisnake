@@ -57,14 +57,21 @@ window.addEventListener("DOMContentLoaded", () => {
   updateControlToggleLabel();
   controlToggleBtn.addEventListener("click", toggleControlMode);
 
-  // Umfang des SVG-Fortschrittsrings bei r=44 (siehe .dash-progress-fill in
-  // style.css) - stroke-dashoffset 0 = voll sichtbar (100%), == Umfang = leer (0%).
-  const DASH_RING_CIRCUMFERENCE = 2 * Math.PI * 44;
+  // Debug-Info (Länge/Breite der eigenen Schlange) ein-/ausblenden per Klick/Tap
+  // auf den Score - praktisch zum Nachvollziehen des Score-basierten Wachstums,
+  // ohne die Konsole zu bemühen.
+  let showDebugInfo = false;
+  scoreEl.style.cursor = "pointer";
+  scoreEl.addEventListener("click", () => {
+    showDebugInfo = !showDebugInfo;
+  });
 
   function updateDashMeter(charge, dashing) {
     // Beide Anzeigen (kompakter HUD-Ring für Desktop, großer Button für Touch)
-    // teilen sich dieselbe Ring-Füllung + Bereit/Aktiv-Farblogik.
-    const offset = DASH_RING_CIRCUMFERENCE * (1 - charge);
+    // teilen sich dieselbe Ring-Füllung + Bereit/Aktiv-Farblogik. pathLength="100"
+    // auf den <circle>-Elementen (siehe index.html) macht dashoffset direkt zum
+    // Prozentwert, unabhängig vom tatsächlichen SVG-Radius.
+    const offset = 100 * (1 - charge);
     for (const el of [dashRing, dashBtn]) {
       el.querySelector(".dash-progress-fill").style.strokeDashoffset = offset;
       el.classList.toggle("active", !!dashing);
@@ -135,7 +142,9 @@ window.addEventListener("DOMContentLoaded", () => {
       if (mySnake) {
         camera = { x: mySnake.points[0][0], y: mySnake.points[0][1] };
         GameState.ownDirection = mySnake.direction;
-        scoreEl.textContent = `Score: ${mySnake.score}`;
+        scoreEl.textContent = showDebugInfo
+          ? `Score: ${mySnake.score} | Länge: ${Math.round(mySnake.length)} | Breite: ${mySnake.radius.toFixed(1)}`
+          : `Score: ${mySnake.score}`;
         updateDashMeter(mySnake.dash_charge, mySnake.dashing);
 
         // Kamera zoomt mit wachsendem eigenem Radius (Breite) kontinuierlich

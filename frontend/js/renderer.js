@@ -45,16 +45,6 @@ function createRenderer(canvas) {
     return Math.min(canvas.height, VIEW_WORLD_HEIGHT * scale);
   }
 
-  // Bildschirm-Ursprung des Welt-Koordinatensystems (Zentrum der Kamera/eigener
-  // Kopf) - von touch.js für die Winkelberechnung der Zieh-Steuerung genutzt,
-  // damit die Letterboxing-Mathematik nicht dupliziert wird.
-  function getViewOrigin() {
-    const scale = worldScale();
-    const viewH = viewportHeightPx(scale);
-    const barHeight = (canvas.height - viewH) / 2;
-    return { x: canvas.width / 2, y: barHeight + viewH / 2 };
-  }
-
   // Das Muster beginnt mit einem festen Rand (SPIKE_CORNER_MARGIN) statt
   // direkt mit einem Spike, damit jede Ecke symmetrisch in einer Lücke liegt.
   // Die Spike-Zwischenräume werden minimal angepasst (statt starr bei
@@ -254,5 +244,5 @@ function createRenderer(canvas) {
     ctx.restore();
   }
 
-  return { setBoard, resizeToWindow, draw, getViewOrigin };
+  return { setBoard, resizeToWindow, draw };
 }

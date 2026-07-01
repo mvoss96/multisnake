@@ -1,17 +1,21 @@
-// Halten/Ziehen auf dem Canvas zeigt die Richtung (Vorbild: slither.io).
-// Nutzt bewusst Pointer Events (nicht Touch Events) - vereinheitlicht
-// Maus/Touch/Pen in einer API, funktioniert daher unverändert auch mit der
-// Maus auf einem Desktop-Browser.
-function setupTouchControls(client, canvas, renderer) {
+// Schwimmender Touch-Joystick: der Finger kann irgendwo auf dem Canvas
+// aufgesetzt werden, dieser Punkt wird der Ursprung. Anschließendes Ziehen
+// relativ zu diesem Ursprung bestimmt die Richtung - unabhängig vom
+// Tastatur-"absolut"/"relativ"-Modus (siehe input.js), der für Touch keine
+// Rolle spielt. Nutzt bewusst Pointer Events (nicht Touch Events) -
+// vereinheitlicht Maus/Touch/Pen in einer API, funktioniert daher
+// unverändert auch mit der Maus auf einem Desktop-Browser.
+function setupTouchControls(client, canvas) {
   let activePointerId = null;
+  let originX = 0;
+  let originY = 0;
   let lastAngle = null;
   let lastSendTime = 0;
 
   function updateFromEvent(event) {
     const rect = canvas.getBoundingClientRect();
-    const origin = renderer.getViewOrigin();
-    const dx = event.clientX - rect.left - origin.x;
-    const dy = event.clientY - rect.top - origin.y;
+    const dx = event.clientX - rect.left - originX;
+    const dy = event.clientY - rect.top - originY;
     if (Math.hypot(dx, dy) < TOUCH_STEER_DEADZONE_PX) return;
 
     const angle = Math.atan2(dy, dx);
@@ -26,8 +30,18 @@ function setupTouchControls(client, canvas, renderer) {
   canvas.addEventListener("pointerdown", (event) => {
     if (activePointerId !== null) return; // erste Berührung gewinnt, Mehrfach-Touch ignoriert
     activePointerId = event.pointerId;
-    canvas.setPointerCapture(event.pointerId);
-    updateFromEvent(event);
+    const rect = canvas.getBoundingClientRect();
+    originX = event.clientX - rect.left;
+    originY = event.clientY - rect.top;
+    lastAngle = null; // neuer Ursprung: nächste Bewegung erzwingt eine frische Richtungsberechnung
+    // setPointerCapture sorgt nur dafür, dass Events beim Bewegen außerhalb
+    // des Canvas trotzdem ankommen - rein optional, Ursprung ist auch ohne
+    // das gesetzt, daher defensiv statt den Handler abzubrechen.
+    try {
+      canvas.setPointerCapture(event.pointerId);
+    } catch {
+      // Ignorieren - z.B. wenn der Browser die Pointer-ID nicht (mehr) kennt.
+    }
   });
 
   canvas.addEventListener("pointermove", (event) => {

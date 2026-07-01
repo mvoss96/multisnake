@@ -131,7 +131,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     client.connect();
     setupInput(client, toggleControlMode);
-    setupTouchControls(client, canvas, renderer);
+    setupTouchControls(client, canvas);
   }
 
   joinBtn.addEventListener("click", doJoin);

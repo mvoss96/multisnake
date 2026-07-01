@@ -53,10 +53,7 @@ module = [
     "game.food",
     "game.bot",
     "game.player",
-    "game.board",
-    "game.vector",
     "game.protocol",
-    "game.config",
 ]
 ignore_errors = true
 

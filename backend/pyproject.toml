@@ -50,7 +50,6 @@ module = [
     "main",
     "game.game_room",
     "game.snake",
-    "game.food",
     "game.bot",
     "game.player",
     "game.protocol",

@@ -87,5 +87,6 @@ class Snake:
     def grow(self, amount: float, score_value: int = 1) -> None:
         self.target_length = min(self.target_length + amount, self.max_length)
         self.score += score_value
-        charge_gain = self.config.DASH_CHARGE_PER_FOOD * score_value
-        self.dash_charge = min(1.0, self.dash_charge + charge_gain)
+        if self.dash_time_remaining <= 0:  # kein Aufladen durch Futter während des Dashs
+            charge_gain = self.config.DASH_CHARGE_PER_FOOD * score_value
+            self.dash_charge = min(1.0, self.dash_charge + charge_gain)

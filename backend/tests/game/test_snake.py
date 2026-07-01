@@ -106,16 +106,23 @@ def test_grow_never_exceeds_max_length(config: SimpleNamespace) -> None:
 
 def test_grow_also_charges_dash_scaled_by_score_value(config: SimpleNamespace) -> None:
     snake = make_snake(config)
-    snake.try_dash()  # depletes dash_charge to 0.0
+    snake.dash_charge = 0.0  # not currently dashing, just depleted
     snake.grow(amount=1.0, score_value=2)
     assert snake.dash_charge == pytest.approx(config.DASH_CHARGE_PER_FOOD * 2)
 
 
 def test_grow_dash_charge_never_exceeds_one(config: SimpleNamespace) -> None:
     snake = make_snake(config)
-    snake.try_dash()  # depletes dash_charge to 0.0
+    snake.dash_charge = 0.0
     snake.grow(amount=1.0, score_value=100)
     assert snake.dash_charge == 1.0
+
+
+def test_grow_does_not_charge_dash_while_dashing(config: SimpleNamespace) -> None:
+    snake = make_snake(config)
+    snake.try_dash()  # dash_charge -> 0.0, dash_time_remaining -> DASH_DURATION
+    snake.grow(amount=1.0, score_value=100)
+    assert snake.dash_charge == 0.0
 
 
 def test_trim_keeps_points_within_target_length(config: SimpleNamespace) -> None:

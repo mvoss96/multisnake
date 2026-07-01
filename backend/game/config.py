@@ -22,8 +22,9 @@ DASH_DURATION: Final[float] = 1.8  # Sekunden, die der Dash anhält
 DASH_RECHARGE_SECONDS: Final[float] = 6.0
 # Zusätzliche Aufladung beim Fressen, pro "1er"-Futterstück-Äquivalent (skaliert mit
 # score_value der Futterstufe, siehe Snake.grow) - kommt zur zeitbasierten Aufladung
-# oben drauf, ersetzt sie nicht.
-DASH_CHARGE_PER_FOOD: Final[float] = 0.1
+# oben drauf, ersetzt sie nicht. Zählt bewusst nicht während eines laufenden Dashs
+# (siehe Snake.grow), sonst liesse sich der Dash durch Futter fast endlos verlängern.
+DASH_CHARGE_PER_FOOD: Final[float] = 0.02
 
 FOOD_COUNT_TARGET: Final[int] = 90
 FOOD_RADIUS: Final[float] = 5.0

@@ -7,6 +7,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const restartBtn = document.getElementById("restart-btn");
   const connectionBanner = document.getElementById("connection-banner");
   const nameModal = document.getElementById("name-modal");
+  const serverInput = document.getElementById("server-input");
   const nameInput = document.getElementById("name-input");
   const joinBtn = document.getElementById("join-btn");
   const controlToggleBtn = document.getElementById("control-toggle");
@@ -14,14 +15,18 @@ window.addEventListener("DOMContentLoaded", () => {
   const dashMeterFill = document.getElementById("dash-meter-fill");
 
   let camera = { x: 0, y: 0 };
-  let savedName = localStorage.getItem("snakeName");
+  let client = null;
+  let pendingName = "";
 
   renderer.resizeToWindow();
   window.addEventListener("resize", () => renderer.resizeToWindow());
 
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const client = new WebSocketClient(`${protocol}://${window.location.host}/ws`);
-  window.__debugClient = client; // Konsole: window.__debugClient.sendDebugTeleport(x, y) etc.
+  // Namens-Modal wird immer zuerst gezeigt (kein Auto-Connect mehr beim Laden),
+  // da der Server erst dort ausgewählt wird. Beide Felder werden aus dem
+  // Storage vorbefüllt, sodass wiederkehrende Spieler nur noch Enter/Klick
+  // brauchen, statt komplett am Modal vorbeizulaufen.
+  serverInput.value = localStorage.getItem("snakeServer") || "localhost";
+  nameInput.value = sessionStorage.getItem("snakeName") || "";
 
   function updateControlToggleLabel() {
     controlToggleBtn.textContent =
@@ -38,58 +43,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
   updateControlToggleLabel();
   controlToggleBtn.addEventListener("click", toggleControlMode);
-
-  function doJoin() {
-    const name = (nameInput.value || "").trim().slice(0, 20) || "Spieler";
-    localStorage.setItem("snakeName", name);
-    savedName = name;
-    client.sendJoin(name);
-    nameModal.classList.add("hidden");
-  }
-
-  joinBtn.addEventListener("click", doJoin);
-  nameInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") doJoin();
-  });
-
-  client.onConnectionChange = (isConnected) => {
-    connectionBanner.classList.toggle("hidden", isConnected);
-  };
-
-  client.onWelcome = (msg) => {
-    GameState.playerId = msg.player_id;
-    GameState.board = msg.board;
-    renderer.setBoard(msg.board.width, msg.board.height);
-    camera = { x: msg.board.width / 2, y: msg.board.height / 2 };
-    overlay.classList.add("hidden");
-
-    if (savedName) {
-      client.sendJoin(savedName);
-      nameModal.classList.add("hidden");
-    } else {
-      nameModal.classList.remove("hidden");
-      nameInput.value = "";
-      nameInput.focus();
-    }
-  };
-
-  client.onState = (msg) => {
-    const mySnake = msg.snakes.find((s) => s.player_id === GameState.playerId);
-    if (mySnake) {
-      camera = { x: mySnake.points[0][0], y: mySnake.points[0][1] };
-      GameState.ownDirection = mySnake.direction;
-      scoreEl.textContent = `Score: ${mySnake.score}`;
-      updateDashMeter(mySnake.dash_charge, mySnake.dashing);
-    }
-
-    renderer.draw({ snakes: msg.snakes, food: msg.food }, camera);
-    updateLeaderboard(msg.snakes);
-  };
-
-  client.onGameOver = (msg) => {
-    finalScoreEl.textContent = `Score: ${msg.score}`;
-    overlay.classList.remove("hidden");
-  };
 
   function updateDashMeter(charge, dashing) {
     dashMeterFill.style.width = `${Math.round(charge * 100)}%`;
@@ -112,11 +65,64 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  restartBtn.addEventListener("click", () => {
-    overlay.classList.add("hidden");
-    client.sendRestart();
-  });
+  function doJoin() {
+    const server = (serverInput.value || "").trim() || "localhost";
+    const name = (nameInput.value || "").trim().slice(0, 20) || "Spieler";
+    localStorage.setItem("snakeServer", server);
+    sessionStorage.setItem("snakeName", name);
+    pendingName = name;
+    nameModal.classList.add("hidden");
 
-  client.connect();
-  setupInput(client, toggleControlMode);
+    if (client) return; // already connected from an earlier submit
+
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    client = new WebSocketClient(`${protocol}://${server}:${window.location.port}/ws`);
+    window.__debugClient = client; // Konsole: window.__debugClient.sendDebugTeleport(x, y) etc.
+
+    client.onConnectionChange = (isConnected) => {
+      connectionBanner.classList.toggle("hidden", isConnected);
+    };
+
+    client.onWelcome = (msg) => {
+      GameState.playerId = msg.player_id;
+      GameState.board = msg.board;
+      renderer.setBoard(msg.board.width, msg.board.height);
+      camera = { x: msg.board.width / 2, y: msg.board.height / 2 };
+      overlay.classList.add("hidden");
+      client.sendJoin(pendingName);
+    };
+
+    client.onState = (msg) => {
+      const mySnake = msg.snakes.find((s) => s.player_id === GameState.playerId);
+      if (mySnake) {
+        camera = { x: mySnake.points[0][0], y: mySnake.points[0][1] };
+        GameState.ownDirection = mySnake.direction;
+        scoreEl.textContent = `Score: ${mySnake.score}`;
+        updateDashMeter(mySnake.dash_charge, mySnake.dashing);
+      }
+
+      renderer.draw({ snakes: msg.snakes, food: msg.food }, camera);
+      updateLeaderboard(msg.snakes);
+    };
+
+    client.onGameOver = (msg) => {
+      finalScoreEl.textContent = `Score: ${msg.score}`;
+      overlay.classList.remove("hidden");
+    };
+
+    restartBtn.addEventListener("click", () => {
+      overlay.classList.add("hidden");
+      client.sendRestart();
+    });
+
+    client.connect();
+    setupInput(client, toggleControlMode);
+  }
+
+  joinBtn.addEventListener("click", doJoin);
+  for (const input of [serverInput, nameInput]) {
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") doJoin();
+    });
+  }
 });

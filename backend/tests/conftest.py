@@ -21,6 +21,7 @@ def test_config() -> SimpleNamespace:
         BOARD_WIDTH=300.0,
         BOARD_HEIGHT=300.0,
         MAX_TURN_RATE=4.4,
+        NUM_BOTS=0,
         SPIKE_ZONE_DEPTH=14.0,
         SNAKE_SPEED=90.0,
         SNAKE_RADIUS=7.0,

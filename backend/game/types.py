@@ -47,6 +47,7 @@ class GameConfig(FoodConfig, SnakeConfig, BotConfig, Protocol):
     BOARD_WIDTH: float
     BOARD_HEIGHT: float
     MAX_TURN_RATE: float
+    NUM_BOTS: int
     SPIKE_ZONE_DEPTH: float
     FOOD_RADIUS: float
     FOOD_MEDIUM_RADIUS: float

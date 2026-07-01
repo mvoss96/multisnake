@@ -254,6 +254,13 @@ body.touch-device #dash-key-hint {
   display: none;
 }
 
+/* Touch steuert immer über den schwimmenden Joystick, unabhängig vom
+   absolut/relativ-Tastaturmodus - der Umschalt-Button hat für Touch keine
+   Funktion mehr. */
+body.touch-device #control-toggle {
+  display: none;
+}
+
 @media (max-width: 820px) {
   #hud {
     /* Muss neben #leaderboard (max-width 42vw) Platz lassen. */

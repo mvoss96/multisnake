@@ -1,4 +1,5 @@
 import asyncio
+import os
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -28,6 +29,11 @@ from game.protocol import (
 
 game_room = GameRoom(config)
 connections: dict[str, WebSocket] = {}  # player_id -> WebSocket
+
+# debug_* WS commands are a local dev tool (see CLAUDE.md) with no auth of
+# their own; default on so `uv run uvicorn` keeps working unconfigured, but
+# disable explicitly for the public Docker deployment.
+DEBUG_COMMANDS_ENABLED = os.environ.get("ENABLE_DEBUG_COMMANDS", "true").lower() != "false"
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
@@ -100,15 +106,15 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                     player = game_room.players.get(player_id)
                     if player and player.snake:
                         player.snake.try_dash()
-                case DebugPauseMessage(paused=paused):
+                case DebugPauseMessage(paused=paused) if DEBUG_COMMANDS_ENABLED:
                     game_room.set_paused(paused)
-                case DebugTeleportMessage(x=x, y=y):
+                case DebugTeleportMessage(x=x, y=y) if DEBUG_COMMANDS_ENABLED:
                     game_room.debug_teleport(player_id, x, y)
-                case DebugSpawnAtMessage(x=x, y=y):
+                case DebugSpawnAtMessage(x=x, y=y) if DEBUG_COMMANDS_ENABLED:
                     game_room.debug_respawn_at(player_id, x, y)
-                case DebugInvulnerableMessage(enabled=enabled):
+                case DebugInvulnerableMessage(enabled=enabled) if DEBUG_COMMANDS_ENABLED:
                     game_room.debug_set_invulnerable(player_id, enabled)
-                case DebugBotsMessage(count=count):
+                case DebugBotsMessage(count=count) if DEBUG_COMMANDS_ENABLED:
                     game_room.debug_set_bot_count(count)
     except WebSocketDisconnect:
         pass

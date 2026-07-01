@@ -230,3 +230,39 @@ def test_disconnect_refills_a_bot(client: TestClient, monkeypatch: pytest.Monkey
         ws.send_json({"type": "join", "name": "Carol"})
 
     assert _bot_count(main.game_room) == 1
+
+
+@pytest.mark.asyncio
+async def test_debug_pause_is_ignored_when_debug_commands_disabled(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(main, "DEBUG_COMMANDS_ENABLED", False)
+    with client.websocket_connect("/ws") as ws:
+        ws.receive_json()  # welcome
+        assert main.game_room.paused is False
+
+        await _send_and_settle(ws, {"type": "debug_pause", "paused": True})
+        await main.broadcast_tick()
+        state = ws.receive_json()
+
+        assert main.game_room.paused is False
+        assert state["paused"] is False
+
+
+@pytest.mark.asyncio
+async def test_debug_bots_is_ignored_when_debug_commands_disabled(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(main, "DEBUG_COMMANDS_ENABLED", False)
+    with client.websocket_connect("/ws") as ws:
+        welcome = ws.receive_json()
+        player_id = welcome["player_id"]
+        await _send_and_settle(ws, {"type": "join", "name": "Judy"})
+
+        await _send_and_settle(ws, {"type": "debug_bots", "count": 5})
+        await _send_and_settle(ws, {"type": "debug_teleport", "x": 12.0, "y": 34.0})
+
+        assert _bot_count(main.game_room) == 0
+        player = main.game_room.players.get(player_id)
+        assert player is not None and player.snake is not None
+        assert (player.snake.points[0].x, player.snake.points[0].y) != (12.0, 34.0)

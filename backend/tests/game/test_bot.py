@@ -30,6 +30,7 @@ def snake_config() -> SimpleNamespace:
         DASH_SPEED_MULTIPLIER=2.2,
         DASH_RECHARGE_SECONDS=6.0,
         DASH_CHARGE_PER_FOOD=0.1,
+        SCORE_MULTIPLIER=1,
     )
 
 

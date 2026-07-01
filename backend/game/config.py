@@ -40,6 +40,12 @@ FOOD_GROWTH_VALUE: Final[float] = SEGMENT_SPACING * 1.5
 # aussehen - Frontend zoomt die Kamera passend dazu raus (siehe SnakeState.length,
 # VIEW_WORLD_HEIGHT_MIN/MAX in frontend/js/config.js).
 MAX_SNAKE_LENGTH: Final[float] = 200 * SEGMENT_SPACING
+# Score-Anzeige ist bewusst vom Wachstum entkoppelt (Snake.grow() nutzt score_value
+# weiterhin unverändert fürs Längen-/Radius-Wachstum und die Dash-Aufladung) - nur
+# der angezeigte Score wird zusätzlich mit diesem Faktor skaliert, kalibriert so,
+# dass die Maximallänge bei einem Score von ungefähr 1000 erreicht wird
+# ((MAX_SNAKE_LENGTH - Startlänge) / FOOD_GROWTH_VALUE * SCORE_MULTIPLIER ≈ 1000).
+SCORE_MULTIPLIER: Final[int] = 8
 FOOD_DROP_SAMPLE_STEP: Final[int] = 2
 # Mittlere/große Futterstücke sind X kleine wert (Wachstum + Score)
 FOOD_MEDIUM_VALUE_MULTIPLIER: Final[int] = 2

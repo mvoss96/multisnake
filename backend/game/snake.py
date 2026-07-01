@@ -91,7 +91,10 @@ class Snake:
 
     def grow(self, amount: float, score_value: int = 1) -> None:
         self.target_length = min(self.target_length + amount, self.max_length)
-        self.score += score_value
+        # Score-Anzeige ist bewusst mit SCORE_MULTIPLIER hochskaliert, unabhängig
+        # vom (unveränderten) score_value fürs Längen-/Radius-Wachstum unten und
+        # die Dash-Aufladung - siehe Kommentar bei SCORE_MULTIPLIER in config.py.
+        self.score += score_value * self.config.SCORE_MULTIPLIER
 
         # Radius wächst linear mit der Länge mit - eine lange Schlange wird so
         # auch sichtbar dicker, nicht nur länger (wirkt sich über self.radius

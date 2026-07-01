@@ -20,6 +20,7 @@ def config() -> SimpleNamespace:
         DASH_SPEED_MULTIPLIER=2.2,
         DASH_RECHARGE_SECONDS=6.0,
         DASH_CHARGE_PER_FOOD=0.1,
+        SCORE_MULTIPLIER=1,
     )
 
 
@@ -103,6 +104,19 @@ def test_grow_never_exceeds_max_length(config: SimpleNamespace) -> None:
     snake = make_snake(config)
     snake.grow(amount=10_000.0)
     assert snake.target_length == config.MAX_SNAKE_LENGTH
+
+
+def test_score_is_scaled_by_score_multiplier_independent_of_growth(
+    config: SimpleNamespace,
+) -> None:
+    scaled_config = SimpleNamespace(**{**vars(config), "SCORE_MULTIPLIER": 8})
+    snake = make_snake(scaled_config)
+    initial_length = snake.target_length
+
+    snake.grow(amount=16.0, score_value=2)
+
+    assert snake.score == 2 * 8  # Score skaliert, Wachstum bleibt unverändert
+    assert snake.target_length == initial_length + 16.0
 
 
 def test_new_snake_starts_at_the_minimum_radius(config: SimpleNamespace) -> None:

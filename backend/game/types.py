@@ -33,6 +33,7 @@ class SnakeConfig(Protocol):
     DASH_SPEED_MULTIPLIER: float
     DASH_RECHARGE_SECONDS: float
     DASH_CHARGE_PER_FOOD: float
+    SCORE_MULTIPLIER: int
 
 
 class BotConfig(Protocol):

@@ -29,12 +29,6 @@ html, body {
   letter-spacing: 0.5px;
 }
 
-#controls-hint {
-  margin-top: 4px;
-  font-size: 12px;
-  color: #b8b8c8;
-}
-
 .hud-btn {
   margin-top: 8px;
   padding: 6px 12px;
@@ -51,49 +45,32 @@ html, body {
   background: #45456a;
 }
 
-#dash-label {
-  margin-top: 8px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: #9aa0c0;
+/* Kreisförmige Dash-Ladeanzeige fürs Desktop-HUD - dieselbe Optik (Füllung per
+   conic-gradient, Farbwechsel bei bereit/aktiv) wie #dash-btn für Touch, nur
+   kompakt und nicht klickbar, da Dash hier über die Umschalt-Taste ausgelöst wird. */
+#dash-ring {
+  margin-top: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  --dash-charge: 0%;
+  background: conic-gradient(#4b7bec var(--dash-charge), #23233a var(--dash-charge));
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  transition: background-color 0.15s ease;
 }
 
-#dash-key-hint {
-  padding: 1px 6px;
-  margin-left: 4px;
-  border-radius: 4px;
-  background: #33334d;
-  color: #eee;
-  font-weight: 600;
-}
-
-#dash-meter {
-  margin-top: 4px;
-  width: 160px;
-  height: 10px;
-  border-radius: 5px;
-  background: #23233a;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-#dash-meter-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: 5px;
-  background: #4b7bec;
-  transition: width 0.08s linear, background-color 0.15s ease;
-}
-
-#dash-meter-fill.ready {
+#dash-ring.ready {
   background: #ffd700;
-  box-shadow: 0 0 8px rgba(255, 215, 0, 0.7);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
 }
 
-#dash-meter-fill.active {
+#dash-ring.active {
   background: #ff5d5d;
-  box-shadow: 0 0 8px rgba(255, 93, 93, 0.7);
+  box-shadow: 0 0 10px rgba(255, 93, 93, 0.7);
 }
 
 #leaderboard {
@@ -270,14 +247,16 @@ body.touch-device #dash-btn {
   display: flex;
 }
 
-body.touch-device #dash-key-hint {
-  display: none;
-}
-
 /* Touch steuert immer über den schwimmenden Joystick, unabhängig vom
    absolut/relativ-Tastaturmodus - der Umschalt-Button hat für Touch keine
    Funktion mehr. */
 body.touch-device #control-toggle {
+  display: none;
+}
+
+/* #dash-btn (großer, klickbarer Button unten rechts) übernimmt die Anzeige
+   auf Touch-Geräten - der kleine HUD-Ring wäre redundant. */
+body.touch-device #dash-ring {
   display: none;
 }
 
@@ -309,18 +288,10 @@ body.touch-device #control-toggle {
     font-size: 16px;
   }
 
-  #controls-hint {
-    font-size: 11px;
-  }
-
   .hud-btn {
     padding: 10px 14px;
     min-height: 44px;
     box-sizing: border-box;
-  }
-
-  #dash-meter {
-    width: min(160px, 40vw);
   }
 
   #leaderboard {

@@ -11,7 +11,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const joinBtn = document.getElementById("join-btn");
   const controlToggleBtn = document.getElementById("control-toggle");
   const leaderboardList = document.getElementById("leaderboard-list");
-  const dashMeterFill = document.getElementById("dash-meter-fill");
+  const dashRing = document.getElementById("dash-ring");
   const dashBtn = document.getElementById("dash-btn");
 
   let camera = { x: 0, y: 0 };
@@ -32,8 +32,6 @@ window.addEventListener("DOMContentLoaded", () => {
   const isTouchDevice = ("ontouchstart" in window) || navigator.maxTouchPoints > 0;
   if (isTouchDevice) {
     document.body.classList.add("touch-device");
-    document.getElementById("controls-hint").textContent =
-      "Berühren & halten: Richtung zeigen · Button unten rechts: Dash · Dein goldener Ring markiert deine Schlange";
   }
 
   // Namens-Modal wird immer zuerst gezeigt. Name wird aus dem Storage
@@ -58,16 +56,14 @@ window.addEventListener("DOMContentLoaded", () => {
   controlToggleBtn.addEventListener("click", toggleControlMode);
 
   function updateDashMeter(charge, dashing) {
-    dashMeterFill.style.width = `${Math.round(charge * 100)}%`;
-    dashMeterFill.classList.toggle("active", !!dashing);
-    dashMeterFill.classList.toggle("ready", !dashing && charge >= 1);
-
-    // Ladestand zusätzlich direkt im Touch-Dash-Button (kreisförmige Füllung) -
-    // spiegelt denselben Zustand wie der HUD-Balken, nur an einer für den
-    // Daumen erreichbaren Stelle.
-    dashBtn.style.setProperty("--dash-charge", `${Math.round(charge * 100)}%`);
-    dashBtn.classList.toggle("active", !!dashing);
-    dashBtn.classList.toggle("ready", !dashing && charge >= 1);
+    // Beide Anzeigen (kompakter HUD-Ring für Desktop, großer Button für Touch)
+    // teilen sich dieselbe kreisförmige Füllung + Bereit/Aktiv-Farblogik.
+    const chargePercent = `${Math.round(charge * 100)}%`;
+    for (const el of [dashRing, dashBtn]) {
+      el.style.setProperty("--dash-charge", chargePercent);
+      el.classList.toggle("active", !!dashing);
+      el.classList.toggle("ready", !dashing && charge >= 1);
+    }
   }
 
   function updateLeaderboard(snakes) {

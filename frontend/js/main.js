@@ -21,6 +21,18 @@ window.addEventListener("DOMContentLoaded", () => {
   renderer.resizeToWindow();
   window.addEventListener("resize", () => renderer.resizeToWindow());
 
+  // Eine einzige Erkennung steuert alle Touch-spezifischen CSS-/Text-Unterschiede
+  // (siehe body.touch-device in style.css). Die Event-Verdrahtung selbst
+  // (setupTouchControls) läuft dagegen immer, unabhängig von dieser Erkennung -
+  // Pointer Events vereinheitlichen Maus/Touch/Pen, ein Touchscreen-Laptop
+  // bekommt so Tastatur- und Zeige-Steuerung gleichzeitig ohne Konflikt.
+  const isTouchDevice = ("ontouchstart" in window) || navigator.maxTouchPoints > 0;
+  if (isTouchDevice) {
+    document.body.classList.add("touch-device");
+    document.getElementById("controls-hint").textContent =
+      "Berühren & halten: Richtung zeigen · Button unten rechts: Dash · Dein goldener Ring markiert deine Schlange";
+  }
+
   // Namens-Modal wird immer zuerst gezeigt (kein Auto-Connect mehr beim Laden),
   // da der Server erst dort ausgewählt wird. Beide Felder werden aus dem
   // Storage vorbefüllt, sodass wiederkehrende Spieler nur noch Enter/Klick
@@ -30,10 +42,11 @@ window.addEventListener("DOMContentLoaded", () => {
   nameInput.value = sessionStorage.getItem("snakeName") || "";
 
   function updateControlToggleLabel() {
+    const suffix = isTouchDevice ? "" : " (Tab zum Umschalten)";
     controlToggleBtn.textContent =
-      GameState.controlMode === "relative"
-        ? "Steuerung: relativ zur Schlange (Tab zum Umschalten)"
-        : "Steuerung: absolut zum Bildschirm (Tab zum Umschalten)";
+      (GameState.controlMode === "relative"
+        ? "Steuerung: relativ zur Schlange"
+        : "Steuerung: absolut zum Bildschirm") + suffix;
   }
 
   function toggleControlMode() {
@@ -118,6 +131,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     client.connect();
     setupInput(client, toggleControlMode);
+    setupTouchControls(client, canvas, renderer);
   }
 
   joinBtn.addEventListener("click", doJoin);

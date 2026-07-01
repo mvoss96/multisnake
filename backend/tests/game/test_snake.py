@@ -13,6 +13,7 @@ def config() -> SimpleNamespace:
         SNAKE_SPEED=90.0,
         SNAKE_RADIUS=7.0,
         SNAKE_MAX_RADIUS=14.0,
+        RADIUS_GROWTH_RATE=1.0,
         SNAKE_START_LENGTH=10,
         SEGMENT_SPACING=8.0,
         MAX_SNAKE_LENGTH=480.0,
@@ -126,6 +127,22 @@ def test_score_multiplier_scales_score_and_therefore_growth_speed(
 
     assert snake.score == 100
     assert snake.target_length == config.MAX_SNAKE_LENGTH
+    assert snake.radius == config.SNAKE_MAX_RADIUS
+
+
+def test_radius_growth_rate_makes_radius_reach_max_before_length(
+    config: SimpleNamespace,
+) -> None:
+    scaled_config = SimpleNamespace(**{**vars(config), "RADIUS_GROWTH_RATE": 2.0})
+    snake = make_snake(scaled_config)
+
+    snake.grow(score_value=50)  # score=50, SCORE_AT_MAX_LENGTH=100 -> growth=0.5
+
+    min_length = config.SNAKE_START_LENGTH * config.SEGMENT_SPACING
+    expected_length = min_length + (config.MAX_SNAKE_LENGTH - min_length) * 0.5
+    assert snake.target_length == pytest.approx(expected_length)
+    # radius_growth = min(1, 0.5 * 2.0) = 1.0 -> bereits am Maximum, obwohl die
+    # Länge erst bei der Hälfte ist.
     assert snake.radius == config.SNAKE_MAX_RADIUS
 
 

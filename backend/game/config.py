@@ -22,6 +22,12 @@ SNAKE_RADIUS: Final[float] = 7.0
 # auch sichtbar dicker, nicht nur länger, und beides ist exakt am Score
 # ablesbar statt an einer separat mitgeführten Wachstumsmenge.
 SNAKE_MAX_RADIUS: Final[float] = 14.0
+# Radius wächst etwas schneller als die Länge (bezogen auf denselben Score-
+# Fortschritt) - eine wachsende Schlange wirkt so früher spürbar dicker statt
+# nur länger. 1.0 wäre exakt gleich schnell wie die Länge; Radius erreicht sein
+# Maximum bereits bei growth == 1/RADIUS_GROWTH_RATE (siehe Snake.grow) und
+# bleibt danach bis SCORE_AT_MAX_LENGTH einfach gedeckelt.
+RADIUS_GROWTH_RATE: Final[float] = 1.3
 MAX_TURN_RATE: Final[float] = math.pi * 1.4  # Radiant pro Sekunde
 DASH_SPEED_MULTIPLIER: Final[float] = 2.2  # Geschwindigkeitsfaktor während des Dash
 DASH_DURATION: Final[float] = 1.8  # Sekunden, die der Dash anhält

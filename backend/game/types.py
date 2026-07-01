@@ -25,6 +25,7 @@ class SnakeConfig(Protocol):
     SNAKE_SPEED: float
     SNAKE_RADIUS: float
     SNAKE_MAX_RADIUS: float
+    RADIUS_GROWTH_RATE: float
     SNAKE_START_LENGTH: int
     SEGMENT_SPACING: float
     MAX_SNAKE_LENGTH: float

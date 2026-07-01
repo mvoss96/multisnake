@@ -98,7 +98,12 @@ class Snake:
         # durch welchen Futter-Mix der Score zustande kam.
         growth = min(1.0, self.score / self.config.SCORE_AT_MAX_LENGTH)
         self.target_length = self._min_length + (self.max_length - self._min_length) * growth
-        self.radius = self._min_radius + (self._max_radius - self._min_radius) * growth
+
+        # Radius nutzt denselben Score-Fortschritt, aber mit RADIUS_GROWTH_RATE
+        # beschleunigt - erreicht sein Maximum also vor der Länge und bleibt
+        # danach einfach gedeckelt (siehe Kommentar bei SNAKE_MAX_RADIUS).
+        radius_growth = min(1.0, growth * self.config.RADIUS_GROWTH_RATE)
+        self.radius = self._min_radius + (self._max_radius - self._min_radius) * radius_growth
 
         if self.dash_time_remaining <= 0:  # kein Aufladen durch Futter während des Dashs
             charge_gain = self.config.DASH_CHARGE_PER_FOOD * score_value

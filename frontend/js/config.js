@@ -75,7 +75,25 @@ const FOOD_BIG_RADIUS = 9;
 // Schlange gut erkennbar sind (das Sprite hat rundum transparenten Rand, die
 // eigentliche Grafik ist also kleiner als die gezeichnete Box). Höhe = Radius *
 // diesem Faktor, Breite folgt dem Seitenverhältnis des jeweiligen Sprites.
-const FOOD_SPRITE_SCALE = 4.6;
+const FOOD_SPRITE_SCALE = 4.2;
+// Gethemete Futter-Sprites (nur die Sprite-Variante, nicht die Klassik-Kreise)
+// schweben sanft auf und ab, damit sie sich von der gekachelten Bodentextur
+// abheben. Rein kosmetisch - nur der Zeichen-Offset, food.x/food.y (und damit
+// die Server-Kollision) bleiben unberührt. Jedes Stück schwebt entkoppelt
+// (Phase aus hashUnit(food.id)), sonst wippt alles im Gleichtakt.
+const FOOD_BOB_PERIOD_MS = 1600; // Dauer eines vollen Auf-/Ab-Zyklus
+// Schwebehöhe relativ zum Futter-Radius: das Sprite steht immer mindestens
+// BASE_LIFT über dem echten Bodenpunkt und wippt zusätzlich um AMPLITUDE.
+const FOOD_BOB_BASE_LIFT_FACTOR = 0.4;
+const FOOD_BOB_AMPLITUDE_FACTOR = 0.55;
+// Kontakt-Schatten am echten Bodenpunkt (food.y) - eine flache dunkle Ellipse,
+// die das schwebende Sprite optisch vom Boden abhebt. Sie schrumpft und
+// verblasst leicht, je höher das Sprite gerade schwebt (Distanz zum Boden).
+const FOOD_SHADOW_ALPHA = 0.28;
+const FOOD_SHADOW_WIDTH_FACTOR = 0.45; // Ellipsen-Breite relativ zur Sprite-Breite
+const FOOD_SHADOW_FLATNESS = 0.4; // Ellipsen-Höhe relativ zu ihrer Breite
+const FOOD_SHADOW_LIFT_SHRINK = 0.25; // max. Schrumpfen am höchsten Punkt
+const FOOD_SHADOW_LIFT_FADE = 0.35; // max. zusätzliche Transparenz am höchsten Punkt
 
 // Schlangen
 // Snakes bekommen eine dunkle Outline, damit sie sich vom bunten Futter abheben.

@@ -313,9 +313,31 @@ function createRenderer(canvas, initialThemeId) {
       if (sprite) {
         // Seitenverhältnis erhalten (Edelstein/Trank sind höher als breit),
         // Höhe skaliert mit dem Wert-Radius (siehe FOOD_SPRITE_SCALE).
-        const h = foodRadius(food.value) * FOOD_SPRITE_SCALE;
+        const radius = foodRadius(food.value);
+        const h = radius * FOOD_SPRITE_SCALE;
         const w = h * (sprite.naturalWidth / sprite.naturalHeight);
-        ctx.drawImage(sprite, food.x - w / 2, food.y - h / 2, w, h);
+        // Sanftes Schweben (siehe FOOD_BOB_* in config.js): wave 0..1 pro Frame,
+        // entkoppelt über eine feste Phase je Futter-ID. lift = Höhe über dem
+        // echten Bodenpunkt food.y (nach oben = -y).
+        const phase = hashUnit(food.id);
+        const wave =
+          0.5 +
+          0.5 * Math.sin((performance.now() / FOOD_BOB_PERIOD_MS + phase) * Math.PI * 2);
+        const lift = radius * (FOOD_BOB_BASE_LIFT_FACTOR + FOOD_BOB_AMPLITUDE_FACTOR * wave);
+
+        // Kontakt-Schatten am echten Bodenpunkt (food.y): schrumpft/verblasst
+        // leicht, je höher das Sprite schwebt - hebt es von der Textur ab. Der
+        // Grund-Alpha (Blink/Fade) wird eingerechnet und danach wiederhergestellt.
+        const baseAlpha = ctx.globalAlpha;
+        const shadowW = w * FOOD_SHADOW_WIDTH_FACTOR * (1 - FOOD_SHADOW_LIFT_SHRINK * wave);
+        ctx.globalAlpha = baseAlpha * FOOD_SHADOW_ALPHA * (1 - FOOD_SHADOW_LIFT_FADE * wave);
+        ctx.fillStyle = "#000";
+        ctx.beginPath();
+        ctx.ellipse(food.x, food.y, shadowW / 2, (shadowW / 2) * FOOD_SHADOW_FLATNESS, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = baseAlpha;
+
+        ctx.drawImage(sprite, food.x - w / 2, food.y - lift - h / 2, w, h);
       } else {
         ctx.fillStyle = foodColor(food);
         ctx.beginPath();

@@ -472,32 +472,35 @@ body.theme-pixel #hud {
   box-sizing: border-box;
 }
 
-/* Holzrahmen mit Pergament-Innenfläche (aus dem Referenz-Sprite-Sheet
-   extrahiert, nicht generiert - die generierte Schriftrolle sah unsauber
-   aus). 9-Slice mit leicht unterschiedlicher Slice-Breite oben/unten (34px,
-   dickerer Querbalken im Sprite) vs. links/rechts (26px). Auf dem hellen
-   Pergament dunkler Text; die bunten Spieler-Namen bekommen einen dunklen
-   Schein als Kontrast-Kante. */
+/* Holzrahmen (aus dem Referenz-Sprite-Sheet extrahiert, nicht generiert - die
+   generierte Schriftrolle sah unsauber aus). Bewusst OHNE "fill": das Sprite
+   hat ein Karo-Innenraster (Kork-/Notizbrett-Optik), das beim Strecken der
+   Bildmitte über die volle Panel-Größe (fill) als verzerrte, windschiefe
+   Linie auffiel. Ohne "fill" zeichnet border-image nur die 8 Rahmenteile,
+   die Innenfläche kommt von der eigenen (halbtransparenten) background-Farbe
+   unten - kein gestrecktes Rasterbild, dafür durchscheinend wie im Klassik-
+   Theme. Auf dem warmen Holzton dunkler Text; die bunten Spieler-Namen
+   bekommen einen dunklen Schein als Kontrast-Kante. */
 body.theme-pixel #leaderboard {
-  background: none;
+  background: rgba(58, 38, 18, 0.55);
   border-style: solid;
   border-color: transparent;
   border-width: 26px 20px;
-  border-image: url("assets/sprites/ui_panel_frame.png") 34 26 fill stretch;
+  border-image: url("assets/sprites/ui_panel_frame.png") 34 26 stretch;
   image-rendering: pixelated;
   padding: 2px 8px 4px;
   border-radius: 0;
   box-sizing: border-box;
-  color: #3a2610;
+  color: #f1e2c4;
 }
 
 body.theme-pixel #leaderboard h3 {
-  color: #7a3f12;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  color: #ffd23f;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
 }
 
 body.theme-pixel #leaderboard-list li {
-  text-shadow: 0 0 3px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(0, 0, 0, 0.35);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
 }
 
 body.theme-pixel #score,
@@ -525,16 +528,18 @@ body.theme-pixel #dash-btn {
 
 /* Der glatte SVG-Kreisbogen passt nicht zum harten Pixel-Look - im Pixel-
    Theme übernimmt stattdessen die gestufte Pip-Anzeige (siehe .dash-pips
-   oben, Positionierung/Füllstand per JS in main.js). */
-body.theme-pixel .dash-progress {
+   oben, Positionierung/Füllstand per JS in main.js). Nur für den großen
+   Touch-Button (#dash-btn): der kompakte Desktop-Ring (#dash-ring) war mit
+   dem Bogen schon in Ordnung, bleibt also unverändert. */
+body.theme-pixel #dash-btn .dash-progress {
   display: none;
 }
 
-body.theme-pixel .dash-pips {
+body.theme-pixel #dash-btn .dash-pips {
   display: block;
 }
 
-body.theme-pixel .dash-pips .pip.lit {
+body.theme-pixel #dash-btn .dash-pips .pip.lit {
   background: #ffd23f;
   border-color: #7a4a10;
   box-shadow: 0 0 3px rgba(255, 210, 63, 0.85);

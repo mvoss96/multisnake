@@ -57,12 +57,14 @@ window.addEventListener("DOMContentLoaded", () => {
   const dashRing = document.getElementById("dash-ring");
   const dashBtn = document.getElementById("dash-btn");
 
-  // Pixel-Theme-Ladeanzeige: DASH_PIP_COUNT Pips gleichmäßig auf einem Kreis
-  // um den Container verteilt (12-Uhr-Start wie der SVG-Ring), Radius je
-  // Container passend zur jeweiligen CSS-Größe (siehe config.js). Positionen
-  // sind statisch, daher einmalig beim Start erzeugt statt pro Frame.
+  // Pixel-Theme-Ladeanzeige (nur der große Touch-Button #dash-btn - der
+  // kompakte Desktop-Ring #dash-ring behält den SVG-Bogen, der dort schon
+  // gut aussah): DASH_PIP_COUNT Pips gleichmäßig auf einem Kreis verteilt
+  // (12-Uhr-Start wie der SVG-Ring). Positionen sind statisch, daher einmalig
+  // beim Start erzeugt statt pro Frame.
   function buildDashPips(container, radius) {
     const pipsEl = container.querySelector(".dash-pips");
+    if (!pipsEl) return;
     for (let i = 0; i < DASH_PIP_COUNT; i++) {
       const angle = (i / DASH_PIP_COUNT) * Math.PI * 2 - Math.PI / 2;
       const x = Math.cos(angle) * radius;
@@ -73,7 +75,6 @@ window.addEventListener("DOMContentLoaded", () => {
       pipsEl.appendChild(pip);
     }
   }
-  buildDashPips(dashRing, DASH_PIP_RADIUS_RING);
   buildDashPips(dashBtn, DASH_PIP_RADIUS_BTN);
 
   let camera = { x: 0, y: 0 };

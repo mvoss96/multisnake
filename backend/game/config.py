@@ -79,7 +79,9 @@ SPIKE_ZONE_DEPTH: Final[float] = 14  # muss zu SPIKE_SIZE im Frontend-Renderer p
 # Beim Raum-Start einmalig geseedet platziert (deterministisch über GameRoom._rng),
 # runde Felsen: Kopf-Kollision = Tod (wie Rand/Spikes). Rein Backend-Wahrheit; das
 # Frontend bekommt sie einmal in der welcome-Nachricht und zeichnet sie.
-OBSTACLE_COUNT: Final[int] = 5
+# Vorerst deaktiviert (0). Die gesamte Hindernis-Logik bleibt erhalten - zum
+# Reaktivieren einfach wieder eine Anzahl > 0 setzen (z.B. 5).
+OBSTACLE_COUNT: Final[int] = 0
 # Min == Max: alle Felsen gleich groß (das Pixel-Sprite wird mit festem Integer-
 # Faktor gezeichnet, siehe ROCK_PIXEL_SCALE im Frontend - pixelperfekt, kein Skalieren).
 OBSTACLE_MIN_RADIUS: Final[float] = 40.0

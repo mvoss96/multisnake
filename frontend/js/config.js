@@ -33,6 +33,19 @@ const ZOOM_LERP_FACTOR_IN = 0.08;
 // Texel-Größe nach.
 const PIXEL_UNIT = 0.6;
 
+// Bitmap-Font für die In-Welt-Schlangennamen (nur pixelPerfect-Themes): statt
+// ctx.fillText (immer anti-aliased) werden Glyphen aus einem Atlas
+// (assets/sprites/label_font.png) per drawImage geblittet - so liegen die
+// Namen hart auf demselben Texel-Raster wie die Sprites. Zellmaße MÜSSEN zur
+// erzeugten Atlas-PNG passen (siehe scratchpad/gen_atlas.py). CHARSET spiegelt
+// die Reihenfolge im Atlas; ein Name mit Zeichen außerhalb fällt auf fillText
+// zurück. SCALE = ganzzahlige Atlas-Pixel -> Texel (1 = 1 Atlas-Pixel pro Texel).
+const LABEL_FONT_CELL_W = 13;
+const LABEL_FONT_CELL_H = 14;
+const LABEL_FONT_SCALE = 1;
+const LABEL_FONT_CHARSET =
+  " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~äöüÄÖÜß";
+
 // Client-Interpolation: Das Rendern läuft in einer requestAnimationFrame-Schleife
 // (Display-Refresh) und interpoliert zwischen den letzten zwei Server-States, statt
 // nur beim Eintreffen einer State-Nachricht zu zeichnen. Das entkoppelt die sichtbare

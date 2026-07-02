@@ -22,9 +22,9 @@ function spriteReady(img) {
 // themes.js): Münze = 1, Edelstein = 2, Trank = 5. Ein zum Wert passender
 // Sprite verrät damit direkt den Wert (siehe FOOD_*_VALUE_MULTIPLIER im Backend).
 function foodSpriteRole(value) {
-  if (value >= 5) return "foodPotion";
-  if (value >= 2) return "foodGem";
-  return "foodCoin";
+  if (value >= 5) return "foodTier3";
+  if (value >= 2) return "foodTier2";
+  return "foodTier1";
 }
 
 function foodRadius(value) {
@@ -160,10 +160,111 @@ function createRenderer(canvas, initialThemeId) {
     }
   }
 
+  // Ränder, an denen die borderSprite-Deko steht (leer, wenn das Theme keine
+  // borderSprite-Rolle themt). Default ["top"], wenn borderEdges fehlt.
+  function borderEdges() {
+    if (!themedSprite("borderSprite")) return [];
+    return theme.borderEdges || ["top"];
+  }
+
+  // Aufrechte Deko-Bäume entlang eines Kartenrands (nur Themes mit borderSprite):
+  // die Stämme stehen etwas ins Feld versetzt (TREE_FOOT_INSET) auf dem Boden,
+  // die Krone ragt nach oben. Rein optisch (keine Kollision). Leichter Höhen-/
+  // Tiefen-Versatz je Baum + Zeichnen von hinten nach vorn (nach Stammfuß-y)
+  // ergibt eine unregelmäßige Wald-Silhouette statt gleichförmiger Schindeln.
+  // Die Bäume bleiben an jedem Rand aufrecht (nicht gedreht) - so wirkt es an
+  // allen Seiten wie eine natürliche Waldkante.
+  function drawBorderTrees() {
+    const tree = themedSprite("borderSprite");
+    if (!tree) return;
+    const aspect = tree.naturalWidth / tree.naturalHeight;
+    const edges = borderEdges();
+
+    // Stammfuß-Positionen je Rand sammeln (Achse = entlang des Rands, footInset
+    // = senkrecht ins Feld). "top"/"bottom" reihen entlang x, "left"/"right"
+    // entlang y. Ein zufälliger Tiefen-Jitter (r2) versetzt die Basis leicht
+    // senkrecht zum Rand, damit sich die Überlappungsrichtung mischt.
+    const trees = [];
+    for (const edge of edges) {
+      const horizontal = edge === "top" || edge === "bottom";
+      const along = horizontal ? board.width : board.height;
+      // An Ecken, die von einer zweiten Baum-Kante belegt sind, den Anfang/das
+      // Ende der Seiten-Reihe aussparen, damit sich nicht zwei Bäume exakt in
+      // der Ecke stapeln (die waagerechte Kante "besitzt" dort die Ecke).
+      let startS = 0;
+      let endS = along;
+      if (edge === "left" || edge === "right") {
+        if (edges.includes("top")) startS = TREE_SPACING;
+        if (edges.includes("bottom")) endS = along - TREE_SPACING;
+      }
+      for (let i = 0, s = startS; s <= endS; i++, s += TREE_SPACING) {
+        const r = hashUnit(edge + "t" + i);
+        const r2 = hashUnit(edge + "ty" + i);
+        const h = TREE_HEIGHT - r * TREE_STAGGER;
+        const w = h * aspect;
+        const jit = (r - 0.5) * TREE_SPACING * 0.3; // Versatz entlang des Rands
+        const depth = TREE_FOOT_INSET + (r2 - 0.5) * 2 * TREE_BASE_JITTER;
+        let footX;
+        let footY;
+        if (edge === "top") {
+          footX = s + jit;
+          footY = depth;
+        } else if (edge === "bottom") {
+          footX = s + jit;
+          footY = board.height - depth;
+        } else if (edge === "left") {
+          // Bäume bleiben aufrecht; um sie an den Rand zu rücken (nicht mittig
+          // ins Feld), wird der Stamm um die halbe Breite nach außen versetzt,
+          // sodass die Kronen-Feldkante bei TREE_FOOT_INSET liegt (wie oben).
+          footX = depth - w / 2;
+          footY = s + jit;
+        } else {
+          footX = board.width - depth + w / 2;
+          footY = s + jit;
+        }
+        trees.push({ footX, footY, w, h });
+      }
+    }
+    // Von hinten (kleineres footY) nach vorn zeichnen - tiefer stehende Bäume
+    // überlappen die höher stehenden, unabhängig von der Reihenfolge im Array.
+    trees.sort((a, b) => a.footY - b.footY);
+
+    for (const t of trees) {
+      // Weicher Bodenschatten am Stammfuß (radialer Verlauf, gestaucht zur
+      // Ellipse) - vor dem Baum gezeichnet, damit der Stamm darüber liegt.
+      const shadowR = t.w * TREE_SHADOW_WIDTH_FACTOR;
+      ctx.save();
+      ctx.translate(t.footX, t.footY + TREE_SHADOW_DROP);
+      ctx.scale(1, TREE_SHADOW_FLATNESS);
+      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, shadowR);
+      grad.addColorStop(0, `rgba(0, 0, 0, ${TREE_SHADOW_ALPHA})`);
+      grad.addColorStop(0.55, `rgba(0, 0, 0, ${TREE_SHADOW_ALPHA * 0.8})`);
+      grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, shadowR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      ctx.drawImage(tree, t.footX - t.w / 2, t.footY - t.h, t.w, t.h);
+    }
+  }
+
   function drawBoundary(camera) {
+    // An Rändern mit Baum-Deko bilden die Bäume die Kante - dort keine Spikes und
+    // keine graue Rahmenlinie (die würde zwischen den Stämmen als harte Kante
+    // auffallen). Die restlichen Ränder bleiben Spikes.
+    const edges = borderEdges();
+    const treed = (e) => edges.includes(e);
+
     ctx.strokeStyle = "#444";
     ctx.lineWidth = 2;
-    ctx.strokeRect(0, 0, board.width, board.height);
+    // Rahmenlinie nur an Kanten ohne Baum-Deko ziehen.
+    ctx.beginPath();
+    if (!treed("top")) { ctx.moveTo(0, 0); ctx.lineTo(board.width, 0); }
+    if (!treed("bottom")) { ctx.moveTo(0, board.height); ctx.lineTo(board.width, board.height); }
+    if (!treed("left")) { ctx.moveTo(0, 0); ctx.lineTo(0, board.height); }
+    if (!treed("right")) { ctx.moveTo(board.width, 0); ctx.lineTo(board.width, board.height); }
+    ctx.stroke();
 
     const glowPhase = (performance.now() % SPIKE_GLOW_PERIOD_MS) / SPIKE_GLOW_PERIOD_MS;
     const pulse = 0.5 + 0.5 * Math.sin(glowPhase * Math.PI * 2);
@@ -174,14 +275,22 @@ function createRenderer(canvas, initialThemeId) {
       ctx.shadowBlur = proximity * (SPIKE_GLOW_BLUR_MIN + (SPIKE_GLOW_BLUR_MAX - SPIKE_GLOW_BLUR_MIN) * pulse);
     }
 
-    glowForDistance(camera.y);
-    drawSpikeRow(0, 0, board.width, 0, 0, 1);
-    glowForDistance(board.height - camera.y);
-    drawSpikeRow(0, board.height, board.width, board.height, 0, -1);
-    glowForDistance(camera.x);
-    drawSpikeRow(0, 0, 0, board.height, 1, 0);
-    glowForDistance(board.width - camera.x);
-    drawSpikeRow(board.width, 0, board.width, board.height, -1, 0);
+    if (!treed("top")) {
+      glowForDistance(camera.y);
+      drawSpikeRow(0, 0, board.width, 0, 0, 1);
+    }
+    if (!treed("bottom")) {
+      glowForDistance(board.height - camera.y);
+      drawSpikeRow(0, board.height, board.width, board.height, 0, -1);
+    }
+    if (!treed("left")) {
+      glowForDistance(camera.x);
+      drawSpikeRow(0, 0, 0, board.height, 1, 0);
+    }
+    if (!treed("right")) {
+      glowForDistance(board.width - camera.x);
+      drawSpikeRow(board.width, 0, board.width, board.height, -1, 0);
+    }
 
     ctx.shadowBlur = 0;
     ctx.shadowColor = "transparent";
@@ -256,6 +365,38 @@ function createRenderer(canvas, initialThemeId) {
     }
   }
 
+  // Geschuppter/segmentierter Look (nur Themes mit snakeScales, siehe themes.js):
+  // dichte, quer über den Körper laufende, leicht nach vorn gebogene dunkle
+  // Rillen. Halbtransparentes Schwarz statt eingefärbter Linien - liegt damit als
+  // "Fuge" auf jeder Spielerfarbe, ohne snake.color parsen zu müssen. Die Rillen
+  // schrumpfen über taperFactorAt mit der tatsächlichen Körperbreite mit.
+  function drawSnakeScales(snake, points) {
+    const n = points.length;
+    if (n < 3) return;
+    ctx.strokeStyle = SNAKE_SCALE_COLOR;
+    ctx.lineWidth = SNAKE_SCALE_WIDTH;
+    ctx.lineCap = "round";
+    for (let i = SNAKE_SCALE_POINT_INTERVAL; i < n - 1; i += SNAKE_SCALE_POINT_INTERVAL) {
+      const localRadius = snake.radius * taperFactorAt(i, n);
+      const [x1, y1] = points[i - 1];
+      const [x2, y2] = points[i + 1];
+      const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+      const dirX = (x2 - x1) / len;
+      const dirY = (y2 - y1) / len;
+      const perpX = -dirY * localRadius;
+      const perpY = dirX * localRadius;
+      const [px, py] = points[i];
+      // leichte Vorwärts-Wölbung (Chevron): Mittelpunkt der Rille sitzt einen
+      // Tick in Blickrichtung vor der Querlinie -> "Schuppen"-Anmutung statt Leiter.
+      const bowX = dirX * localRadius * 0.35;
+      const bowY = dirY * localRadius * 0.35;
+      ctx.beginPath();
+      ctx.moveTo(px + perpX, py + perpY);
+      ctx.quadraticCurveTo(px + bowX, py + bowY, px - perpX, py - perpY);
+      ctx.stroke();
+    }
+  }
+
   function drawCrown(x, y) {
     ctx.save();
     ctx.translate(x, y);
@@ -296,8 +437,17 @@ function createRenderer(canvas, initialThemeId) {
       patternCache[boardTileName] = ctx.createPattern(boardTile, "repeat");
     }
     ctx.fillStyle = (boardTile && patternCache[boardTileName]) || "#14141e";
-    ctx.fillRect(0, 0, board.width, board.height);
+    // An Rändern mit Baum-Deko zieht das Boden-Tile hinter der Reihe etwas über
+    // die Kante hinaus (TREE_GRASS_OVERHANG), damit die harte Bodenkante hinter
+    // den Kronen verschwindet statt als Linie zwischen den Bäumen sichtbar zu sein.
+    const edges = borderEdges();
+    const oT = edges.includes("top") ? TREE_GRASS_OVERHANG : 0;
+    const oB = edges.includes("bottom") ? TREE_GRASS_OVERHANG : 0;
+    const oL = edges.includes("left") ? TREE_GRASS_OVERHANG : 0;
+    const oR = edges.includes("right") ? TREE_GRASS_OVERHANG : 0;
+    ctx.fillRect(-oL, -oT, board.width + oL + oR, board.height + oT + oB);
 
+    drawBorderTrees();
     drawBoundary(camera);
 
     const blinkPhase = (performance.now() % FOOD_BLINK_PERIOD_MS) / FOOD_BLINK_PERIOD_MS;
@@ -366,15 +516,17 @@ function createRenderer(canvas, initialThemeId) {
         ctx.shadowBlur = SNAKE_DASH_GLOW_BLUR;
       }
 
-      // Schlangen bleiben in beiden Themes die Vektor-Variante: die
-      // Sprite-Ketten-Fassung kannte nur zwei Farben (gold/grün) und
-      // ignorierte damit die server-zugewiesenen Spielerfarben - bis es
-      // pro Farbe brauchbare Sprites gibt, gewinnt die Lesbarkeit.
-      // Kontur, Körper und ein dezenter heller Glanzstreifen mittig auf dem
-      // Körper - alle drei verjüngen sich zum Schwanz hin für eine organischere
-      // Form statt eines gleichbleibend dicken Schlauchs.
-      drawTaperedBody(points, snake.radius * 2 + SNAKE_OUTLINE_WIDTH * 2, SNAKE_OUTLINE_COLOR);
+      // Schlangen sind in beiden Themes farbecht-Vektor (server-zugewiesene
+      // Spielerfarbe), keine festfarbigen Sprites. Kontur, Körper und ein
+      // dezenter heller Glanzstreifen - alle verjüngen sich zum Schwanz hin.
+      // Themes mit snakeScales (siehe themes.js) bekommen zusätzlich eine
+      // dickere Kontur + prozedurale Schuppen-Rillen (Mockup-Look), ohne die
+      // Farbechtheit aufzugeben.
+      const scaled = !!theme.snakeScales;
+      const outlineWidth = scaled ? SNAKE_SCALE_OUTLINE_WIDTH : SNAKE_OUTLINE_WIDTH;
+      drawTaperedBody(points, snake.radius * 2 + outlineWidth * 2, SNAKE_OUTLINE_COLOR);
       drawTaperedBody(points, snake.radius * 2, snake.color);
+      if (scaled) drawSnakeScales(snake, points);
       drawTaperedBody(points, snake.radius * 2 * SNAKE_SHINE_WIDTH_FACTOR, "#ffffff", SNAKE_SHINE_ALPHA);
       drawSnakePattern(snake, points);
 

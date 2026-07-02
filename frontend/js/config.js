@@ -43,6 +43,34 @@ const RELATIVE_POLL_MS = 33;
 // the server becomes the limiting factor as intended (matches absolute-mode feel).
 const RELATIVE_TURN_STEP = 0.2;
 
+// Deko-Bäume an Kartenrändern (nur Themes mit borderSprite-Rolle, siehe
+// themes.js/renderer.js) - rein optisch, keine Kollision. Der Stammfuß sitzt auf
+// der oberen Weltkante (y=0), die Krone ragt nach oben aus dem Feld. Bäume werden
+// dicht an dicht gereiht und leicht in der Höhe versetzt für eine Wald-Silhouette.
+const TREE_HEIGHT = 90; // gezeichnete Baumhöhe in Welteinheiten
+const TREE_SPACING = 62; // horizontaler Abstand der Stämme
+const TREE_STAGGER = 14; // maximaler zufälliger Höhenversatz je Baum
+// Zufälliger Tiefen-(y-)Versatz je Baum: bricht die gleichförmige Überlappung
+// auf (sonst liegt immer der rechte Baum vor dem linken). Zusammen mit dem
+// Zeichnen von hinten nach vorn (nach Stammfuß-y sortiert) überlappen die Bäume
+// mal in die eine, mal in die andere Richtung - wirkt natürlicher.
+const TREE_BASE_JITTER = 12;
+// Stammfuß nicht exakt auf der Tile-Kante (y=0), sondern etwas ins Feld
+// versetzt - so stehen die Bäume auf dem Gras und die überlappenden Kronen
+// verdecken die sonst sichtbare harte Bodenkante zwischen den Bäumen.
+const TREE_FOOT_INSET = 26;
+// Das Boden-Tile ragt hinter der Baumreihe über die obere Kante (y=0) hinaus,
+// damit die sonst sichtbare harte Bodenkante zwischen den Bäumen hinter den
+// breitesten Stellen der überlappenden Kronen verschwindet.
+const TREE_GRASS_OVERHANG = 32;
+// Weicher elliptischer Bodenschatten am Stammfuß (Licht von oben) - erdet die
+// Bäume auf dem Waldboden, orientiert am Mockup. Radialer Verlauf mit dunklem
+// Kern (Mid-Stop im Verlauf) für weiche, aber klar sichtbare Kante.
+const TREE_SHADOW_ALPHA = 0.6;
+const TREE_SHADOW_WIDTH_FACTOR = 0.66; // Schattenradius relativ zur Baumbreite
+const TREE_SHADOW_FLATNESS = 0.52; // Höhe/Breite der Schatten-Ellipse
+const TREE_SHADOW_DROP = 10; // Welteinheiten unter den Stammfuß versetzt
+
 // Spikes
 const SPIKE_SPACING = 30;
 const SPIKE_SIZE = 14;
@@ -121,3 +149,12 @@ const SNAKE_STRIPE_COLOR = "rgba(0, 0, 0, 0.35)";
 const SNAKE_STRIPE_WIDTH = 2;
 const SNAKE_DOT_COLOR = "rgba(255, 255, 255, 0.55)";
 const SNAKE_DOT_RADIUS_FACTOR = 0.4; // relativ zum lokalen Körperradius am jeweiligen Punkt
+// Prozedurale Schuppen-/Segment-Textur (nur Themes mit snakeScales=true, siehe
+// themes.js) - dichte, quer über den Körper laufende dunkle Rillen erzeugen den
+// geschuppten Pixel-Look aus dem Mockup, farbecht (halbtransparentes Schwarz
+// statt eingefärbter Linien, funktioniert also auf jeder Spielerfarbe). Zusätzlich
+// eine dickere Kontur als bei der glatten Default-Schlange.
+const SNAKE_SCALE_POINT_INTERVAL = 2; // Punkte zwischen zwei Segment-Rillen (klein = dicht)
+const SNAKE_SCALE_COLOR = "rgba(0, 0, 0, 0.22)";
+const SNAKE_SCALE_WIDTH = 2;
+const SNAKE_SCALE_OUTLINE_WIDTH = 4.5; // dickere Kontur im geschuppten Modus (sonst SNAKE_OUTLINE_WIDTH)

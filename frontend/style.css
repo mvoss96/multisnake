@@ -441,29 +441,38 @@ body.touch-device #dash-btn {
    bei jeder Panelgröße unverzerrt. */
 body.theme-pixel #hud {
   background: none;
-  border: 12px solid transparent;
-  border-image: url("assets/sprites/ui_panel_rect.png") 24 fill stretch;
+  border: 14px solid transparent;
+  border-image: url("assets/sprites/ui_sign.png") 20 fill stretch;
   image-rendering: pixelated;
   padding: 4px 10px;
   border-radius: 0;
   box-sizing: border-box;
 }
 
-/* Gleiches generiertes Holz-Panel wie das HUD (dunkle Innenfläche) - der
-   Pergament-Rahmen aus dem Sprite-Paket hatte raue Kanten, und die hellen
-   Spielerfarben waren auf hellem Pergament schlecht lesbar. */
+/* Pergament-Schriftrolle (Holzrollen oben/unten) - asymmetrisches 9-Slice:
+   oben/unten = Rollenhöhe (36px im Sprite), links/rechts = schmale
+   Pergamentkante (12px). Auf dem hellen Pergament dunkler Text; die bunten
+   Spieler-Namen bekommen einen dunklen Schein als Kontrast-Kante. */
 body.theme-pixel #leaderboard {
   background: none;
-  border: 12px solid transparent;
-  border-image: url("assets/sprites/ui_panel_rect.png") 24 fill stretch;
+  border-style: solid;
+  border-color: transparent;
+  border-width: 22px 12px;
+  border-image: url("assets/sprites/ui_scroll.png") 36 12 fill stretch;
   image-rendering: pixelated;
-  padding: 4px 10px 6px;
+  padding: 2px 8px 4px;
   border-radius: 0;
   box-sizing: border-box;
+  color: #3a2610;
+}
+
+body.theme-pixel #leaderboard h3 {
+  color: #7a3f12;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 body.theme-pixel #leaderboard-list li {
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.65);
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(0, 0, 0, 0.35);
 }
 
 body.theme-pixel #score,
@@ -487,6 +496,21 @@ body.theme-pixel #dash-btn {
   background: url("assets/sprites/dash_button_idle.png") no-repeat center / cover;
   image-rendering: pixelated;
   border: none;
+}
+
+/* Kräftigerer goldener Glow wie im Mockup (der große Touch-Button trägt ihn
+   deutlicher als der kompakte Desktop-Ring). Ready/Active-Zustände überstrahlen
+   ihn zusätzlich (siehe Basis-Regeln #dash-btn.ready/.active). */
+body.theme-pixel #dash-btn {
+  box-shadow: 0 0 18px 5px rgba(255, 198, 60, 0.75), 0 0 5px rgba(255, 224, 130, 0.9);
+}
+
+body.theme-pixel #dash-ring {
+  box-shadow: 0 0 12px 3px rgba(255, 198, 60, 0.7);
+}
+
+body.theme-pixel #dash-btn.ready {
+  box-shadow: 0 0 26px 8px rgba(255, 215, 0, 0.95);
 }
 
 /* Der generierte Coin-Sprite (siehe gen_sprites-Notiz im Commit) trägt keinen

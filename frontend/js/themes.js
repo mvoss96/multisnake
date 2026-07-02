@@ -15,7 +15,14 @@
 //   sprites   Rollen-Name -> Sprite-Dateiname (ohne Pfad/.png). Nur genannte
 //             Rollen werden im Canvas als Sprite gezeichnet; jede fehlende Rolle
 //             bleibt die Default-Vektor-Variante. Bekannte Rollen (siehe
-//             renderer.js): boardTile, spike, foodCoin, foodGem, foodPotion.
+//             renderer.js): boardTile, spike, borderSprite (aufrechte Deko am
+//             Kartenrand, ersetzt dort die Spikes), foodTier1/2/3 (nach Wert).
+//   borderEdges  Array der Ränder, an denen borderSprite steht: "top" | "left" |
+//             "right" | "bottom". Fehlt es (aber borderSprite ist gesetzt), gilt
+//             ["top"]. Ohne borderSprite wird es ignoriert.
+//   snakeScales  true = Schlangenkörper bekommt eine prozedurale Schuppen-/
+//             Segment-Textur + dickere Kontur (farbecht, siehe renderer.js).
+//             Fehlt/false = glatte Default-Vektor-Schlange.
 const THEMES = [
   {
     id: "classic",
@@ -27,12 +34,15 @@ const THEMES = [
     id: "pixel",
     label: "Pixel-Art",
     bodyClass: "theme-pixel",
+    snakeScales: true,
+    borderEdges: ["top", "left"],
     sprites: {
-      boardTile: "tile_stone",
+      boardTile: "tile_forest",
       spike: "spike_tile",
-      foodCoin: "food_coin",
-      foodGem: "food_gem",
-      foodPotion: "food_potion",
+      borderSprite: "tree",
+      foodTier1: "food_strawberry",
+      foodTier2: "food_gem",
+      foodTier3: "food_potion",
     },
   },
 ];

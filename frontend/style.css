@@ -560,6 +560,15 @@ body.theme-pixel #dash-btn .dash-fill {
   display: block;
 }
 
+/* Aufgeladen/aktiv: Füllung weg, sonst deckt sie (bei 100%) den Coin-Dash-Button
+   komplett mit Gold zu - dann übernimmt wieder der Coin-Sprite + ⚡-Icon. */
+body.theme-pixel #dash-ring.ready .dash-fill,
+body.theme-pixel #dash-btn.ready .dash-fill,
+body.theme-pixel #dash-ring.active .dash-fill,
+body.theme-pixel #dash-btn.active .dash-fill {
+  display: none;
+}
+
 /* Kräftigerer goldener Glow wie im Mockup (der große Touch-Button trägt ihn
    deutlicher als der kompakte Desktop-Ring). Ready/Active-Zustände überstrahlen
    ihn zusätzlich (siehe Basis-Regeln #dash-btn.ready/.active). */

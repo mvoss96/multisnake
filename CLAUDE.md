@@ -47,7 +47,7 @@ Single app, no monorepo/libs split. One FastAPI process serves both the WebSocke
 ## WHY
 
 ### Purpose of the project
-Multiplayer Snake in the style of slither.io: continuous (non-grid) movement, one human player against several AI bots sharing one board, camera follows the player's own snake. Started as a local learning/demo project; it has since also been deployed publicly (Docker container behind a Caddy reverse proxy) for hands-on multiplayer testing, so treat any change touching the WebSocket protocol or debug commands as potentially internet-facing, not purely local-only.
+Multiplayer Snake with continuous (non-grid) movement: one human player against several AI bots sharing one board, camera follows the player's own snake. Started as a local learning/demo project; it has since also been deployed publicly (Docker container behind a Caddy reverse proxy) for hands-on multiplayer testing, so treat any change touching the WebSocket protocol or debug commands as potentially internet-facing, not purely local-only.
 
 ### Purpose of certain modules
 - `game_room.py` is deliberately the only place where cross-entity rules live (snake-vs-snake collisions, food consumption, spike-zone death, food magnet/consolidation on death). `snake.py` and `food.py` only know about their own state and stay unaware of each other.

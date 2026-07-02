@@ -143,36 +143,6 @@ html, body {
   image-rendering: pixelated;
 }
 
-/* Pixel-Theme-Sanduhr aus der Pixel-Art-Sprite (assets/sprites/hourglass.png). Zwei
-   deckungsgleiche Ebenen: unten gedimmt (leerer/uncharged Look), darüber die volle
-   Farbversion, die per clip-path je nach Ladestand (--fill 0..1, per JS gesetzt, siehe
-   updateDashMeter) von unten nach oben freigegeben wird - so "füllt" sich die Sanduhr
-   beim Aufladen. Standardmäßig aus, nur unter body.theme-pixel sichtbar (siehe unten). */
-.dash-hourglass {
-  display: none;
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.dash-hourglass .hg-base,
-.dash-hourglass .hg-lit {
-  position: absolute;
-  inset: 0;
-  /* auto-Breite bei 82% Hoehe: die Sanduhr sitzt etwas kleiner/zentriert im Button.
-     Kein image-rendering:pixelated - das Sprite ist hoch aufgeloest mit weicher
-     Alpha-Kante, glattes Skalieren (Default) gibt sauberere, antialiaste Raender. */
-  background: url("assets/sprites/hourglass.png") no-repeat center / auto 82%;
-}
-
-.dash-hourglass .hg-base {
-  filter: grayscale(0.85) brightness(0.4);
-}
-
-.dash-hourglass .hg-lit {
-  clip-path: inset(calc((1 - var(--fill, 0)) * 100%) 0 0 0);
-}
-
 /* #dash-btn/#dash-ring wechseln bei bereit/aktiv auf eine flächige Farbe
    (statt Fortschrittsring) als deutliches Signal - der Ring wird dafür
    ausgeblendet. */
@@ -550,10 +520,10 @@ body.theme-pixel .panel {
 }
 
 /* Pixel-Theme Dash - zwei Zustände:
-   1) Beim Aufladen (kein .ready/.active): dunkler Hintergrund, darauf die
-      Sanduhr-Sprite, die sich von unten füllt (siehe .dash-hourglass).
-   2) Aufgeladen/aktiv (.ready/.active): die Sanduhr verschwindet und der eigentliche
-      Dash-Button (Coin-Sprite + ⚡-Icon + Glow) erscheint - siehe Regeln unten.
+   1) Beim Aufladen (kein .ready/.active): dunkler Kreis, der sich per gold-
+      aufsteigender .dash-fill von unten füllt (siehe unten).
+   2) Aufgeladen/aktiv (.ready/.active): der eigentliche Dash-Button
+      (Coin-Sprite + ⚡-Icon + Glow) erscheint - siehe Regeln unten.
    Die Basis-.ready/.active-Hintergründe (#dash-btn.ready usw.) werden hier bewusst
    überschrieben. */
 body.theme-pixel #dash-ring,
@@ -561,11 +531,11 @@ body.theme-pixel #dash-btn {
   background: #1c1206;
   image-rendering: pixelated;
   border: none;
-  /* clippt die Sanduhr-Sprite auf die runde Button-/Ring-Fläche */
+  /* clippt die aufsteigende .dash-fill auf die runde Button-/Ring-Fläche */
   overflow: hidden;
 }
 
-/* Aufgeladen/aktiv: der Coin-Dash-Button statt der Sanduhr. */
+/* Aufgeladen/aktiv: der Coin-Dash-Button statt der Füllung. */
 body.theme-pixel #dash-ring.ready,
 body.theme-pixel #dash-btn.ready,
 body.theme-pixel #dash-ring.active,
@@ -582,23 +552,12 @@ body.theme-pixel #dash-btn .dash-progress {
   display: none;
 }
 
-/* Die alte gold-aufsteigende .dash-fill wird im Pixel-Theme nicht mehr genutzt -
-   die Sanduhr-Sprite (siehe .dash-hourglass) übernimmt die Ladeanzeige. */
+/* Pixel-Theme-Ladeanzeige: die gold-aufsteigende .dash-fill füllt den dunklen
+   Kreis von unten (Höhe per JS, siehe updateDashMeter), kreisförmig geclippt
+   durch overflow:hidden + border-radius am Container. Gleich für Ring + Button. */
 body.theme-pixel #dash-ring .dash-fill,
 body.theme-pixel #dash-btn .dash-fill {
-  display: none;
-}
-
-body.theme-pixel .dash-hourglass {
   display: block;
-}
-
-/* Aufgeladen/aktiv: Sanduhr weg (der Coin-Dash-Button übernimmt). */
-body.theme-pixel #dash-ring.ready .dash-hourglass,
-body.theme-pixel #dash-btn.ready .dash-hourglass,
-body.theme-pixel #dash-ring.active .dash-hourglass,
-body.theme-pixel #dash-btn.active .dash-hourglass {
-  display: none;
 }
 
 /* Kräftigerer goldener Glow wie im Mockup (der große Touch-Button trägt ihn

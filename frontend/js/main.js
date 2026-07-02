@@ -216,9 +216,6 @@ window.addEventListener("DOMContentLoaded", () => {
     if (sig === lastDashSig) return;
     lastDashSig = sig;
     for (const el of [dashRing, dashBtn]) {
-      // Ladestand fürs Pixel-Theme: gibt die volle Sanduhr-Sprite von unten nach
-      // oben frei (clip-path in .hg-lit, siehe style.css).
-      el.style.setProperty("--fill", filled);
       el.querySelector(".dash-progress-fill").style.strokeDashoffset = offset;
       el.classList.toggle("active", !!dashing);
       el.classList.toggle("ready", !dashing && charge >= 1);

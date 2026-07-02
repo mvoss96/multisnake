@@ -93,59 +93,6 @@ function createRenderer(canvas, initialThemeId) {
     return theme.pixelPerfect ? Math.round(v / PIXEL_UNIT) * PIXEL_UNIT : v;
   }
 
-  // Umgefärbte Kopien des weißen Glyph-Atlas je Farbe (source-in erhält das Alpha
-  // der Glyphen, färbt sie in die Zielfarbe) - einmal pro Farbe gebaut & gecacht.
-  const labelTintCache = {};
-  function tintedAtlas(atlas, color) {
-    if (labelTintCache[color]) return labelTintCache[color];
-    const c = document.createElement("canvas");
-    c.width = atlas.naturalWidth;
-    c.height = atlas.naturalHeight;
-    const cx = c.getContext("2d");
-    cx.imageSmoothingEnabled = false;
-    cx.drawImage(atlas, 0, 0);
-    cx.globalCompositeOperation = "source-in";
-    cx.fillStyle = color;
-    cx.fillRect(0, 0, c.width, c.height);
-    labelTintCache[color] = c;
-    return c;
-  }
-
-  // Zeichnet text als Bitmap-Font (Atlas-Glyphen per drawImage) zentriert um cx,
-  // mit Unterkante bei bottomY - alles in Welteinheiten, aufs Texel-Gitter gesnappt.
-  // Jedes Atlas-Pixel ist LABEL_FONT_SCALE*PIXEL_UNIT groß (= ganzzahlige Texel),
-  // imageSmoothingEnabled=false liefert harte Kanten. Gibt false zurück (Aufrufer
-  // nutzt dann fillText), wenn der Atlas noch lädt oder ein Zeichen fehlt.
-  function drawPixelLabel(text, cx, bottomY, color) {
-    const atlas = loadSprite("label_font");
-    if (!spriteReady(atlas)) return false;
-    for (const ch of text) {
-      if (LABEL_FONT_CHARSET.indexOf(ch) < 0) return false;
-    }
-    const cw = LABEL_FONT_CELL_W;
-    const chh = LABEL_FONT_CELL_H;
-    const cellW = cw * LABEL_FONT_SCALE * PIXEL_UNIT;
-    const cellH = chh * LABEL_FONT_SCALE * PIXEL_UNIT;
-    const startX = snap(cx - (text.length * cellW) / 2);
-    const y = snap(bottomY - cellH);
-
-    const drawRow = (img, ox, oy) => {
-      for (let j = 0; j < text.length; j++) {
-        const idx = LABEL_FONT_CHARSET.indexOf(text[j]);
-        ctx.drawImage(img, idx * cw, 0, cw, chh, startX + ox + j * cellW, y + oy, cellW, cellH);
-      }
-    };
-    // 1-Texel-Kontur in Schwarz (Lesbarkeit auf hellem/dunklem Grund), dann Farbe.
-    const black = tintedAtlas(atlas, "#000");
-    const o = PIXEL_UNIT;
-    drawRow(black, -o, 0);
-    drawRow(black, o, 0);
-    drawRow(black, 0, -o);
-    drawRow(black, 0, o);
-    drawRow(tintedAtlas(atlas, color), 0, 0);
-    return true;
-  }
-
   function setBoard(width, height) {
     board = { width, height };
   }
@@ -727,19 +674,17 @@ function createRenderer(canvas, initialThemeId) {
         ctx.stroke();
       }
 
-      // Namens-Label: im Pixel-Theme als echter Bitmap-Font (drawPixelLabel, hart
-      // aufs Texel-Raster), sonst - und als Fallback für Namen mit Zeichen außerhalb
-      // des Atlas - der bisherige anti-aliased fillText-Pfad.
-      const labelBottomY = hy - snake.radius - 6;
-      if (!(theme.pixelPerfect && drawPixelLabel(snake.name, hx, labelBottomY, snake.color))) {
-        ctx.font = "bold 13px sans-serif";
-        ctx.textAlign = "center";
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
-        ctx.lineWidth = 3;
-        ctx.strokeText(snake.name, snap(hx), snap(hy - snake.radius - 12));
-        ctx.fillStyle = snake.color;
-        ctx.fillText(snake.name, snap(hx), snap(hy - snake.radius - 12));
-      }
+      // Namens-Label: im Pixel-Theme der Pixel-Font (muss geladen sein, siehe
+      // document.fonts.load in main.js) auf gesnappter Position, sonst System-Font.
+      ctx.font = theme.pixelPerfect ? 'bold 11px "PixelFont", monospace' : "bold 13px sans-serif";
+      ctx.textAlign = "center";
+      const labelX = snap(hx);
+      const labelY = snap(hy - snake.radius - 12);
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
+      ctx.lineWidth = 3;
+      ctx.strokeText(snake.name, labelX, labelY);
+      ctx.fillStyle = snake.color;
+      ctx.fillText(snake.name, labelX, labelY);
 
       if (leader && snake.id === leader.id) {
         // Anführer-Abzeichen: Pixel-Krone-Sprite falls das Theme sie themt, sonst Vektor.

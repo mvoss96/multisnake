@@ -19,23 +19,6 @@ const FOOD_SPRITES = [
   loadSprite("food_grape"),
 ];
 
-// Nur zwei Sprite-Sets (statt einem pro Spielerfarbe, siehe _COLORS in
-// game_room.py) - "player" fürs eigene Snake, "ai" für alle anderen
-// (Bots UND andere Menschen). Bewusste Vereinfachung fürs experimentelle
-// Pixel-Theme, das Referenz-Sheet selbst kannte auch nur zwei Farben.
-const SNAKE_SPRITES = {
-  player: {
-    head: loadSprite("snake_player_head"),
-    ring: loadSprite("snake_player_ring"),
-    tail: loadSprite("snake_player_tailcap"),
-  },
-  ai: {
-    head: loadSprite("snake_ai_head"),
-    ring: loadSprite("snake_ai_ring"),
-    tail: loadSprite("snake_ai_tailcap"),
-  },
-};
-
 let tileStonePattern = null;
 
 function foodRadius(value) {
@@ -258,48 +241,6 @@ function createRenderer(canvas, initialPixelTheme) {
     }
   }
 
-  function drawRotatedSprite(sprite, x, y, angle, height) {
-    if (!sprite.complete || sprite.naturalWidth === 0) return false;
-    const width = height * (sprite.naturalWidth / sprite.naturalHeight);
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    ctx.drawImage(sprite, -width / 2, -height / 2, width, height);
-    ctx.restore();
-    return true;
-  }
-
-  // Pixel-Art-Variante von drawTaperedBody/drawSnakePattern: statt eines
-  // gestrokten Pfads werden Kopf-, Ring- und Schwanzspitzen-Sprites entlang
-  // der Punkte rotiert aneinandergereiht - die Ring-Sprites überlappen
-  // bewusst (Zeichnung an jedem zweiten Punkt), das ergibt eine durchgehende
-  // Schuppenoptik ohne sichtbare Nähte. Gibt false zurück (kein Sprite
-  // gezeichnet), solange die Sprites noch nicht geladen sind - draw() fällt
-  // dann auf die Vektor-Variante zurück.
-  function drawSnakeSprite(snake, points, isMe) {
-    const set = isMe ? SNAKE_SPRITES.player : SNAKE_SPRITES.ai;
-    const n = points.length;
-    if (n < 2 || !set.head.complete || set.head.naturalWidth === 0) return false;
-
-    for (let i = n - 2; i >= 1; i -= 2) {
-      const [px, py] = points[i];
-      const [hx, hy] = points[i - 1]; // Nachbarpunkt Richtung Kopf
-      const angle = Math.atan2(hy - py, hx - px);
-      drawRotatedSprite(set.ring, px, py, angle, snake.radius * 2 * taperFactorAt(i, n));
-    }
-
-    const tailIdx = n - 1;
-    const [tx, ty] = points[tailIdx];
-    const [tpx, tpy] = points[Math.max(0, tailIdx - 1)];
-    const tailAngle = Math.atan2(tpy - ty, tpx - tx);
-    drawRotatedSprite(set.tail, tx, ty, tailAngle, snake.radius * 2 * SNAKE_TAIL_TAPER_FACTOR * 2.2);
-
-    const [headX, headY] = points[0];
-    drawRotatedSprite(set.head, headX, headY, snake.direction, snake.radius * 2.3);
-
-    return true;
-  }
-
   function drawCrown(x, y) {
     ctx.save();
     ctx.translate(x, y);
@@ -381,52 +322,46 @@ function createRenderer(canvas, initialPixelTheme) {
         ctx.shadowBlur = SNAKE_DASH_GLOW_BLUR;
       }
 
-      // Pixel-Theme: Sprite-Kette aus Kopf/Ring/Schwanzspitze (siehe
-      // drawSnakeSprite) statt gestrokter Vektor-Form - Augen sind im
-      // Kopf-Sprite bereits enthalten. Fällt automatisch auf die Vektor-
-      // Variante zurück, solange die Sprites noch laden.
-      const usedSprite = pixelTheme && drawSnakeSprite(snake, points, isMe);
-
-      if (!usedSprite) {
-        // Kontur, Körper und ein dezenter heller Glanzstreifen mittig auf dem
-        // Körper - alle drei verjüngen sich zum Schwanz hin für eine organischere
-        // Form statt eines gleichbleibend dicken Schlauchs.
-        drawTaperedBody(points, snake.radius * 2 + SNAKE_OUTLINE_WIDTH * 2, SNAKE_OUTLINE_COLOR);
-        drawTaperedBody(points, snake.radius * 2, snake.color);
-        drawTaperedBody(points, snake.radius * 2 * SNAKE_SHINE_WIDTH_FACTOR, "#ffffff", SNAKE_SHINE_ALPHA);
-        drawSnakePattern(snake, points);
-      }
+      // Schlangen bleiben in beiden Themes die Vektor-Variante: die
+      // Sprite-Ketten-Fassung kannte nur zwei Farben (gold/grün) und
+      // ignorierte damit die server-zugewiesenen Spielerfarben - bis es
+      // pro Farbe brauchbare Sprites gibt, gewinnt die Lesbarkeit.
+      // Kontur, Körper und ein dezenter heller Glanzstreifen mittig auf dem
+      // Körper - alle drei verjüngen sich zum Schwanz hin für eine organischere
+      // Form statt eines gleichbleibend dicken Schlauchs.
+      drawTaperedBody(points, snake.radius * 2 + SNAKE_OUTLINE_WIDTH * 2, SNAKE_OUTLINE_COLOR);
+      drawTaperedBody(points, snake.radius * 2, snake.color);
+      drawTaperedBody(points, snake.radius * 2 * SNAKE_SHINE_WIDTH_FACTOR, "#ffffff", SNAKE_SHINE_ALPHA);
+      drawSnakePattern(snake, points);
 
       if (snake.dashing) {
         ctx.shadowBlur = 0;
         ctx.shadowColor = "transparent";
       }
 
-      if (!usedSprite) {
-        // Augen in Blickrichtung statt eines mittigen Punkts - Pupille leicht
-        // nach vorn versetzt, damit die Schlange erkennbar "in eine Richtung schaut".
-        const eyeRadius = snake.radius * SNAKE_EYE_RADIUS_FACTOR;
-        const pupilRadius = snake.radius * SNAKE_PUPIL_RADIUS_FACTOR;
-        const forwardX = Math.cos(snake.direction) * snake.radius * SNAKE_EYE_FORWARD_OFFSET;
-        const forwardY = Math.sin(snake.direction) * snake.radius * SNAKE_EYE_FORWARD_OFFSET;
-        const perpAngle = snake.direction + Math.PI / 2;
-        const sideX = Math.cos(perpAngle) * snake.radius * SNAKE_EYE_SIDE_OFFSET;
-        const sideY = Math.sin(perpAngle) * snake.radius * SNAKE_EYE_SIDE_OFFSET;
-        const pupilForwardX = Math.cos(snake.direction) * eyeRadius * 0.4;
-        const pupilForwardY = Math.sin(snake.direction) * eyeRadius * 0.4;
+      // Augen in Blickrichtung statt eines mittigen Punkts - Pupille leicht
+      // nach vorn versetzt, damit die Schlange erkennbar "in eine Richtung schaut".
+      const eyeRadius = snake.radius * SNAKE_EYE_RADIUS_FACTOR;
+      const pupilRadius = snake.radius * SNAKE_PUPIL_RADIUS_FACTOR;
+      const forwardX = Math.cos(snake.direction) * snake.radius * SNAKE_EYE_FORWARD_OFFSET;
+      const forwardY = Math.sin(snake.direction) * snake.radius * SNAKE_EYE_FORWARD_OFFSET;
+      const perpAngle = snake.direction + Math.PI / 2;
+      const sideX = Math.cos(perpAngle) * snake.radius * SNAKE_EYE_SIDE_OFFSET;
+      const sideY = Math.sin(perpAngle) * snake.radius * SNAKE_EYE_SIDE_OFFSET;
+      const pupilForwardX = Math.cos(snake.direction) * eyeRadius * 0.4;
+      const pupilForwardY = Math.sin(snake.direction) * eyeRadius * 0.4;
 
-        for (const side of [1, -1]) {
-          const eyeX = hx + forwardX + sideX * side;
-          const eyeY = hy + forwardY + sideY * side;
-          ctx.fillStyle = "#fff";
-          ctx.beginPath();
-          ctx.arc(eyeX, eyeY, eyeRadius, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = "#111";
-          ctx.beginPath();
-          ctx.arc(eyeX + pupilForwardX, eyeY + pupilForwardY, pupilRadius, 0, Math.PI * 2);
-          ctx.fill();
-        }
+      for (const side of [1, -1]) {
+        const eyeX = hx + forwardX + sideX * side;
+        const eyeY = hy + forwardY + sideY * side;
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(eyeX, eyeY, eyeRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#111";
+        ctx.beginPath();
+        ctx.arc(eyeX + pupilForwardX, eyeY + pupilForwardY, pupilRadius, 0, Math.PI * 2);
+        ctx.fill();
       }
 
       if (isMe) {

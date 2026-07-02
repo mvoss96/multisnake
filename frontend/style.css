@@ -445,21 +445,17 @@ body.theme-pixel #hud {
   box-sizing: border-box;
 }
 
+/* Gleiches generiertes Holz-Panel wie das HUD (dunkle Innenfläche) - der
+   Pergament-Rahmen aus dem Sprite-Paket hatte raue Kanten, und die hellen
+   Spielerfarben waren auf hellem Pergament schlecht lesbar. */
 body.theme-pixel #leaderboard {
   background: none;
-  border: 16px solid transparent;
-  border-image: url("assets/sprites/ui_panel_frame.png") 30 fill stretch;
+  border: 12px solid transparent;
+  border-image: url("assets/sprites/ui_panel_rect.png") 24 fill stretch;
   image-rendering: pixelated;
-  padding: 2px 8px 6px;
+  padding: 4px 10px 6px;
   border-radius: 0;
   box-sizing: border-box;
-}
-
-/* Innenfläche des Leaderboard-Rahmens ist helles Pergament - dunkle
-   Konturen halten die bunten Spielerfarben dort lesbar. */
-body.theme-pixel #leaderboard h3 {
-  color: #6b3f1e;
-  text-shadow: none;
 }
 
 body.theme-pixel #leaderboard-list li {

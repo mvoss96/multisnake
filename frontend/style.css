@@ -1,3 +1,14 @@
+/* Pixel-Font fürs Pixel-Theme (lokal gebündelt, OFL - siehe assets/fonts/OFL.txt).
+   Latin-Subset deckt auch deutsche Umlaute/ß ab. Ein variabler woff2-File deckt
+   den Gewichtsbereich 400-700 ab. Nur unter body.theme-pixel angewandt (siehe unten). */
+@font-face {
+  font-family: "PixelFont";
+  src: url("assets/fonts/pixelify-sans.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 html, body {
   margin: 0;
   height: 100%;
@@ -5,6 +16,14 @@ html, body {
   overflow: hidden;
   font-family: "Segoe UI", Roboto, sans-serif;
   color: #eee;
+}
+
+/* Pixel-Theme: durchgehend der Pixel-Font. input/button erben font-family nicht
+   automatisch -> explizit. Klassik-Theme bleibt beim System-Font (oben). */
+body.theme-pixel,
+body.theme-pixel input,
+body.theme-pixel button {
+  font-family: "PixelFont", monospace;
 }
 
 #game-canvas {
@@ -469,7 +488,7 @@ body.touch-device #dash-btn {
 body.theme-pixel #hud {
   background: none;
   border: 14px solid transparent;
-  border-image: url("assets/sprites/ui_sign.png") 20 fill stretch;
+  border-image: url("assets/sprites/ui_sign.png") 20 fill round;
   image-rendering: pixelated;
   padding: 4px 10px;
   border-radius: 0;
@@ -485,7 +504,7 @@ body.theme-pixel #hud {
 body.theme-pixel #leaderboard {
   background: none;
   border: 14px solid transparent;
-  border-image: url("assets/sprites/ui_sign.png") 20 fill stretch;
+  border-image: url("assets/sprites/ui_sign.png") 20 fill round;
   image-rendering: pixelated;
   padding: 4px 12px 6px;
   border-radius: 0;
@@ -513,7 +532,7 @@ body.theme-pixel #hud .hud-btn {
 body.theme-pixel .panel {
   background: none;
   border: 18px solid transparent;
-  border-image: url("assets/sprites/ui_panel_rect.png") 24 fill stretch;
+  border-image: url("assets/sprites/ui_panel_rect.png") 24 fill round;
   image-rendering: pixelated;
   border-radius: 0;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
@@ -601,4 +620,61 @@ body.theme-pixel #dash-btn.ready .dash-icon,
 body.theme-pixel #dash-ring.active .dash-icon,
 body.theme-pixel #dash-btn.active .dash-icon {
   display: block;
+}
+
+/* --- Pixel-Font-Feinschliff & eckige UI (nur Pixel-Theme) ------------------
+   Der Pixel-Font bringt eigenes Spacing mit und rendert etwas kräftiger; daher
+   letter-spacing raus und ein paar Größen sauber ganzzahlig nachziehen, damit
+   nichts umbricht/überläuft. Alles nur unter body.theme-pixel - Klassik bleibt. */
+body.theme-pixel #score {
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+body.theme-pixel #leaderboard h3,
+body.theme-pixel #leaderboard-list {
+  letter-spacing: 0;
+  font-size: 12px;
+}
+
+body.theme-pixel .panel h2 {
+  font-size: 26px;
+  letter-spacing: 0;
+}
+
+body.theme-pixel .panel p {
+  font-size: 15px;
+}
+
+/* Eckige, kräftig umrandete Buttons/Inputs statt weicher Rundung (Pixel-Look).
+   Der Gold-Akzent der Buttons bleibt; nur Radius/Rand/Spacing werden pixelig. */
+body.theme-pixel #name-input,
+body.theme-pixel .panel button,
+body.theme-pixel .panel .theme-option,
+body.theme-pixel .hud-btn,
+body.theme-pixel #connection-banner {
+  border-radius: 0;
+  letter-spacing: 0;
+}
+
+body.theme-pixel .panel button,
+body.theme-pixel .panel .theme-option,
+body.theme-pixel #name-input {
+  border: 2px solid #1a1206;
+}
+
+body.theme-pixel #connection-banner {
+  border: 2px solid #3a0f0f;
+  font-size: 13px;
+}
+
+/* Blitz im Dash-Ring als Pixel-Sprite statt Unicode-Glyph (der Touch-Button
+   behält sein "DASH" als Pixel-Font-Text). Glyph unsichtbar, Sprite als Bg. */
+body.theme-pixel #dash-ring .dash-icon {
+  width: 20px;
+  height: 20px;
+  color: transparent;
+  background: url("assets/sprites/dash_bolt.png") center / contain no-repeat;
+  image-rendering: pixelated;
+  text-shadow: none;
 }

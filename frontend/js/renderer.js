@@ -674,17 +674,28 @@ function createRenderer(canvas, initialThemeId) {
         ctx.stroke();
       }
 
-      ctx.font = "bold 13px sans-serif";
+      // Namens-Label: im Pixel-Theme der Pixel-Font (muss geladen sein, siehe
+      // document.fonts.load in main.js) auf gesnappter Position, sonst System-Font.
+      ctx.font = theme.pixelPerfect ? 'bold 11px "PixelFont", monospace' : "bold 13px sans-serif";
       ctx.textAlign = "center";
-      const labelY = hy - snake.radius - 12;
+      const labelX = snap(hx);
+      const labelY = snap(hy - snake.radius - 12);
       ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
       ctx.lineWidth = 3;
-      ctx.strokeText(snake.name, hx, labelY);
+      ctx.strokeText(snake.name, labelX, labelY);
       ctx.fillStyle = snake.color;
-      ctx.fillText(snake.name, hx, labelY);
+      ctx.fillText(snake.name, labelX, labelY);
 
       if (leader && snake.id === leader.id) {
-        drawCrown(hx, hy - snake.radius - 30);
+        // Anführer-Abzeichen: Pixel-Krone-Sprite falls das Theme sie themt, sonst Vektor.
+        const crownSprite = themedSprite("crown");
+        if (crownSprite) {
+          const { w: cw, h: ch } = spriteWorldSize(crownSprite);
+          const cy = hy - snake.radius - 10; // Unterkante der Krone knapp über dem Kopf
+          ctx.drawImage(crownSprite, snap(hx - cw / 2), snap(cy - ch), cw, ch);
+        } else {
+          drawCrown(hx, hy - snake.radius - 30);
+        }
       }
     }
 

@@ -59,6 +59,14 @@ window.addEventListener("DOMContentLoaded", () => {
   const canvas = document.getElementById("game-canvas");
   const renderer = createRenderer(canvas, activeThemeId);
 
+  // Pixel-Font vorladen: der Canvas nutzt einen Font erst, wenn er geladen ist
+  // (anders als CSS wartet drawText nicht). Bis dahin fällt das Namens-Label auf
+  // sans-serif zurück - unkritisch. Fehler ignorieren (Font optional).
+  if (document.fonts && document.fonts.load) {
+    document.fonts.load('11px "PixelFont"').catch(() => {});
+    document.fonts.load('bold 11px "PixelFont"').catch(() => {});
+  }
+
   // Design-Umschalter dynamisch aus der Registry erzeugen - ein neues Theme in
   // themes.js bekommt so automatisch seinen Button. Es gibt mehrere Umschalter
   // (Namens-Modal UND Game-Over-Overlay, beide .theme-select); pro Theme werden

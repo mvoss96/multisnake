@@ -16,7 +16,8 @@
 //             Rollen werden im Canvas als Sprite gezeichnet; jede fehlende Rolle
 //             bleibt die Default-Vektor-Variante. Bekannte Rollen (siehe
 //             renderer.js): boardTile, spike, borderSprite (aufrechte Deko am
-//             Kartenrand, ersetzt dort die Spikes), foodTier1/2/3 (nach Wert).
+//             Kartenrand, ersetzt dort die Spikes), foodTier1/2/3 (nach Wert),
+//             crown (Anführer-Abzeichen über dem führenden Kopf).
 //   borderEdges  Array der Ränder, an denen borderSprite steht: "top" | "left" |
 //             "right" | "bottom". Fehlt es (aber borderSprite ist gesetzt), gilt
 //             ["top"]. Ohne borderSprite wird es ignoriert.
@@ -48,6 +49,7 @@ const THEMES = [
       foodTier1: "food_strawberry",
       foodTier2: "food_gem",
       foodTier3: "food_potion",
+      crown: "crown",
     },
   },
 ];

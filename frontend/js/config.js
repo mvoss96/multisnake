@@ -42,7 +42,7 @@ const PIXEL_UNIT = 0.6;
 // zurück. SCALE = ganzzahlige Atlas-Pixel -> Texel (1 = 1 Atlas-Pixel pro Texel).
 const LABEL_FONT_CELL_W = 13;
 const LABEL_FONT_CELL_H = 14;
-const LABEL_FONT_SCALE = 2;
+const LABEL_FONT_SCALE = 1;
 const LABEL_FONT_CHARSET =
   " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~äöüÄÖÜß";
 

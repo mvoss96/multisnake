@@ -23,6 +23,31 @@ const SNAKE_RADIUS_MAX = 14.0;
 const ZOOM_LERP_FACTOR_OUT = 0.02;
 const ZOOM_LERP_FACTOR_IN = 0.08;
 
+// Client-Interpolation: Das Rendern läuft in einer requestAnimationFrame-Schleife
+// (Display-Refresh) und interpoliert zwischen den letzten zwei Server-States, statt
+// nur beim Eintreffen einer State-Nachricht zu zeichnen. Das entkoppelt die sichtbare
+// Bildrate vom (auf Mobile ungleichmäßig eintreffenden) 30-Hz-Netz-Takt und versteckt
+// Netzwerk-Jitter -> flüssige Bewegung auch bei nur einem Spieler. Die
+// Interpolationsdauer wird als geglätteter Mittelwert (EMA) der tatsächlichen
+// Ankunftsabstände geführt, passt sich also der realen Tickrate an (auch bei
+// serverseitiger Verlangsamung unter Last) statt eine feste 30 Hz anzunehmen.
+const INTERP_INITIAL_MS = 1000 / 30; // Startwert = nominale Server-Tickrate
+const INTERP_SMOOTHING = 0.2; // EMA-Gewicht neuer Messwerte (0..1)
+const INTERP_MIN_MS = 20; // untere/obere Klammer der geglätteten Dauer gegen Ausreißer
+const INTERP_MAX_MS = 200;
+// Ankunftsabstände darüber gelten als Aussetzer (Tab-Wechsel, Netz-Hänger) und
+// fließen NICHT in die EMA ein - sonst würde ein einzelner Hänger die Dauer verzerren.
+const INTERP_SAMPLE_MAX_MS = 500;
+
+// Debug-Overlay (Klick/Tap auf den Score, siehe main.js): neben Länge/Breite auch
+// Spieleranzahl, FPS und Netz-Stabilität. Die Netz-Stabilität wird qualitativ aus dem
+// Ankunfts-Jitter der State-Nachrichten (mittlere absolute Abweichung vom geglätteten
+// Tickabstand) abgeleitet; FPS und Jitter laufen als geglättete Mittelwerte (EMA).
+const FPS_SMOOTHING = 0.1; // EMA-Gewicht neuer FPS-Messwerte
+const NET_JITTER_SMOOTHING = 0.2; // EMA-Gewicht neuer Jitter-Messwerte
+const NET_JITTER_OK_MS = 8; // <= stabil
+const NET_JITTER_POOR_MS = 20; // <= ok, darüber instabil
+
 // Mobile / Touch
 // Mindest-Weltbreite, die auf jedem Viewport sichtbar sein muss (Fairness-Fix
 // für schmale/hohe Mobile-Viewports) - siehe worldScale() in renderer.js. Auf

@@ -1,3 +1,46 @@
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+// Interpoliert die Schlangen zwischen zwei Server-States. Der Server stellt pro Tick
+// vorne genau EINEN neuen Kopfpunkt voran und trimmt hinten (siehe Snake.move/_trim im
+// Backend), d.h. curr.points[i] entspricht raeumlich prev.points[i-1]: same-index-lerp
+// laesst damit die gesamte Spur um den Bruchteil t eines Segments nach vorne fliessen -
+// exakt die kontinuierliche Bewegung. Punkte jenseits der gemeinsamen Laenge (Schwanz
+// bei Wachstum/Trim) werden unveraendert aus curr uebernommen. Neue/respawnte Schlangen
+// (keine Historie in prev) werden hart aus curr gezeichnet.
+function interpolateSnakes(prev, curr, t) {
+  if (prev === curr || t >= 1) return curr.snakes;
+  const prevById = new Map();
+  for (const s of prev.snakes) prevById.set(s.id, s);
+  return curr.snakes.map((s) => {
+    const p = prevById.get(s.id);
+    if (!p) return s;
+    const overlap = Math.min(s.points.length, p.points.length);
+    const points = new Array(s.points.length);
+    for (let i = 0; i < overlap; i++) {
+      const cp = s.points[i];
+      const pp = p.points[i];
+      points[i] = [lerp(pp[0], cp[0], t), lerp(pp[1], cp[1], t)];
+    }
+    for (let i = overlap; i < s.points.length; i++) points[i] = s.points[i];
+    return { ...s, points, radius: lerp(p.radius, s.radius, t) };
+  });
+}
+
+// Futter wird nur durch den Magneten bewegt; per-ID-Interpolation der Position glaettet
+// auch das. Neu gespawntes Futter (keine Historie) wird hart aus curr gezeichnet.
+function interpolateFood(prev, curr, t) {
+  if (prev === curr || t >= 1) return curr.food;
+  const prevById = new Map();
+  for (const f of prev.food) prevById.set(f.id, f);
+  return curr.food.map((f) => {
+    const p = prevById.get(f.id);
+    if (!p) return f;
+    return { ...f, x: lerp(p.x, f.x, t), y: lerp(p.y, f.y, t) };
+  });
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   // Theme-Wahl: gespeichert in localStorage, ein ?theme=<id>-URL-Parameter
   // übersteuert die gespeicherte Wahl (praktisch zum Verschicken von Test-Links).
@@ -61,6 +104,19 @@ window.addEventListener("DOMContentLoaded", () => {
   let client = null;
   let pendingName = "";
 
+  // Zustandspuffer fuer die Interpolation (siehe renderFrame unten): die letzten zwei
+  // empfangenen Server-States plus der Ankunftszeitpunkt und die geglaettete Dauer.
+  let prevState = null;
+  let currState = null;
+  let stateArrival = 0;
+  let interpDurationMs = INTERP_INITIAL_MS;
+  let lastScoreText = "";
+  // Diagnosewerte fürs Debug-Overlay (Klick auf den Score): geglättete FPS aus der
+  // Renderschleife und geglätteter Netz-Jitter aus den State-Ankunftsabständen.
+  let fpsEma = 0;
+  let lastFrameTime = 0;
+  let netJitterMs = 0;
+
   // Eine einzige Erkennung steuert alle Touch-spezifischen CSS-/Text-Unterschiede
   // (siehe body.touch-device in style.css). Die Event-Verdrahtung selbst
   // (setupTouchControls) läuft dagegen immer, unabhängig von dieser Erkennung -
@@ -78,6 +134,38 @@ window.addEventListener("DOMContentLoaded", () => {
 
   renderer.resizeToWindow();
   window.addEventListener("resize", () => renderer.resizeToWindow());
+
+  // Render-Schleife: zeichnet mit dem Display-Refresh (statt nur beim Eintreffen einer
+  // State-Nachricht) und interpoliert zwischen den letzten zwei Server-States. Damit ist
+  // die sichtbare Bewegung vom (auf Mobile ungleichmaessig eintreffenden) Netz-Takt
+  // entkoppelt - der Jitter, der sich vorher als Ruckeln zeigte, wird ausgeblendet.
+  // Laeuft immer; tut nichts, solange noch kein State empfangen wurde.
+  function renderFrame(now) {
+    // Geglättete FPS aus dem Abstand aufeinanderfolgender Frames (fürs Debug-Overlay).
+    if (lastFrameTime) {
+      const dt = now - lastFrameTime;
+      if (dt > 0) {
+        const inst = 1000 / dt;
+        fpsEma = fpsEma ? fpsEma * (1 - FPS_SMOOTHING) + inst * FPS_SMOOTHING : inst;
+      }
+    }
+    lastFrameTime = now;
+
+    if (currState) {
+      let t = interpDurationMs > 0 ? (now - stateArrival) / interpDurationMs : 1;
+      if (t < 0) t = 0;
+      else if (t > 1) t = 1;
+      const snakes = interpolateSnakes(prevState, currState, t);
+      const food = interpolateFood(prevState, currState, t);
+      const mySnake = snakes.find((s) => s.player_id === GameState.playerId);
+      if (mySnake && mySnake.points.length) {
+        camera = { x: mySnake.points[0][0], y: mySnake.points[0][1] };
+      }
+      renderer.draw({ snakes, food }, camera, viewWorldHeight);
+    }
+    requestAnimationFrame(renderFrame);
+  }
+  requestAnimationFrame(renderFrame);
 
   // Namens-Modal wird immer zuerst gezeigt. Name wird aus dem Storage
   // vorbefüllt, sodass wiederkehrende Spieler nur noch Enter/Klick brauchen.
@@ -109,6 +197,7 @@ window.addEventListener("DOMContentLoaded", () => {
     showDebugInfo = !showDebugInfo;
   });
 
+  let lastDashSig = "";
   function updateDashMeter(charge, dashing) {
     // Beide Anzeigen (kompakter HUD-Ring für Desktop, großer Button für Touch)
     // teilen sich dieselbe Füll-Logik + Bereit/Aktiv-Zustände.
@@ -120,6 +209,12 @@ window.addEventListener("DOMContentLoaded", () => {
     // gerundet (DASH_FILL_STEPS) für einen chunky, harten Pixel-Look statt einer
     // glatt gleitenden Kante.
     const filled = dashing ? 1 : Math.round(charge * DASH_FILL_STEPS) / DASH_FILL_STEPS;
+    // Nur bei tatsaechlicher Aenderung ins DOM schreiben - onState laeuft 30x/s, die
+    // Anzeige aendert sich aber viel seltener (spart Reflows, v.a. auf Mobile).
+    const ready = !dashing && charge >= 1;
+    const sig = `${dashing ? 1 : 0}:${ready ? 1 : 0}:${filled}:${offset.toFixed(1)}`;
+    if (sig === lastDashSig) return;
+    lastDashSig = sig;
     for (const el of [dashRing, dashBtn]) {
       el.querySelector(".dash-progress-fill").style.strokeDashoffset = offset;
       el.classList.toggle("active", !!dashing);
@@ -128,8 +223,15 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  let lastLeaderboardSig = "";
   function updateLeaderboard(snakes) {
     const sorted = [...snakes].sort((a, b) => b.score - a.score).slice(0, 8);
+    // Das komplette <ul> 30x/s neu aufzubauen (innerHTML + Reflow) war ein spuerbarer
+    // Jank-Beitrag auf Mobile. Nur neu rendern, wenn sich die angezeigte Liste
+    // wirklich geaendert hat (Reihenfolge, Name, Score oder Farbe).
+    const sig = sorted.map((s) => `${s.player_id}\t${s.name}\t${s.score}\t${s.color}`).join("\n");
+    if (sig === lastLeaderboardSig) return;
+    lastLeaderboardSig = sig;
     leaderboardList.innerHTML = "";
     for (const snake of sorted) {
       const li = document.createElement("li");
@@ -187,13 +289,49 @@ window.addEventListener("DOMContentLoaded", () => {
     };
 
     client.onState = (msg) => {
+      // Nur puffern + HUD (einmal pro Tick), NICHT zeichnen - das Zeichnen macht die
+      // renderFrame-Schleife (Display-Refresh) mit Interpolation zwischen prev/curr.
+      const now = performance.now();
+      if (currState) {
+        // Geglaetteter Mittelwert der tatsaechlichen Ankunftsabstaende (EMA), damit die
+        // Interpolationsdauer der realen Tickrate folgt; grobe Aussetzer ignorieren.
+        const gap = now - stateArrival;
+        if (gap > 0 && gap < INTERP_SAMPLE_MAX_MS) {
+          // Jitter = Abweichung dieses Abstands vom bisherigen Mittel (vor dem Update
+          // gemessen), selbst wieder geglättet -> Maß für die Netz-Stabilität.
+          const dev = Math.abs(gap - interpDurationMs);
+          netJitterMs = netJitterMs ? netJitterMs * (1 - NET_JITTER_SMOOTHING) + dev * NET_JITTER_SMOOTHING : dev;
+          interpDurationMs = interpDurationMs * (1 - INTERP_SMOOTHING) + gap * INTERP_SMOOTHING;
+          interpDurationMs = Math.max(INTERP_MIN_MS, Math.min(INTERP_MAX_MS, interpDurationMs));
+        }
+      }
+      prevState = currState || msg;
+      currState = msg;
+      stateArrival = now;
+
       const mySnake = msg.snakes.find((s) => s.player_id === GameState.playerId);
       if (mySnake) {
-        camera = { x: mySnake.points[0][0], y: mySnake.points[0][1] };
         GameState.ownDirection = mySnake.direction;
-        scoreEl.textContent = showDebugInfo
-          ? `Score: ${mySnake.score} | Länge: ${Math.round(mySnake.length)} | Breite: ${mySnake.radius.toFixed(1)}`
-          : `Score: ${mySnake.score}`;
+        let scoreText;
+        if (showDebugInfo) {
+          const netHz = interpDurationMs > 0 ? 1000 / interpDurationMs : 0;
+          const netLabel =
+            netJitterMs <= NET_JITTER_OK_MS
+              ? "stabil"
+              : netJitterMs <= NET_JITTER_POOR_MS
+                ? "ok"
+                : "instabil";
+          scoreText =
+            `Score: ${mySnake.score} | Länge: ${Math.round(mySnake.length)} | Breite: ${mySnake.radius.toFixed(1)}` +
+            ` | Spieler: ${msg.snakes.length} | FPS: ${Math.round(fpsEma)}` +
+            ` | Netz: ${netHz.toFixed(1)} Hz (Jitter ${netJitterMs.toFixed(1)} ms, ${netLabel})`;
+        } else {
+          scoreText = `Score: ${mySnake.score}`;
+        }
+        if (scoreText !== lastScoreText) {
+          scoreEl.textContent = scoreText;
+          lastScoreText = scoreText;
+        }
         updateDashMeter(mySnake.dash_charge, mySnake.dashing);
 
         // Kamera zoomt mit wachsendem eigenem Radius (Breite) kontinuierlich
@@ -207,13 +345,13 @@ window.addEventListener("DOMContentLoaded", () => {
         targetViewWorldHeight = minViewWorldHeight + growth * (VIEW_WORLD_HEIGHT_MAX - minViewWorldHeight);
         // Nähert sich dem Ziel pro State-Update nur graduell an (statt zu springen),
         // damit Zoomstufen-Wechsel nicht ruckartig wirken - Rauszoomen bewusst
-        // langsamer als Reinzoomen (siehe ZOOM_LERP_FACTOR_OUT/IN in config.js).
+        // langsamer als Reinzoomen (siehe ZOOM_LERP_FACTOR_OUT/IN in config.js). Der
+        // Zoom aendert sich langsam, daher genuegt die Angleichung pro Tick (30 Hz).
         const zoomLerpFactor =
           targetViewWorldHeight > viewWorldHeight ? ZOOM_LERP_FACTOR_OUT : ZOOM_LERP_FACTOR_IN;
         viewWorldHeight += (targetViewWorldHeight - viewWorldHeight) * zoomLerpFactor;
       }
 
-      renderer.draw({ snakes: msg.snakes, food: msg.food }, camera, viewWorldHeight);
       updateLeaderboard(msg.snakes);
     };
 

@@ -472,37 +472,31 @@ body.theme-pixel #hud {
   box-sizing: border-box;
 }
 
-/* Holzrahmen (aus dem Referenz-Sprite-Sheet extrahiert, nicht generiert - die
-   generierte Schriftrolle sah unsauber aus). Bewusst OHNE "fill": das Sprite
-   hat ein Karo-Innenraster (Kork-/Notizbrett-Optik), das beim Strecken der
-   Bildmitte über die volle Panel-Größe (fill) als verzerrte, windschiefe
-   Linie auffiel. Ohne "fill" zeichnet border-image nur die 8 Rahmenteile,
-   die Innenfläche kommt von der eigenen (halbtransparenten) background-Farbe
-   unten - kein gestrecktes Rasterbild, aber weiterhin die helle Pergament-
-   Tönung des Sprites (aus der Bildmitte abgetastet: rgb(241, 218, 178)) statt
-   eines beliebigen dunklen Tons, damit es noch als Pergament erkennbar bleibt.
-   Dunkler Text auf dem hellen Ton; die bunten Spieler-Namen bekommen einen
-   dunklen Schein als Kontrast-Kante. */
+/* Leaderboard bekommt exakt denselben Holzschild-Look wie das HUD (dasselbe
+   ui_sign-Sprite als 9-Slice MIT "fill", also inkl. dunkler Holz-Innenfläche
+   aus dem Sprite). Der zuvor genutzte ui_panel_frame-Rahmen hatte ein
+   Karo-Innenraster, das sich beim Strecken verzog, und ohne "fill" saß die
+   Innenfläche nicht sauber im Rahmen - der Schild-Sprite ist dafür gemacht.
+   Werte identisch zum #hud-Block oben, damit beide Panels konsistent sind. */
 body.theme-pixel #leaderboard {
-  background: rgba(241, 218, 178, 0.55);
-  border-style: solid;
-  border-color: transparent;
-  border-width: 26px 20px;
-  border-image: url("assets/sprites/ui_panel_frame.png") 34 26 stretch;
+  background: none;
+  border: 14px solid transparent;
+  border-image: url("assets/sprites/ui_sign.png") 20 fill stretch;
   image-rendering: pixelated;
-  padding: 2px 8px 4px;
+  padding: 4px 12px 6px;
   border-radius: 0;
   box-sizing: border-box;
-  color: #3a2610;
 }
 
+/* Heller Text auf der dunklen Holzfläche (wie #score im HUD); die bunten
+   Spieler-Namen (inline gesetzte Farben) bekommen einen dunklen Schein als
+   Kontrast-Kante. */
 body.theme-pixel #leaderboard h3 {
-  color: #7a3f12;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
 }
 
 body.theme-pixel #leaderboard-list li {
-  text-shadow: 0 0 3px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(0, 0, 0, 0.35);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
 }
 
 body.theme-pixel #score,

@@ -35,6 +35,10 @@ html, body {
   letter-spacing: 0.5px;
 }
 
+/* Der Steuerungs-Hinweis (#control-toggle) ist ein reiner Text-Umschalter im
+   HUD - er sitzt in beiden Themes direkt auf der HUD-Fläche, eine eigene
+   Pillen-/Button-Fläche wirkt dort aufgesetzt. Daher transparent, nur der Text
+   (mit Hover-Aufhellung) bleibt sichtbar. */
 .hud-btn {
   margin-top: 8px;
   padding: 6px 12px;
@@ -43,12 +47,12 @@ html, body {
   cursor: pointer;
   border: none;
   border-radius: 6px;
-  background: #33334d;
-  color: #eee;
+  background: transparent;
+  color: #bfbfe0;
 }
 
 .hud-btn:hover {
-  background: #45456a;
+  color: #fff;
 }
 
 /* Kreisförmige Dash-Ladeanzeige fürs Desktop-HUD - dieselbe Optik (Füllung per
@@ -465,15 +469,6 @@ body.theme-pixel #leaderboard-list li {
 body.theme-pixel #score,
 body.theme-pixel #hud .hud-btn {
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
-}
-
-/* Der Steuerungs-Hinweis (#control-toggle) sitzt im Pixel-Theme direkt auf der
-   Holzfläche des HUD-Panels - seine eigene dunkle Pillen-Fläche wirkt dort
-   aufgesetzt, daher transparent (Text bleibt per Schatten oben lesbar). */
-body.theme-pixel #hud .hud-btn,
-body.theme-pixel #hud .hud-btn:hover {
-  background: transparent;
-  border: none;
 }
 
 /* Namens- und Game-Over-Panel bekommen denselben Holzrahmen wie das HUD

@@ -1,34 +1,49 @@
 window.addEventListener("DOMContentLoaded", () => {
-  // Pixel-Art-Retheme: wählbar über den Design-Umschalter im Namens-Modal
-  // (gespeichert in localStorage), ein ?theme=...-URL-Parameter übersteuert
-  // die gespeicherte Wahl (praktisch zum Verschicken von Test-Links).
+  // Theme-Wahl: gespeichert in localStorage, ein ?theme=<id>-URL-Parameter
+  // übersteuert die gespeicherte Wahl (praktisch zum Verschicken von Test-Links).
+  // Welche Themes es gibt und was sie themen, steht komplett in themes.js -
+  // hier wird nur ausgewählt/verdrahtet, nicht definiert.
   const themeParam = new URLSearchParams(window.location.search).get("theme");
-  let pixelTheme;
-  if (themeParam === "pixel") {
-    pixelTheme = true;
+  let activeThemeId;
+  if (themeParam && THEMES.some((t) => t.id === themeParam)) {
+    activeThemeId = themeParam;
   } else if (themeParam) {
-    pixelTheme = false;
+    activeThemeId = DEFAULT_THEME_ID; // expliziter, aber unbekannter Param -> Default
   } else {
-    pixelTheme = localStorage.getItem("snakeTheme") === "pixel";
+    activeThemeId = localStorage.getItem("snakeTheme") || DEFAULT_THEME_ID;
   }
 
   const canvas = document.getElementById("game-canvas");
-  const renderer = createRenderer(canvas, pixelTheme);
-  const themeClassicBtn = document.getElementById("theme-classic-btn");
-  const themePixelBtn = document.getElementById("theme-pixel-btn");
+  const renderer = createRenderer(canvas, activeThemeId);
 
-  function applyTheme(usePixel) {
-    pixelTheme = usePixel;
-    localStorage.setItem("snakeTheme", usePixel ? "pixel" : "classic");
-    document.body.classList.toggle("theme-pixel", usePixel);
-    renderer.setPixelTheme(usePixel);
-    themeClassicBtn.classList.toggle("selected", !usePixel);
-    themePixelBtn.classList.toggle("selected", usePixel);
+  // Design-Umschalter im Namens-Modal dynamisch aus der Registry erzeugen -
+  // ein neues Theme in themes.js bekommt so automatisch seinen Button.
+  const themeSelect = document.getElementById("theme-select");
+  const themeButtons = new Map();
+  for (const theme of THEMES) {
+    const btn = document.createElement("button");
+    btn.className = "theme-option";
+    btn.textContent = theme.label;
+    btn.addEventListener("click", () => applyTheme(theme.id));
+    themeSelect.appendChild(btn);
+    themeButtons.set(theme.id, btn);
   }
 
-  applyTheme(pixelTheme);
-  themeClassicBtn.addEventListener("click", () => applyTheme(false));
-  themePixelBtn.addEventListener("click", () => applyTheme(true));
+  function applyTheme(themeId) {
+    activeThemeId = themeId;
+    localStorage.setItem("snakeTheme", themeId);
+    for (const theme of THEMES) {
+      // Jedes Theme mit eigener bodyClass steuert darüber sein DOM-/HUD-Aussehen
+      // (siehe style.css); Themes ohne bodyClass (z.B. Klassisch) = Default-Look.
+      if (theme.bodyClass) {
+        document.body.classList.toggle(theme.bodyClass, theme.id === themeId);
+      }
+      themeButtons.get(theme.id).classList.toggle("selected", theme.id === themeId);
+    }
+    renderer.setTheme(themeId);
+  }
+
+  applyTheme(activeThemeId);
   const scoreEl = document.getElementById("score");
   const overlay = document.getElementById("game-over-overlay");
   const finalScoreEl = document.getElementById("final-score");

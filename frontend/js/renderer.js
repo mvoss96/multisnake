@@ -1,23 +1,31 @@
-// Pixel-Art-Sprites (siehe frontend/assets/sprites/) - einfaches Preloading ohne
-// Promise-Chain: Image-Objekte laden asynchron im Hintergrund, draw() prüft
-// .complete und fällt bis dahin auf die bisherige Vektor-Darstellung zurück,
-// kein Build-Step/Bundler nötig (siehe CLAUDE.md).
+// Sprites werden pro Dateiname genau einmal geladen und zwischengespeichert
+// (siehe frontend/assets/sprites/) - einfaches Preloading ohne Promise-Chain:
+// Image-Objekte laden asynchron im Hintergrund, spriteReady() prüft .complete
+// und der Aufrufer fällt bis dahin (bzw. wenn das aktive Theme die Rolle gar
+// nicht themt) auf die Vektor-Darstellung zurück. Kein Build-Step nötig (CLAUDE.md).
+const spriteCache = {};
+
 function loadSprite(name) {
-  const img = new Image();
-  img.src = `assets/sprites/${name}.png`;
-  return img;
+  if (!spriteCache[name]) {
+    const img = new Image();
+    img.src = `assets/sprites/${name}.png`;
+    spriteCache[name] = img;
+  }
+  return spriteCache[name];
 }
 
-const TILE_STONE_SPRITE = loadSprite("tile_stone");
-const SPIKE_SPRITE = loadSprite("spike_tile");
-// Ein Sprite pro Wertstufe (nicht mehr zufällig aus einem bunten Obst-Pool):
-// Münze = 1, Edelstein = 2, Trank = 5 - der Sprite verrät damit direkt den
-// Wert (siehe FOOD_*_VALUE_MULTIPLIER in backend/game/config.py).
-const FOOD_SPRITE_COIN = loadSprite("food_coin");
-const FOOD_SPRITE_GEM = loadSprite("food_gem");
-const FOOD_SPRITE_POTION = loadSprite("food_potion");
+function spriteReady(img) {
+  return !!img && img.complete && img.naturalWidth > 0;
+}
 
-let tileStonePattern = null;
+// Rolle -> Sprite-Dateiname je Futter-Wertstufe (siehe THEMES.sprites in
+// themes.js): Münze = 1, Edelstein = 2, Trank = 5. Ein zum Wert passender
+// Sprite verrät damit direkt den Wert (siehe FOOD_*_VALUE_MULTIPLIER im Backend).
+function foodSpriteRole(value) {
+  if (value >= 5) return "foodPotion";
+  if (value >= 2) return "foodGem";
+  return "foodCoin";
+}
 
 function foodRadius(value) {
   if (value >= 5) return FOOD_BIG_RADIUS;
@@ -40,22 +48,30 @@ function foodColor(food) {
   return `hsl(${hue}, 80%, ${lightness}%)`;
 }
 
-// Sprite anhand der Wertstufe (siehe foodRadius) - Trank (>=5), Edelstein (>=2),
-// sonst Münze. So ist der Wert eines Futterstücks direkt am Bild ablesbar.
-function foodSprite(food) {
-  if (food.value >= 5) return FOOD_SPRITE_POTION;
-  if (food.value >= 2) return FOOD_SPRITE_GEM;
-  return FOOD_SPRITE_COIN;
-}
-
-function createRenderer(canvas, initialPixelTheme) {
+function createRenderer(canvas, initialThemeId) {
   const ctx = canvas.getContext("2d");
   let board = { width: 0, height: 0 };
-  // Umschaltbar zur Laufzeit (Design-Wahl im Namens-Modal, siehe main.js).
-  let pixelTheme = !!initialPixelTheme;
+  // Aktives Theme, umschaltbar zur Laufzeit (Design-Wahl im Namens-Modal,
+  // siehe main.js) - alles Themebare geht über theme.sprites (siehe themes.js).
+  let theme = getTheme(initialThemeId);
+  // Canvas-Pattern pro Board-Tile-Sprite gecacht (createPattern ist teuer, das
+  // Ergebnis theme-/sprite-stabil) - beim Theme-Wechsel greift automatisch der
+  // Eintrag des neuen Sprites bzw. gar keiner (Default-Fläche).
+  const patternCache = {};
 
-  function setPixelTheme(value) {
-    pixelTheme = !!value;
+  function setTheme(themeId) {
+    theme = getTheme(themeId);
+  }
+
+  // Geladenes Sprite-Image für eine Theme-Rolle, oder null wenn das aktive
+  // Theme diese Rolle nicht themt bzw. das Bild noch nicht geladen ist. Der
+  // Aufrufer zeichnet bei null die Default-Vektor-Variante - das ist der Kern
+  // von "jedes Theme themt nur, was es nennt, alles andere bleibt Default".
+  function themedSprite(role) {
+    const name = theme.sprites[role];
+    if (!name) return null;
+    const img = loadSprite(name);
+    return spriteReady(img) ? img : null;
   }
 
   function setBoard(width, height) {
@@ -101,14 +117,14 @@ function createRenderer(canvas, initialPixelTheme) {
     const count = Math.max(1, Math.round((length - 2 * margin) / SPIKE_SPACING));
     const step = count > 1 ? (length - 2 * margin - spikeWidth) / (count - 1) : 0;
 
-    const useSprite = pixelTheme && SPIKE_SPRITE.complete && SPIKE_SPRITE.naturalWidth > 0;
+    const spikeSprite = themedSprite("spike");
     // Sprite zeigt per Default nach oben (negative lokale Y-Achse) - dieser Winkel
     // dreht ihn so, dass die Spitze in Richtung der jeweiligen Rand-Normalen zeigt.
     const angle = Math.atan2(normalX, -normalY);
     const spriteW = spikeWidth * 1.3;
-    const spriteH = useSprite ? spriteW * (SPIKE_SPRITE.naturalHeight / SPIKE_SPRITE.naturalWidth) : 0;
+    const spriteH = spikeSprite ? spriteW * (spikeSprite.naturalHeight / spikeSprite.naturalWidth) : 0;
 
-    if (!useSprite) {
+    if (!spikeSprite) {
       ctx.fillStyle = SPIKE_FILL_COLOR;
       ctx.strokeStyle = SPIKE_STROKE_COLOR;
       ctx.lineWidth = 1;
@@ -123,12 +139,12 @@ function createRenderer(canvas, initialPixelTheme) {
       const midX = (baseX1 + baseX2) / 2;
       const midY = (baseY1 + baseY2) / 2;
 
-      if (useSprite) {
+      if (spikeSprite) {
         ctx.save();
         ctx.translate(midX, midY);
         ctx.rotate(angle);
         // Basis (breites Ende) liegt am Rand (lokal y=0), Spitze ragt ins Feld (lokal y=-spriteH).
-        ctx.drawImage(SPIKE_SPRITE, -spriteW / 2, -spriteH, spriteW, spriteH);
+        ctx.drawImage(spikeSprite, -spriteW / 2, -spriteH, spriteW, spriteH);
         ctx.restore();
       } else {
         const tipX = midX + normalX * SPIKE_SIZE;
@@ -272,10 +288,14 @@ function createRenderer(canvas, initialPixelTheme) {
     ctx.scale(scale, scale);
     ctx.translate(-camera.x, -camera.y);
 
-    if (pixelTheme && !tileStonePattern && TILE_STONE_SPRITE.complete && TILE_STONE_SPRITE.naturalWidth > 0) {
-      tileStonePattern = ctx.createPattern(TILE_STONE_SPRITE, "repeat");
+    // Board-Fläche: gekacheltes Tile-Sprite, wenn das aktive Theme die Rolle
+    // "boardTile" themt (und geladen ist), sonst die einfarbige Default-Fläche.
+    const boardTile = themedSprite("boardTile");
+    const boardTileName = theme.sprites.boardTile;
+    if (boardTile && !patternCache[boardTileName]) {
+      patternCache[boardTileName] = ctx.createPattern(boardTile, "repeat");
     }
-    ctx.fillStyle = (pixelTheme && tileStonePattern) || "#14141e";
+    ctx.fillStyle = (boardTile && patternCache[boardTileName]) || "#14141e";
     ctx.fillRect(0, 0, board.width, board.height);
 
     drawBoundary(camera);
@@ -289,8 +309,8 @@ function createRenderer(canvas, initialPixelTheme) {
         ? FOOD_DEFAULT_ALPHA
         : FOOD_FADE_MIN_ALPHA + (FOOD_DEFAULT_ALPHA - FOOD_FADE_MIN_ALPHA) * (life / FOOD_FADE_START_LIFE);
       ctx.globalAlpha = blinkFactor * fadeAlpha;
-      const sprite = foodSprite(food);
-      if (pixelTheme && sprite.complete && sprite.naturalWidth > 0) {
+      const sprite = themedSprite(foodSpriteRole(food.value));
+      if (sprite) {
         // Seitenverhältnis erhalten (Edelstein/Trank sind höher als breit),
         // Höhe skaliert mit dem Wert-Radius (siehe FOOD_SPRITE_SCALE).
         const h = foodRadius(food.value) * FOOD_SPRITE_SCALE;
@@ -391,5 +411,5 @@ function createRenderer(canvas, initialPixelTheme) {
     ctx.restore();
   }
 
-  return { setBoard, resizeToWindow, draw, setPixelTheme };
+  return { setBoard, resizeToWindow, draw, setTheme };
 }

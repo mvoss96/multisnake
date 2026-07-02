@@ -42,10 +42,10 @@
     <h2>multiSnake</h2>
     <p>Gib deinen Namen ein und leg los</p>
     <input id="name-input" type="text" maxlength="20" placeholder="Dein Name" autocomplete="off">
+    <!-- Die Theme-Buttons werden dynamisch aus der Registry (themes.js) erzeugt,
+         siehe main.js - hier steht nur das Label. -->
     <div id="theme-select">
       <span id="theme-select-label">Design:</span>
-      <button id="theme-classic-btn" class="theme-option">Klassisch</button>
-      <button id="theme-pixel-btn" class="theme-option">Pixel-Art</button>
     </div>
     <button id="join-btn">Spielen</button>
   </div>
@@ -60,6 +60,7 @@
 </div>
 
 <script src="js/config.js"></script>
+<script src="js/themes.js"></script>
 <script src="js/state.js"></script>
 <script src="js/network.js"></script>
 <script src="js/input.js"></script>

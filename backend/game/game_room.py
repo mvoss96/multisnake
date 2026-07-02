@@ -3,7 +3,7 @@ import random
 import uuid
 
 from .board import Board
-from .bot import Bot, DecisionContext
+from .bot import BOT_SKILLS, Bot, DecisionContext
 from .food import Food, FoodManager
 from .player import AIPlayer, HumanPlayer, Player, PlayerManager
 from .protocol import FoodState, SnakeState, StateMessage
@@ -90,7 +90,10 @@ class GameRoom:
     def add_ai_players(self, count: int) -> None:
         for _ in range(count):
             player_id = f"bot-{uuid.uuid4()}"
-            bot = Bot(self.config)
+            # Gemischte Schwierigkeit: Profil pro Bot gewichtet ziehen (self._rng
+            # ist in Tests seedbar). Bot bekommt denselben RNG für deterministische Tests.
+            skill = self._rng.choices(BOT_SKILLS, weights=self.config.BOT_SKILL_WEIGHTS)[0]
+            bot = Bot(self.config, skill, self._rng)
             name = self.players.unique_name(f"KI{self._rng.randint(1000, 9999)}")
             player = self.players.add_ai(player_id, name, bot)
             self._spawn_snake_for(player)
@@ -241,11 +244,16 @@ class GameRoom:
                     "foods": foods_list,
                     "other_snakes": [s for s in alive_snakes if s.id != snake.id],
                 }
+                # Bot direkt entscheiden lassen, damit auch die Dash-Absicht ankommt
+                # (das Player-Interface get_input_direction liefert nur die Richtung).
+                decision = player.bot.decide(snake, context)
+                snake.set_desired_direction(decision.direction)
+                if decision.dash:
+                    snake.try_dash()
             else:
-                context = human_ctx
-            angle = player.get_input_direction(context)
-            if angle is not None:
-                snake.set_desired_direction(angle)
+                angle = player.get_input_direction(human_ctx)
+                if angle is not None:
+                    snake.set_desired_direction(angle)
             snake.move(dt, self.config.MAX_TURN_RATE)
 
         self._apply_food_magnet(alive_snakes, dt)

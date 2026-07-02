@@ -38,11 +38,48 @@ class SnakeConfig(Protocol):
 
 
 class BotConfig(Protocol):
-    BOT_LOOKAHEAD: float
+    # Gemeinsame Fächer-/Gefahr-/Aggressions-/Dash-Bausteine (siehe game/bot.py).
+    BOT_FAN_HALF_ANGLE: float
+    BOT_RAY_LENGTH: float
+    BOT_RAY_SAMPLES: int
     BOT_DANGER_MARGIN: float
-    BOT_AVOID_TURN: float
-    BOT_SIGHT_RADIUS: float
+    BOT_BODY_SAMPLE_STEP: int
+    BOT_SELF_SKIP_SEGMENTS: int
     BOT_WANDER_TICKS: int
+    BOT_WANDER_DRIFT: float
+    BOT_FORWARD_BIAS: float
+    BOT_ATTACK_RANGE: float
+    BOT_ATTACK_LEAD: float
+    BOT_DASH_FLEE_DANGER: float
+    BOT_DASH_FLEE_MAX: float
+    BOT_DASH_ATTACK_RANGE: float
+    BOT_DASH_ATTACK_ALIGN: float
+    SPIKE_ZONE_DEPTH: float
+    # Schwierigkeits-Profile.
+    BOT_EASY_SIGHT: float
+    BOT_EASY_DANGER_WEIGHT: float
+    BOT_EASY_FOOD_WEIGHT: float
+    BOT_EASY_AGGRESSION: float
+    BOT_EASY_WANDER_WEIGHT: float
+    BOT_EASY_NOISE: float
+    BOT_EASY_CANDIDATES: int
+    BOT_EASY_REACT_TICKS: int
+    BOT_MED_SIGHT: float
+    BOT_MED_DANGER_WEIGHT: float
+    BOT_MED_FOOD_WEIGHT: float
+    BOT_MED_AGGRESSION: float
+    BOT_MED_WANDER_WEIGHT: float
+    BOT_MED_NOISE: float
+    BOT_MED_CANDIDATES: int
+    BOT_MED_REACT_TICKS: int
+    BOT_HARD_SIGHT: float
+    BOT_HARD_DANGER_WEIGHT: float
+    BOT_HARD_FOOD_WEIGHT: float
+    BOT_HARD_AGGRESSION: float
+    BOT_HARD_WANDER_WEIGHT: float
+    BOT_HARD_NOISE: float
+    BOT_HARD_CANDIDATES: int
+    BOT_HARD_REACT_TICKS: int
 
 
 class GameConfig(FoodConfig, SnakeConfig, BotConfig, Protocol):
@@ -53,6 +90,8 @@ class GameConfig(FoodConfig, SnakeConfig, BotConfig, Protocol):
     MAX_TURN_RATE: float
     NUM_BOTS: int
     SPIKE_ZONE_DEPTH: float
+    # Auswahlgewichte (easy, medium, hard) für die Bot-Profile - nur GameRoom liest sie.
+    BOT_SKILL_WEIGHTS: tuple[int, int, int]
     FOOD_RADIUS: float
     FOOD_MEDIUM_RADIUS: float
     FOOD_BIG_RADIUS: float

@@ -81,8 +81,74 @@ SPIKE_ZONE_DEPTH: Final[float] = 14  # muss zu SPIKE_SIZE im Frontend-Renderer p
 # typischer Interaktionsabstand (Kollision ~28, Food-Fressen ~23, Magnet 60).
 GRID_CELL_SIZE: Final[float] = 40.0
 
-BOT_SIGHT_RADIUS: Final[float] = 350.0
-BOT_LOOKAHEAD: Final[float] = 60.0
-BOT_DANGER_MARGIN: Final[float] = 10.0
-BOT_AVOID_TURN: Final[float] = math.pi / 2
-BOT_WANDER_TICKS: Final[int] = 20
+# --- Bot-KI ---------------------------------------------------------------
+# Die KI bewertet pro Entscheidung einen Fächer von Kandidaten-Richtungen und
+# wählt die beste über  score = wünschbarkeit - gefahr  (siehe game/bot.py).
+# Die folgenden Konstanten sind die gemeinsamen Bausteine; die drei
+# Schwierigkeits-Profile (BOT_EASY_*/BOT_MED_*/BOT_HARD_*) skalieren sie.
+
+# Halbe Breite des Richtungsfächers um die aktuelle Fahrtrichtung (Radiant).
+# Bewusst < pi, damit kein 180°-Wendemanöver in den eigenen Hals kandidiert wird.
+BOT_FAN_HALF_ANGLE: Final[float] = 2.5
+# Länge der Gefahr-Abtaststrahlen (Einheiten) und Anzahl Sample-Punkte je Strahl.
+BOT_RAY_LENGTH: Final[float] = 95.0
+BOT_RAY_SAMPLES: Final[int] = 4
+# Sicherheitszuschlag auf die Summe der Kollisionsradien beim Gefahr-Sampling.
+BOT_DANGER_MARGIN: Final[float] = 12.0
+# Nur jeder N-te Körperpunkt fremder/eigener Schlangen wird als Hindernis
+# abgetastet (Broad-Phase-Ersatz - hält den Gefahr-Check billig).
+BOT_BODY_SAMPLE_STEP: Final[int] = 4
+# Die vordersten eigenen Segmente werden beim Selbst-Ausweichen übersprungen -
+# der eigene Hals ist nie erreichbar (MAX_TURN_RATE) und würde sonst Dauergefahr melden.
+BOT_SELF_SKIP_SEGMENTS: Final[int] = 6
+# Ticks, bis der Wander-Zielwinkel neu driftet, und maximale Drift pro Neuwahl (rad).
+BOT_WANDER_TICKS: Final[int] = 25
+BOT_WANDER_DRIFT: Final[float] = 0.7
+# Leichte Vorliebe, den aktuellen Kurs zu halten (dämpft Zittern zwischen Kandidaten).
+BOT_FORWARD_BIAS: Final[float] = 0.35
+# Aggression: max. Kopf-Abstand für ein Angriffsziel und Vorhalt vor dem
+# Ziel-Kopf, auf den der Abfang-Cut-off zielt (Einheiten).
+BOT_ATTACK_RANGE: Final[float] = 260.0
+BOT_ATTACK_LEAD: Final[float] = 45.0
+# Dash-Flucht: gewählte (sicherste) Richtung hat Gefahr-Kosten im Bereich
+# [FLEE_DANGER, FLEE_MAX] -> beschleunigen, um zu entkommen. Die Obergrenze
+# verhindert einen Dash in eine quasi-sichere Wand direkt voraus.
+BOT_DASH_FLEE_DANGER: Final[float] = 0.5
+BOT_DASH_FLEE_MAX: Final[float] = 0.9
+# Dash-Angriff (nur HARD): Ziel-Kopf innerhalb dieser Reichweite und der
+# gewählte Kurs innerhalb dieses Winkelfehlers zum Abfangpunkt (rad).
+BOT_DASH_ATTACK_RANGE: Final[float] = 150.0
+BOT_DASH_ATTACK_ALIGN: Final[float] = 0.4
+
+# Profil-Presets. Pro Profil: Sichtweite, Gefahr-Gewicht (Vorsicht), Futter-Gewicht,
+# Aggression, Wander-Gewicht, Ziel-Rauschen (Imperfektion), Kandidatenzahl (Auflösung),
+# Reaktionsintervall (nur alle N Ticks neu entscheiden).
+BOT_EASY_SIGHT: Final[float] = 240.0
+BOT_EASY_DANGER_WEIGHT: Final[float] = 2.5
+BOT_EASY_FOOD_WEIGHT: Final[float] = 0.8
+BOT_EASY_AGGRESSION: Final[float] = 0.0
+BOT_EASY_WANDER_WEIGHT: Final[float] = 0.6
+BOT_EASY_NOISE: Final[float] = 0.5
+BOT_EASY_CANDIDATES: Final[int] = 7
+BOT_EASY_REACT_TICKS: Final[int] = 6
+
+BOT_MED_SIGHT: Final[float] = 350.0
+BOT_MED_DANGER_WEIGHT: Final[float] = 4.0
+BOT_MED_FOOD_WEIGHT: Final[float] = 1.0
+BOT_MED_AGGRESSION: Final[float] = 0.5
+BOT_MED_WANDER_WEIGHT: Final[float] = 0.3
+BOT_MED_NOISE: Final[float] = 0.15
+BOT_MED_CANDIDATES: Final[int] = 11
+BOT_MED_REACT_TICKS: Final[int] = 3
+
+BOT_HARD_SIGHT: Final[float] = 460.0
+BOT_HARD_DANGER_WEIGHT: Final[float] = 6.0
+BOT_HARD_FOOD_WEIGHT: Final[float] = 1.1
+BOT_HARD_AGGRESSION: Final[float] = 1.3
+BOT_HARD_WANDER_WEIGHT: Final[float] = 0.15
+BOT_HARD_NOISE: Final[float] = 0.0
+BOT_HARD_CANDIDATES: Final[int] = 15
+BOT_HARD_REACT_TICKS: Final[int] = 1
+
+# Auswahlgewichte (easy, medium, hard), mit denen ein neuer Bot sein Profil zieht.
+BOT_SKILL_WEIGHTS: Final[tuple[int, int, int]] = (2, 3, 2)

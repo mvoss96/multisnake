@@ -33,8 +33,11 @@ class AIPlayer(Player):
         self.bot = bot
 
     def get_input_direction(self, context: DecisionContext) -> float | None:
+        # Player-Interface (Richtung); die Dash-Absicht der Entscheidung wird davon
+        # nicht transportiert - GameRoom.tick() ruft bot.decide() direkt auf und
+        # löst den Dash über snake.try_dash() aus (siehe game_room.py).
         assert self.snake is not None
-        return self.bot.decide(self.snake, context)
+        return self.bot.decide(self.snake, context).direction
 
 
 class PlayerManager:

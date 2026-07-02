@@ -70,6 +70,12 @@ const FOOD_BLINK_START_LIFE = 0.2;
 const FOOD_RADIUS = 5;
 const FOOD_MEDIUM_RADIUS = 7;
 const FOOD_BIG_RADIUS = 9;
+// Pixel-Theme: Futter-Sprites (Münze/Edelstein/Trank) werden deutlich größer
+// als der Vektor-Kreis-Radius gezeichnet, damit sie auch neben der dicken
+// Schlange gut erkennbar sind (das Sprite hat rundum transparenten Rand, die
+// eigentliche Grafik ist also kleiner als die gezeichnete Box). Höhe = Radius *
+// diesem Faktor, Breite folgt dem Seitenverhältnis des jeweiligen Sprites.
+const FOOD_SPRITE_SCALE = 4.6;
 
 // Schlangen
 // Snakes bekommen eine dunkle Outline, damit sie sich vom bunten Futter abheben.

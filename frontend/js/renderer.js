@@ -290,9 +290,12 @@ function createRenderer(canvas, initialPixelTheme) {
         : FOOD_FADE_MIN_ALPHA + (FOOD_DEFAULT_ALPHA - FOOD_FADE_MIN_ALPHA) * (life / FOOD_FADE_START_LIFE);
       ctx.globalAlpha = blinkFactor * fadeAlpha;
       const sprite = foodSprite(food);
-      const diameter = foodRadius(food.value) * 2.4;
       if (pixelTheme && sprite.complete && sprite.naturalWidth > 0) {
-        ctx.drawImage(sprite, food.x - diameter / 2, food.y - diameter / 2, diameter, diameter);
+        // Seitenverhältnis erhalten (Edelstein/Trank sind höher als breit),
+        // Höhe skaliert mit dem Wert-Radius (siehe FOOD_SPRITE_SCALE).
+        const h = foodRadius(food.value) * FOOD_SPRITE_SCALE;
+        const w = h * (sprite.naturalWidth / sprite.naturalHeight);
+        ctx.drawImage(sprite, food.x - w / 2, food.y - h / 2, w, h);
       } else {
         ctx.fillStyle = foodColor(food);
         ctx.beginPath();

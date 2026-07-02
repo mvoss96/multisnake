@@ -467,6 +467,26 @@ body.theme-pixel #hud .hud-btn {
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
 }
 
+/* Der Steuerungs-Hinweis (#control-toggle) sitzt im Pixel-Theme direkt auf der
+   Holzfläche des HUD-Panels - seine eigene dunkle Pillen-Fläche wirkt dort
+   aufgesetzt, daher transparent (Text bleibt per Schatten oben lesbar). */
+body.theme-pixel #hud .hud-btn,
+body.theme-pixel #hud .hud-btn:hover {
+  background: transparent;
+  border: none;
+}
+
+/* Namens- und Game-Over-Panel bekommen denselben Holzrahmen wie das HUD
+   (9-Slice, dunkle Innenfläche) statt der Vektor-Karte. */
+body.theme-pixel .panel {
+  background: none;
+  border: 18px solid transparent;
+  border-image: url("assets/sprites/ui_panel_rect.png") 24 fill stretch;
+  image-rendering: pixelated;
+  border-radius: 0;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
 body.theme-pixel #dash-ring,
 body.theme-pixel #dash-btn {
   background: url("assets/sprites/dash_button_idle.png") no-repeat center / cover;

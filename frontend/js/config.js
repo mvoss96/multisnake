@@ -136,7 +136,11 @@ const TREE_SHADOW_DROP = 10; // Welteinheiten unter den Stammfuß versetzt
 // welcome-Nachricht). Sprite etwas größer als die Kollisionsscheibe zeichnen,
 // damit der Fels solide über seinen Hitbox-Rand ragt. Vektor-Fallback (Klassik-
 // Theme) = gefüllter grauer Kreis mit Kontur.
-const ROCK_SPRITE_SCALE = 1.15;
+const ROCK_SPRITE_SCALE = 1.15; // nur Klassik (auf Durchmesser skaliert)
+// Pixel-Theme: FESTER Integer-Faktor - jedes Art-Pixel des Fels-Sprites = so viele
+// Texel. Kein radius-abhängiges Skalieren -> alle Felsen exakt gleich groß und
+// pixelperfekt (native ~46px * 3 * PIXEL_UNIT ≈ 83 Welt ≈ Durchmesser bei Radius 40).
+const ROCK_PIXEL_SCALE = 3;
 const ROCK_FILL_COLOR = "#6b6b74";
 const ROCK_STROKE_COLOR = "#2a2a30";
 const ROCK_HIGHLIGHT_COLOR = "#9a9aa6";

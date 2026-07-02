@@ -79,13 +79,16 @@ SPIKE_ZONE_DEPTH: Final[float] = 14  # muss zu SPIKE_SIZE im Frontend-Renderer p
 # Beim Raum-Start einmalig geseedet platziert (deterministisch über GameRoom._rng),
 # runde Felsen: Kopf-Kollision = Tod (wie Rand/Spikes). Rein Backend-Wahrheit; das
 # Frontend bekommt sie einmal in der welcome-Nachricht und zeichnet sie.
-OBSTACLE_COUNT: Final[int] = 10
-OBSTACLE_MIN_RADIUS: Final[float] = 20.0
-OBSTACLE_MAX_RADIUS: Final[float] = 45.0
+OBSTACLE_COUNT: Final[int] = 5
+# Min == Max: alle Felsen gleich groß (das Pixel-Sprite wird mit festem Integer-
+# Faktor gezeichnet, siehe ROCK_PIXEL_SCALE im Frontend - pixelperfekt, kein Skalieren).
+OBSTACLE_MIN_RADIUS: Final[float] = 40.0
+OBSTACLE_MAX_RADIUS: Final[float] = 40.0
 # Abstand des Fels-Randes zur Board-Kante (jenseits der Spikes) bei der Platzierung.
 OBSTACLE_BORDER_MARGIN: Final[float] = 120.0
-# Mindest-Lücke (Rand-zu-Rand) zwischen zwei Felsen, damit Schlangen durchpassen.
-OBSTACLE_GAP: Final[float] = 90.0
+# Mindest-Lücke (Rand-zu-Rand) zwischen zwei Felsen beim Spawnen - großzügig,
+# damit die (wenigen) Felsen gut übers Feld verteilt sind und Schlangen durchpassen.
+OBSTACLE_GAP: Final[float] = 180.0
 # Freiraum um einen Fels, in dem KEINE Schlange/kein Futter spawnen darf.
 OBSTACLE_SPAWN_CLEARANCE: Final[float] = 70.0
 

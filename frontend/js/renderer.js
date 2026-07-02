@@ -117,12 +117,11 @@ function createRenderer(canvas, initialThemeId) {
       const nh = sprite.naturalHeight;
       let w, h;
       if (theme.pixelPerfect) {
-        // Rastertreu: jedes Art-Pixel bekommt eine GANZZAHLIGE Zahl Texel (k),
-        // Größe ~ Durchmesser*Scale. Fels-Pixel damit gleich groß wie alle anderen
-        // Sprite-Pixel und aufs Gitter gesnappt; imageSmoothing=false = harte Kanten.
-        const k = Math.max(1, Math.round((2 * o.radius * ROCK_SPRITE_SCALE) / (Math.max(nw, nh) * PIXEL_UNIT)));
-        w = nw * k * PIXEL_UNIT;
-        h = nh * k * PIXEL_UNIT;
+        // Pixelperfekt & einheitlich: FESTER Integer-Faktor (nicht radius-abhängig)
+        // -> jedes Art-Pixel = ROCK_PIXEL_SCALE Texel, alle Felsen exakt gleich groß,
+        // aufs Gitter gesnappt; imageSmoothing=false = harte Kanten, kein Skalieren.
+        w = nw * ROCK_PIXEL_SCALE * PIXEL_UNIT;
+        h = nh * ROCK_PIXEL_SCALE * PIXEL_UNIT;
       } else {
         // Klassik (kein Pixel-Raster): Sprite schlicht auf den Durchmesser skalieren.
         const d = 2 * o.radius * ROCK_SPRITE_SCALE;

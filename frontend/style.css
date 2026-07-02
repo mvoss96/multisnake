@@ -478,11 +478,13 @@ body.theme-pixel #hud {
    Bildmitte über die volle Panel-Größe (fill) als verzerrte, windschiefe
    Linie auffiel. Ohne "fill" zeichnet border-image nur die 8 Rahmenteile,
    die Innenfläche kommt von der eigenen (halbtransparenten) background-Farbe
-   unten - kein gestrecktes Rasterbild, dafür durchscheinend wie im Klassik-
-   Theme. Auf dem warmen Holzton dunkler Text; die bunten Spieler-Namen
-   bekommen einen dunklen Schein als Kontrast-Kante. */
+   unten - kein gestrecktes Rasterbild, aber weiterhin die helle Pergament-
+   Tönung des Sprites (aus der Bildmitte abgetastet: rgb(241, 218, 178)) statt
+   eines beliebigen dunklen Tons, damit es noch als Pergament erkennbar bleibt.
+   Dunkler Text auf dem hellen Ton; die bunten Spieler-Namen bekommen einen
+   dunklen Schein als Kontrast-Kante. */
 body.theme-pixel #leaderboard {
-  background: rgba(58, 38, 18, 0.55);
+  background: rgba(241, 218, 178, 0.55);
   border-style: solid;
   border-color: transparent;
   border-width: 26px 20px;
@@ -491,16 +493,16 @@ body.theme-pixel #leaderboard {
   padding: 2px 8px 4px;
   border-radius: 0;
   box-sizing: border-box;
-  color: #f1e2c4;
+  color: #3a2610;
 }
 
 body.theme-pixel #leaderboard h3 {
-  color: #ffd23f;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
+  color: #7a3f12;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 body.theme-pixel #leaderboard-list li {
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(0, 0, 0, 0.35);
 }
 
 body.theme-pixel #score,

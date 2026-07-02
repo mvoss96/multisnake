@@ -187,6 +187,44 @@ function createRenderer(canvas, initialThemeId) {
     return Math.max(hMax, wMax) - depthMin + TREE_OVERHANG_MARGIN;
   }
 
+  // Der Boden-Überhang (treeOverhang()) hat selbst wieder eine feste
+  // Außenkante zum schwarzen Canvas-Hintergrund - bei starkem Rauszoomen
+  // (hoher Score) nimmt diese auf dem Bildschirm mehr Raum ein und die harte
+  // Linie fällt erneut auf. Ein weicher Verlauf (Waldboden verschwindet im
+  // Dunkel statt hart aufzuhören) behebt das bei jeder Zoomstufe. Wird direkt
+  // auf den bereits gefüllten Überhang gemalt, vor den Bäumen (die darüber
+  // gezeichnet werden und so "aus dem Nebel auftauchen").
+  function drawEdgeFade(edge, overhang) {
+    const start = overhang * BORDER_FADE_START_FACTOR;
+    const end = overhang * BORDER_FADE_END_FACTOR;
+    const bg = "5, 5, 8"; // muss zur Canvas-Hintergrundfarbe (#050508) passen
+    let grad;
+    if (edge === "top") {
+      grad = ctx.createLinearGradient(0, -start, 0, -end);
+    } else if (edge === "bottom") {
+      grad = ctx.createLinearGradient(0, board.height + start, 0, board.height + end);
+    } else if (edge === "left") {
+      grad = ctx.createLinearGradient(-start, 0, -end, 0);
+    } else {
+      grad = ctx.createLinearGradient(board.width + start, 0, board.width + end, 0);
+    }
+    grad.addColorStop(0, `rgba(${bg}, 0)`);
+    grad.addColorStop(1, `rgba(${bg}, 1)`);
+    ctx.fillStyle = grad;
+    // Breit genug über den Rand hinaus, damit auch die Ecken (wo zwei
+    // Überhänge sich treffen) vollständig abgedeckt sind.
+    const pad = end + TREE_SPACING;
+    if (edge === "top") {
+      ctx.fillRect(-pad, -end, board.width + pad * 2, end - start);
+    } else if (edge === "bottom") {
+      ctx.fillRect(-pad, board.height + start, board.width + pad * 2, end - start);
+    } else if (edge === "left") {
+      ctx.fillRect(-end, -pad, end - start, board.height + pad * 2);
+    } else {
+      ctx.fillRect(board.width + start, -pad, end - start, board.height + pad * 2);
+    }
+  }
+
   // Aufrechte Deko-Bäume entlang eines Kartenrands (nur Themes mit borderSprite):
   // die Stämme stehen etwas ins Feld versetzt (TREE_FOOT_INSET) auf dem Boden,
   // die Krone ragt nach oben. Rein optisch (keine Kollision). Leichter Höhen-/
@@ -468,6 +506,11 @@ function createRenderer(canvas, initialThemeId) {
     const oL = edges.includes("left") ? overhang : 0;
     const oR = edges.includes("right") ? overhang : 0;
     ctx.fillRect(-oL, -oT, board.width + oL + oR, board.height + oT + oB);
+    // Weicher Verlauf am Außenrand des Überhangs statt Hart-Schnitt - bleibt
+    // sonst bei starkem Rauszoomen (hoher Score) wieder als Kante sichtbar.
+    for (const edge of edges) {
+      drawEdgeFade(edge, overhang);
+    }
 
     drawBorderTrees();
     drawBoundary(camera);

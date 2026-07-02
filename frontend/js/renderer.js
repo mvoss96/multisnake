@@ -283,10 +283,14 @@ function createRenderer(canvas, initialThemeId) {
         trees.push({ footX, footY, w, h, z });
       }
     }
-    // Nach dem zufälligen z-Wert zeichnen: die Überlappung läuft dadurch mal in
-    // die eine, mal in die andere Richtung (statt gleichförmig immer rechts-vor-
-    // links), OHNE dass die Bäume dafür auf unterschiedlicher Höhe stehen müssen.
-    trees.sort((a, b) => a.z - b.z);
+    // Zeichenreihenfolge: PRIMÄR nach footY (tiefer stehende Bäume zuletzt =
+    // vorn). Das ist an vertikalen Rändern (links/rechts, Bäume übereinander)
+    // zwingend, sonst malt der Stamm eines höher stehenden Baums über die Krone
+    // des tieferen (der auffällige "Stamm schwebt auf Laub"-Fehler). An der
+    // waagerechten Reihe (oben) haben alle Bäume dasselbe footY -> der Vergleich
+    // ist dort immer 0 und der zufällige z-Wert entscheidet als Tiebreaker, sodass
+    // die Überlappung dort nicht gleichförmig rechts-vor-links läuft.
+    trees.sort((a, b) => a.footY - b.footY || a.z - b.z);
 
     for (const t of trees) {
       // Weicher Bodenschatten am Stammfuß (radialer Verlauf, gestaucht zur

@@ -34,7 +34,9 @@ const THEMES = [
     id: "classic",
     label: "Klassisch",
     bodyClass: null,
-    sprites: {},
+    // Klassik ist sonst rein Vektor; Felsen sind die eine Ausnahme (dunkler,
+    // facettierter Fels passend zum dunklen Hintergrund) - alles andere bleibt Default.
+    sprites: { rock: "rock_dark" },
   },
   {
     id: "pixel",

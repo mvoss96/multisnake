@@ -109,22 +109,28 @@ function createRenderer(canvas, initialThemeId) {
   function drawObstacles() {
     const sprite = themedSprite("rock");
     for (const o of obstacles) {
-      if (sprite) {
-        // Rastertreu: jedes Art-Pixel des (niedrig aufgelösten) Sprites bekommt eine
-        // GANZZAHLIGE Zahl Texel (k), Größe ~ Durchmesser*Scale. Damit sind die
-        // Fels-Pixel exakt so groß wie alle anderen Sprite-Pixel und liegen aufs
-        // gemeinsame Gitter; imageSmoothingEnabled=false hält die Kanten hart.
-        const nativeMax = Math.max(sprite.naturalWidth, sprite.naturalHeight);
-        const k = Math.max(
-          1,
-          Math.round((2 * o.radius * ROCK_SPRITE_SCALE) / (nativeMax * PIXEL_UNIT))
-        );
-        const w = sprite.naturalWidth * k * PIXEL_UNIT;
-        const h = sprite.naturalHeight * k * PIXEL_UNIT;
-        ctx.drawImage(sprite, snap(o.x - w / 2), snap(o.y - h / 2), w, h);
-      } else {
+      if (!sprite) {
         drawVectorRock(o.x, o.y, o.radius);
+        continue;
       }
+      const nw = sprite.naturalWidth;
+      const nh = sprite.naturalHeight;
+      let w, h;
+      if (theme.pixelPerfect) {
+        // Rastertreu: jedes Art-Pixel bekommt eine GANZZAHLIGE Zahl Texel (k),
+        // Größe ~ Durchmesser*Scale. Fels-Pixel damit gleich groß wie alle anderen
+        // Sprite-Pixel und aufs Gitter gesnappt; imageSmoothing=false = harte Kanten.
+        const k = Math.max(1, Math.round((2 * o.radius * ROCK_SPRITE_SCALE) / (Math.max(nw, nh) * PIXEL_UNIT)));
+        w = nw * k * PIXEL_UNIT;
+        h = nh * k * PIXEL_UNIT;
+      } else {
+        // Klassik (kein Pixel-Raster): Sprite schlicht auf den Durchmesser skalieren.
+        const d = 2 * o.radius * ROCK_SPRITE_SCALE;
+        const m = Math.max(nw, nh);
+        w = d * (nw / m);
+        h = d * (nh / m);
+      }
+      ctx.drawImage(sprite, snap(o.x - w / 2), snap(o.y - h / 2), w, h);
     }
   }
 

@@ -23,6 +23,10 @@
 //   snakeScales  true = Schlangenkörper bekommt eine prozedurale Schuppen-/
 //             Segment-Textur + dickere Kontur (farbecht, siehe renderer.js).
 //             Fehlt/false = glatte Default-Vektor-Schlange.
+//   pixelPerfect true = renderer.js rendert alle Sprites auf EINEM gemeinsamen
+//             Art-Pixel-Raster (PIXEL_UNIT) und rastert Kamera/Zoom/Sprite-
+//             Positionen auf ganze Pixel (knackiger Pixel-Art-Look, in Stufen).
+//             Fehlt/false = weiche, kontinuierliche Kamera (Vektor-Look).
 const THEMES = [
   {
     id: "classic",
@@ -35,6 +39,7 @@ const THEMES = [
     label: "Pixel-Art",
     bodyClass: "theme-pixel",
     snakeScales: true,
+    pixelPerfect: true,
     borderEdges: ["top", "left"],
     sprites: {
       boardTile: "tile_forest",

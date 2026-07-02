@@ -23,6 +23,16 @@ const SNAKE_RADIUS_MAX = 14.0;
 const ZOOM_LERP_FACTOR_OUT = 0.02;
 const ZOOM_LERP_FACTOR_IN = 0.08;
 
+// Pixel-Art-Raster (nur Themes mit pixelPerfect, siehe themes.js/renderer.js):
+// EINE globale Art-Pixel-Größe in Welteinheiten pro Quell-Texel. JEDES gethemete
+// Sprite wird mit  quellAuflösung * PIXEL_UNIT  gezeichnet - so hat ein Sprite-
+// Pixel überall exakt dieselbe Bildschirmgröße (der Kern des einheitlichen
+// Pixel-Looks). renderer.js rastert zusätzlich Kamera/Zoom und Sprite-Positionen
+// auf dieses Gitter. 0.6 gewählt, damit der Baum (150px Quellhöhe) wie bisher
+// ~90 Welteinheiten hoch bleibt; alle anderen Sprites ziehen auf dieselbe
+// Texel-Größe nach.
+const PIXEL_UNIT = 0.6;
+
 // Client-Interpolation: Das Rendern läuft in einer requestAnimationFrame-Schleife
 // (Display-Refresh) und interpoliert zwischen den letzten zwei Server-States, statt
 // nur beim Eintreffen einer State-Nachricht zu zeichnen. Das entkoppelt die sichtbare
@@ -80,7 +90,9 @@ const DASH_FILL_STEPS = 8;
 // themes.js/renderer.js) - rein optisch, keine Kollision. Der Stammfuß sitzt auf
 // der oberen Weltkante (y=0), die Krone ragt nach oben aus dem Feld. Bäume werden
 // dicht an dicht gereiht und leicht in der Höhe versetzt für eine Wald-Silhouette.
-const TREE_HEIGHT = 90; // gezeichnete Baumhöhe in Welteinheiten
+// Baumgröße kommt jetzt aus der Sprite-Quellauflösung * PIXEL_UNIT (siehe
+// spriteWorldSize in renderer.js), nicht mehr aus einer festen Höhe - so teilt
+// sich der Baum dieselbe Texel-Größe wie alle anderen Sprites.
 const TREE_SPACING = 62; // horizontaler Abstand der Stämme
 // Kleiner seitlicher (entlang des Rands) Versatz je Baum als Bruchteil des
 // Abstands - lockert die perfekt-lineale Reihe minimal auf, OHNE die Höhe zu
@@ -147,12 +159,10 @@ const FOOD_BLINK_START_LIFE = 0.2;
 const FOOD_RADIUS = 5;
 const FOOD_MEDIUM_RADIUS = 7;
 const FOOD_BIG_RADIUS = 9;
-// Pixel-Theme: Futter-Sprites (Münze/Edelstein/Trank) werden deutlich größer
-// als der Vektor-Kreis-Radius gezeichnet, damit sie auch neben der dicken
-// Schlange gut erkennbar sind (das Sprite hat rundum transparenten Rand, die
-// eigentliche Grafik ist also kleiner als die gezeichnete Box). Höhe = Radius *
-// diesem Faktor, Breite folgt dem Seitenverhältnis des jeweiligen Sprites.
-const FOOD_SPRITE_SCALE = 4.2;
+// Pixel-Theme: Futter-Sprites werden - wie alle gethemeten Sprites - mit
+// quellAuflösung * PIXEL_UNIT gezeichnet (siehe spriteWorldSize in renderer.js).
+// Die Stufengröße (Erdbeere < Gem < Trank) steckt damit in der nativen
+// Auflösung der PNGs, nicht mehr in einem Skalenfaktor hier.
 // Gethemete Futter-Sprites (nur die Sprite-Variante, nicht die Klassik-Kreise)
 // schweben sanft auf und ab, damit sie sich von der gekachelten Bodentextur
 // abheben. Rein kosmetisch - nur der Zeichen-Offset, food.x/food.y (und damit

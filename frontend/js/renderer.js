@@ -79,6 +79,20 @@ function createRenderer(canvas, initialThemeId) {
     return spriteReady(img) ? img : null;
   }
 
+  // Zeichengröße eines Sprites in Welteinheiten: Quellauflösung * PIXEL_UNIT.
+  // Damit hat ein Sprite-Pixel bei JEDEM Sprite exakt dieselbe Größe (der Kern
+  // des einheitlichen Pixel-Rasters). Sprites gibt es nur in gethemeten (Pixel-)
+  // Themes, daher braucht das keine Theme-Abfrage.
+  function spriteWorldSize(sprite) {
+    return { w: sprite.naturalWidth * PIXEL_UNIT, h: sprite.naturalHeight * PIXEL_UNIT };
+  }
+
+  // Rastet einen Weltwert aufs Art-Pixel-Gitter (nur pixelPerfect-Themes) - so
+  // sitzen alle Sprites auf demselben Texel-Gitter. Im Klassik-Theme unverändert.
+  function snap(v) {
+    return theme.pixelPerfect ? Math.round(v / PIXEL_UNIT) * PIXEL_UNIT : v;
+  }
+
   function setBoard(width, height) {
     board = { width, height };
   }
@@ -126,8 +140,10 @@ function createRenderer(canvas, initialThemeId) {
     // Sprite zeigt per Default nach oben (negative lokale Y-Achse) - dieser Winkel
     // dreht ihn so, dass die Spitze in Richtung der jeweiligen Rand-Normalen zeigt.
     const angle = Math.atan2(normalX, -normalY);
-    const spriteW = spikeWidth * 1.3;
-    const spriteH = spikeSprite ? spriteW * (spikeSprite.naturalHeight / spikeSprite.naturalWidth) : 0;
+    // Größe aus der Quellauflösung * PIXEL_UNIT (einheitliches Texel-Raster).
+    const spriteSize = spikeSprite ? spriteWorldSize(spikeSprite) : { w: 0, h: 0 };
+    const spriteW = spriteSize.w;
+    const spriteH = spriteSize.h;
 
     if (!spikeSprite) {
       ctx.fillStyle = SPIKE_FILL_COLOR;
@@ -146,7 +162,7 @@ function createRenderer(canvas, initialThemeId) {
 
       if (spikeSprite) {
         ctx.save();
-        ctx.translate(midX, midY);
+        ctx.translate(snap(midX), snap(midY));
         ctx.rotate(angle);
         // Basis (breites Ende) liegt am Rand (lokal y=0), Spitze ragt ins Feld (lokal y=-spriteH).
         ctx.drawImage(spikeSprite, -spriteW / 2, -spriteH, spriteW, spriteH);
@@ -180,9 +196,7 @@ function createRenderer(canvas, initialThemeId) {
   function treeOverhang() {
     const tree = themedSprite("borderSprite");
     if (!tree) return 0;
-    const aspect = tree.naturalWidth / tree.naturalHeight;
-    const hMax = TREE_HEIGHT;
-    const wMax = hMax * aspect;
+    const { w: wMax, h: hMax } = spriteWorldSize(tree);
     return Math.max(hMax, wMax) - TREE_FOOT_INSET + TREE_OVERHANG_MARGIN;
   }
 
@@ -234,7 +248,8 @@ function createRenderer(canvas, initialThemeId) {
   function drawBorderTrees() {
     const tree = themedSprite("borderSprite");
     if (!tree) return;
-    const aspect = tree.naturalWidth / tree.naturalHeight;
+    // Größe aus der Quellauflösung * PIXEL_UNIT (gemeinsames Texel-Raster).
+    const { w, h } = spriteWorldSize(tree);
     const edges = borderEdges();
 
     // Stammfuß-Positionen je Rand sammeln (Achse = entlang des Rands, footInset
@@ -256,8 +271,6 @@ function createRenderer(canvas, initialThemeId) {
         if (edges.includes("top")) startS = TREE_SPACING;
         if (edges.includes("bottom")) endS = along - TREE_SPACING;
       }
-      const h = TREE_HEIGHT; // gleiche Höhe für alle
-      const w = h * aspect;
       for (let i = 0, s = startS; s <= endS; i++, s += TREE_SPACING) {
         const r = hashUnit(edge + "t" + i);
         const z = hashUnit(edge + "z" + i); // nur Zeichenreihenfolge
@@ -308,7 +321,7 @@ function createRenderer(canvas, initialThemeId) {
       ctx.arc(0, 0, shadowR, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
-      ctx.drawImage(tree, t.footX - t.w / 2, t.footY - t.h, t.w, t.h);
+      ctx.drawImage(tree, snap(t.footX - t.w / 2), snap(t.footY - t.h), t.w, t.h);
     }
   }
 
@@ -488,16 +501,37 @@ function createRenderer(canvas, initialThemeId) {
     ctx.fillStyle = "#050508";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.scale(scale, scale);
-    ctx.translate(-camera.x, -camera.y);
+    if (theme.pixelPerfect) {
+      // Pixel-Art-Raster: die Skalierung so wählen, dass ein Art-Texel auf ganze
+      // Bildschirmpixel fällt (pxPerTexel ganzzahlig) - der Zoom rastet dadurch in
+      // kleinen Stufen. Nur wenn ein Texel mindestens 1px groß ist; bei extremem
+      // Rauszoomen (Texel < 1px, echte Schärfe unmöglich) sanfter Fallback auf
+      // kontinuierlich. Kamera-Offset auf ganze Pixel runden -> pixelweiser
+      // Schwenk, kein Subpixel-Drift/Flimmern.
+      const pxPerTexel = scale * PIXEL_UNIT;
+      const useScale = pxPerTexel >= 1 ? Math.round(pxPerTexel) / PIXEL_UNIT : scale;
+      const ox = Math.round(canvas.width / 2 - camera.x * useScale);
+      const oy = Math.round(canvas.height / 2 - camera.y * useScale);
+      ctx.setTransform(useScale, 0, 0, useScale, ox, oy);
+    } else {
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(scale, scale);
+      ctx.translate(-camera.x, -camera.y);
+    }
 
     // Board-Fläche: gekacheltes Tile-Sprite, wenn das aktive Theme die Rolle
     // "boardTile" themt (und geladen ist), sonst die einfarbige Default-Fläche.
     const boardTile = themedSprite("boardTile");
     const boardTileName = theme.sprites.boardTile;
     if (boardTile && !patternCache[boardTileName]) {
-      patternCache[boardTileName] = ctx.createPattern(boardTile, "repeat");
+      const pat = ctx.createPattern(boardTile, "repeat");
+      // Kachel aufs Art-Pixel-Raster skalieren (Kachel = naturalSize * PIXEL_UNIT
+      // world), statt implizit 1:1 world-pro-Quellpixel - sonst wären Boden-Pixel
+      // viel größer als alle anderen Sprite-Pixel.
+      if (pat && theme.pixelPerfect && pat.setTransform) {
+        pat.setTransform(new DOMMatrix([PIXEL_UNIT, 0, 0, PIXEL_UNIT, 0, 0]));
+      }
+      patternCache[boardTileName] = pat;
     }
     ctx.fillStyle = (boardTile && patternCache[boardTileName]) || "#14141e";
     // An Rändern mit Baum-Deko zieht das Boden-Tile hinter der Reihe etwas über
@@ -531,11 +565,11 @@ function createRenderer(canvas, initialThemeId) {
       ctx.globalAlpha = blinkFactor * fadeAlpha;
       const sprite = themedSprite(foodSpriteRole(food.value));
       if (sprite) {
-        // Seitenverhältnis erhalten (Edelstein/Trank sind höher als breit),
-        // Höhe skaliert mit dem Wert-Radius (siehe FOOD_SPRITE_SCALE).
+        // Größe aus der Sprite-Quellauflösung * PIXEL_UNIT (einheitliches Raster);
+        // die Stufengröße steckt in der nativen Auflösung der Futter-PNGs. radius
+        // dient nur noch als Bezug für Schwebehöhe/Schatten.
         const radius = foodRadius(food.value);
-        const h = radius * FOOD_SPRITE_SCALE;
-        const w = h * (sprite.naturalWidth / sprite.naturalHeight);
+        const { w, h } = spriteWorldSize(sprite);
         // Sanftes Schweben (siehe FOOD_BOB_* in config.js): wave 0..1 pro Frame,
         // entkoppelt über eine feste Phase je Futter-ID. lift = Höhe über dem
         // echten Bodenpunkt food.y (nach oben = -y).
@@ -557,7 +591,9 @@ function createRenderer(canvas, initialThemeId) {
         ctx.fill();
         ctx.globalAlpha = baseAlpha;
 
-        ctx.drawImage(sprite, food.x - w / 2, food.y - lift - h / 2, w, h);
+        // Zeichen-Ecke aufs Art-Pixel-Gitter rasten (w/h sind bereits Vielfache
+        // von PIXEL_UNIT) - so sitzt jedes Futter pixelgenau auf demselben Raster.
+        ctx.drawImage(sprite, snap(food.x - w / 2), snap(food.y - lift - h / 2), w, h);
       } else {
         ctx.fillStyle = foodColor(food);
         ctx.beginPath();

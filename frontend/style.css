@@ -528,7 +528,10 @@ body.theme-pixel .panel {
    überschrieben. */
 body.theme-pixel #dash-ring,
 body.theme-pixel #dash-btn {
-  background: #1c1206;
+  /* Beim Aufladen: dunkler, leicht transparenter Kreis ohne Glow (Glow nur im
+     aufgeladenen/aktiven Zustand, siehe unten). */
+  background: rgba(28, 18, 6, 0.55);
+  box-shadow: none;
   image-rendering: pixelated;
   border: none;
   /* clippt die aufsteigende .dash-fill auf die runde Button-/Ring-Fläche */
@@ -569,14 +572,16 @@ body.theme-pixel #dash-btn.active .dash-fill {
   display: none;
 }
 
-/* Kräftigerer goldener Glow wie im Mockup (der große Touch-Button trägt ihn
-   deutlicher als der kompakte Desktop-Ring). Ready/Active-Zustände überstrahlen
-   ihn zusätzlich (siehe Basis-Regeln #dash-btn.ready/.active). */
-body.theme-pixel #dash-btn {
+/* Kräftigerer goldener Glow wie im Mockup - nur im aufgeladenen/aktiven Zustand
+   (Coin-Dash-Button). Beim Aufladen bleibt der Kreis glühfrei (siehe Basis-Regel).
+   Der große Touch-Button trägt den Glow deutlicher als der kompakte Desktop-Ring. */
+body.theme-pixel #dash-btn.ready,
+body.theme-pixel #dash-btn.active {
   box-shadow: 0 0 18px 5px rgba(255, 198, 60, 0.75), 0 0 5px rgba(255, 224, 130, 0.9);
 }
 
-body.theme-pixel #dash-ring {
+body.theme-pixel #dash-ring.ready,
+body.theme-pixel #dash-ring.active {
   box-shadow: 0 0 12px 3px rgba(255, 198, 60, 0.7);
 }
 

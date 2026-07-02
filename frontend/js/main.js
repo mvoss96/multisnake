@@ -1,6 +1,13 @@
 window.addEventListener("DOMContentLoaded", () => {
+  // Experimentelles Pixel-Art-Retheme nur mit ?theme=pixel in der URL aktiv
+  // (siehe body.theme-pixel in style.css und den pixelTheme-Parameter von
+  // createRenderer) - Standardverhalten bleibt unangetastet, während das neue
+  // Theme parallel getestet werden kann.
+  const pixelTheme = new URLSearchParams(window.location.search).get("theme") === "pixel";
+  document.body.classList.toggle("theme-pixel", pixelTheme);
+
   const canvas = document.getElementById("game-canvas");
-  const renderer = createRenderer(canvas);
+  const renderer = createRenderer(canvas, pixelTheme);
   const scoreEl = document.getElementById("score");
   const overlay = document.getElementById("game-over-overlay");
   const finalScoreEl = document.getElementById("final-score");

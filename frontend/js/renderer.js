@@ -1,3 +1,43 @@
+// Pixel-Art-Sprites (siehe frontend/assets/sprites/) - einfaches Preloading ohne
+// Promise-Chain: Image-Objekte laden asynchron im Hintergrund, draw() prüft
+// .complete und fällt bis dahin auf die bisherige Vektor-Darstellung zurück,
+// kein Build-Step/Bundler nötig (siehe CLAUDE.md).
+function loadSprite(name) {
+  const img = new Image();
+  img.src = `assets/sprites/${name}.png`;
+  return img;
+}
+
+const TILE_STONE_SPRITE = loadSprite("tile_stone");
+const SPIKE_SPRITE = loadSprite("spike_tile");
+const FOOD_SPRITES = [
+  loadSprite("food_gem"),
+  loadSprite("food_potion"),
+  loadSprite("food_strawberry"),
+  loadSprite("food_cherry"),
+  loadSprite("food_blueberry"),
+  loadSprite("food_grape"),
+];
+
+// Nur zwei Sprite-Sets (statt einem pro Spielerfarbe, siehe _COLORS in
+// game_room.py) - "player" fürs eigene Snake, "ai" für alle anderen
+// (Bots UND andere Menschen). Bewusste Vereinfachung fürs experimentelle
+// Pixel-Theme, das Referenz-Sheet selbst kannte auch nur zwei Farben.
+const SNAKE_SPRITES = {
+  player: {
+    head: loadSprite("snake_player_head"),
+    ring: loadSprite("snake_player_ring"),
+    tail: loadSprite("snake_player_tailcap"),
+  },
+  ai: {
+    head: loadSprite("snake_ai_head"),
+    ring: loadSprite("snake_ai_ring"),
+    tail: loadSprite("snake_ai_tailcap"),
+  },
+};
+
+let tileStonePattern = null;
+
 function foodRadius(value) {
   if (value >= 5) return FOOD_BIG_RADIUS;
   if (value >= 2) return FOOD_MEDIUM_RADIUS;
@@ -19,7 +59,14 @@ function foodColor(food) {
   return `hsl(${hue}, 80%, ${lightness}%)`;
 }
 
-function createRenderer(canvas) {
+// Fester, aber pro Futterstück "zufälliger" Sprite (gleiches hashUnit-Muster wie
+// foodColor) - so bleibt jedes Futterstück über seine Lebensdauer visuell stabil.
+function foodSprite(food) {
+  const idx = Math.floor(hashUnit(food.id) * FOOD_SPRITES.length);
+  return FOOD_SPRITES[Math.min(idx, FOOD_SPRITES.length - 1)];
+}
+
+function createRenderer(canvas, pixelTheme) {
   const ctx = canvas.getContext("2d");
   let board = { width: 0, height: 0 };
 
@@ -66,9 +113,18 @@ function createRenderer(canvas) {
     const count = Math.max(1, Math.round((length - 2 * margin) / SPIKE_SPACING));
     const step = count > 1 ? (length - 2 * margin - spikeWidth) / (count - 1) : 0;
 
-    ctx.fillStyle = SPIKE_FILL_COLOR;
-    ctx.strokeStyle = SPIKE_STROKE_COLOR;
-    ctx.lineWidth = 1;
+    const useSprite = pixelTheme && SPIKE_SPRITE.complete && SPIKE_SPRITE.naturalWidth > 0;
+    // Sprite zeigt per Default nach oben (negative lokale Y-Achse) - dieser Winkel
+    // dreht ihn so, dass die Spitze in Richtung der jeweiligen Rand-Normalen zeigt.
+    const angle = Math.atan2(normalX, -normalY);
+    const spriteW = spikeWidth * 1.3;
+    const spriteH = useSprite ? spriteW * (SPIKE_SPRITE.naturalHeight / SPIKE_SPRITE.naturalWidth) : 0;
+
+    if (!useSprite) {
+      ctx.fillStyle = SPIKE_FILL_COLOR;
+      ctx.strokeStyle = SPIKE_STROKE_COLOR;
+      ctx.lineWidth = 1;
+    }
 
     for (let i = 0; i < count; i++) {
       const offset = margin + step * i;
@@ -76,16 +132,27 @@ function createRenderer(canvas) {
       const baseY1 = y1 + dirY * offset;
       const baseX2 = baseX1 + dirX * spikeWidth;
       const baseY2 = baseY1 + dirY * spikeWidth;
-      const tipX = (baseX1 + baseX2) / 2 + normalX * SPIKE_SIZE;
-      const tipY = (baseY1 + baseY2) / 2 + normalY * SPIKE_SIZE;
+      const midX = (baseX1 + baseX2) / 2;
+      const midY = (baseY1 + baseY2) / 2;
 
-      ctx.beginPath();
-      ctx.moveTo(baseX1, baseY1);
-      ctx.lineTo(tipX, tipY);
-      ctx.lineTo(baseX2, baseY2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
+      if (useSprite) {
+        ctx.save();
+        ctx.translate(midX, midY);
+        ctx.rotate(angle);
+        // Basis (breites Ende) liegt am Rand (lokal y=0), Spitze ragt ins Feld (lokal y=-spriteH).
+        ctx.drawImage(SPIKE_SPRITE, -spriteW / 2, -spriteH, spriteW, spriteH);
+        ctx.restore();
+      } else {
+        const tipX = midX + normalX * SPIKE_SIZE;
+        const tipY = midY + normalY * SPIKE_SIZE;
+        ctx.beginPath();
+        ctx.moveTo(baseX1, baseY1);
+        ctx.lineTo(tipX, tipY);
+        ctx.lineTo(baseX2, baseY2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
     }
   }
 
@@ -185,6 +252,48 @@ function createRenderer(canvas) {
     }
   }
 
+  function drawRotatedSprite(sprite, x, y, angle, height) {
+    if (!sprite.complete || sprite.naturalWidth === 0) return false;
+    const width = height * (sprite.naturalWidth / sprite.naturalHeight);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.drawImage(sprite, -width / 2, -height / 2, width, height);
+    ctx.restore();
+    return true;
+  }
+
+  // Pixel-Art-Variante von drawTaperedBody/drawSnakePattern: statt eines
+  // gestrokten Pfads werden Kopf-, Ring- und Schwanzspitzen-Sprites entlang
+  // der Punkte rotiert aneinandergereiht - die Ring-Sprites überlappen
+  // bewusst (Zeichnung an jedem zweiten Punkt), das ergibt eine durchgehende
+  // Schuppenoptik ohne sichtbare Nähte. Gibt false zurück (kein Sprite
+  // gezeichnet), solange die Sprites noch nicht geladen sind - draw() fällt
+  // dann auf die Vektor-Variante zurück.
+  function drawSnakeSprite(snake, points, isMe) {
+    const set = isMe ? SNAKE_SPRITES.player : SNAKE_SPRITES.ai;
+    const n = points.length;
+    if (n < 2 || !set.head.complete || set.head.naturalWidth === 0) return false;
+
+    for (let i = n - 2; i >= 1; i -= 2) {
+      const [px, py] = points[i];
+      const [hx, hy] = points[i - 1]; // Nachbarpunkt Richtung Kopf
+      const angle = Math.atan2(hy - py, hx - px);
+      drawRotatedSprite(set.ring, px, py, angle, snake.radius * 2 * taperFactorAt(i, n));
+    }
+
+    const tailIdx = n - 1;
+    const [tx, ty] = points[tailIdx];
+    const [tpx, tpy] = points[Math.max(0, tailIdx - 1)];
+    const tailAngle = Math.atan2(tpy - ty, tpx - tx);
+    drawRotatedSprite(set.tail, tx, ty, tailAngle, snake.radius * 2 * SNAKE_TAIL_TAPER_FACTOR * 2.2);
+
+    const [headX, headY] = points[0];
+    drawRotatedSprite(set.head, headX, headY, snake.direction, snake.radius * 2.3);
+
+    return true;
+  }
+
   function drawCrown(x, y) {
     ctx.save();
     ctx.translate(x, y);
@@ -217,7 +326,10 @@ function createRenderer(canvas) {
     ctx.scale(scale, scale);
     ctx.translate(-camera.x, -camera.y);
 
-    ctx.fillStyle = "#14141e";
+    if (pixelTheme && !tileStonePattern && TILE_STONE_SPRITE.complete && TILE_STONE_SPRITE.naturalWidth > 0) {
+      tileStonePattern = ctx.createPattern(TILE_STONE_SPRITE, "repeat");
+    }
+    ctx.fillStyle = (pixelTheme && tileStonePattern) || "#14141e";
     ctx.fillRect(0, 0, board.width, board.height);
 
     drawBoundary(camera);
@@ -231,10 +343,16 @@ function createRenderer(canvas) {
         ? FOOD_DEFAULT_ALPHA
         : FOOD_FADE_MIN_ALPHA + (FOOD_DEFAULT_ALPHA - FOOD_FADE_MIN_ALPHA) * (life / FOOD_FADE_START_LIFE);
       ctx.globalAlpha = blinkFactor * fadeAlpha;
-      ctx.fillStyle = foodColor(food);
-      ctx.beginPath();
-      ctx.arc(food.x, food.y, foodRadius(food.value), 0, Math.PI * 2);
-      ctx.fill();
+      const sprite = foodSprite(food);
+      const diameter = foodRadius(food.value) * 2.4;
+      if (pixelTheme && sprite.complete && sprite.naturalWidth > 0) {
+        ctx.drawImage(sprite, food.x - diameter / 2, food.y - diameter / 2, diameter, diameter);
+      } else {
+        ctx.fillStyle = foodColor(food);
+        ctx.beginPath();
+        ctx.arc(food.x, food.y, foodRadius(food.value), 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     ctx.globalAlpha = 1;
 
@@ -257,42 +375,52 @@ function createRenderer(canvas) {
         ctx.shadowBlur = SNAKE_DASH_GLOW_BLUR;
       }
 
-      // Kontur, Körper und ein dezenter heller Glanzstreifen mittig auf dem
-      // Körper - alle drei verjüngen sich zum Schwanz hin für eine organischere
-      // Form statt eines gleichbleibend dicken Schlauchs.
-      drawTaperedBody(points, snake.radius * 2 + SNAKE_OUTLINE_WIDTH * 2, SNAKE_OUTLINE_COLOR);
-      drawTaperedBody(points, snake.radius * 2, snake.color);
-      drawTaperedBody(points, snake.radius * 2 * SNAKE_SHINE_WIDTH_FACTOR, "#ffffff", SNAKE_SHINE_ALPHA);
-      drawSnakePattern(snake, points);
+      // Pixel-Theme: Sprite-Kette aus Kopf/Ring/Schwanzspitze (siehe
+      // drawSnakeSprite) statt gestrokter Vektor-Form - Augen sind im
+      // Kopf-Sprite bereits enthalten. Fällt automatisch auf die Vektor-
+      // Variante zurück, solange die Sprites noch laden.
+      const usedSprite = pixelTheme && drawSnakeSprite(snake, points, isMe);
+
+      if (!usedSprite) {
+        // Kontur, Körper und ein dezenter heller Glanzstreifen mittig auf dem
+        // Körper - alle drei verjüngen sich zum Schwanz hin für eine organischere
+        // Form statt eines gleichbleibend dicken Schlauchs.
+        drawTaperedBody(points, snake.radius * 2 + SNAKE_OUTLINE_WIDTH * 2, SNAKE_OUTLINE_COLOR);
+        drawTaperedBody(points, snake.radius * 2, snake.color);
+        drawTaperedBody(points, snake.radius * 2 * SNAKE_SHINE_WIDTH_FACTOR, "#ffffff", SNAKE_SHINE_ALPHA);
+        drawSnakePattern(snake, points);
+      }
 
       if (snake.dashing) {
         ctx.shadowBlur = 0;
         ctx.shadowColor = "transparent";
       }
 
-      // Augen in Blickrichtung statt eines mittigen Punkts - Pupille leicht
-      // nach vorn versetzt, damit die Schlange erkennbar "in eine Richtung schaut".
-      const eyeRadius = snake.radius * SNAKE_EYE_RADIUS_FACTOR;
-      const pupilRadius = snake.radius * SNAKE_PUPIL_RADIUS_FACTOR;
-      const forwardX = Math.cos(snake.direction) * snake.radius * SNAKE_EYE_FORWARD_OFFSET;
-      const forwardY = Math.sin(snake.direction) * snake.radius * SNAKE_EYE_FORWARD_OFFSET;
-      const perpAngle = snake.direction + Math.PI / 2;
-      const sideX = Math.cos(perpAngle) * snake.radius * SNAKE_EYE_SIDE_OFFSET;
-      const sideY = Math.sin(perpAngle) * snake.radius * SNAKE_EYE_SIDE_OFFSET;
-      const pupilForwardX = Math.cos(snake.direction) * eyeRadius * 0.4;
-      const pupilForwardY = Math.sin(snake.direction) * eyeRadius * 0.4;
+      if (!usedSprite) {
+        // Augen in Blickrichtung statt eines mittigen Punkts - Pupille leicht
+        // nach vorn versetzt, damit die Schlange erkennbar "in eine Richtung schaut".
+        const eyeRadius = snake.radius * SNAKE_EYE_RADIUS_FACTOR;
+        const pupilRadius = snake.radius * SNAKE_PUPIL_RADIUS_FACTOR;
+        const forwardX = Math.cos(snake.direction) * snake.radius * SNAKE_EYE_FORWARD_OFFSET;
+        const forwardY = Math.sin(snake.direction) * snake.radius * SNAKE_EYE_FORWARD_OFFSET;
+        const perpAngle = snake.direction + Math.PI / 2;
+        const sideX = Math.cos(perpAngle) * snake.radius * SNAKE_EYE_SIDE_OFFSET;
+        const sideY = Math.sin(perpAngle) * snake.radius * SNAKE_EYE_SIDE_OFFSET;
+        const pupilForwardX = Math.cos(snake.direction) * eyeRadius * 0.4;
+        const pupilForwardY = Math.sin(snake.direction) * eyeRadius * 0.4;
 
-      for (const side of [1, -1]) {
-        const eyeX = hx + forwardX + sideX * side;
-        const eyeY = hy + forwardY + sideY * side;
-        ctx.fillStyle = "#fff";
-        ctx.beginPath();
-        ctx.arc(eyeX, eyeY, eyeRadius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#111";
-        ctx.beginPath();
-        ctx.arc(eyeX + pupilForwardX, eyeY + pupilForwardY, pupilRadius, 0, Math.PI * 2);
-        ctx.fill();
+        for (const side of [1, -1]) {
+          const eyeX = hx + forwardX + sideX * side;
+          const eyeY = hy + forwardY + sideY * side;
+          ctx.fillStyle = "#fff";
+          ctx.beginPath();
+          ctx.arc(eyeX, eyeY, eyeRadius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#111";
+          ctx.beginPath();
+          ctx.arc(eyeX + pupilForwardX, eyeY + pupilForwardY, pupilRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
 
       if (isMe) {

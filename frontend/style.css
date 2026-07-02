@@ -385,3 +385,39 @@ body.touch-device #dash-btn {
     font-size: 22px;
   }
 }
+
+/* Experimenteller Pixel-Art-Retheme - nur aktiv mit ?theme=pixel in der URL
+   (siehe main.js), damit das bisherige Erscheinungsbild standardmäßig
+   unangetastet bleibt, während das neue Theme parallel getestet werden kann.
+   Sprites liegen in frontend/assets/sprites/ (siehe renderer.js für die
+   Canvas-Seite: Bodentextur, Futter-Icons, Stacheln). */
+body.theme-pixel #hud {
+  background: url("assets/sprites/ui_panel_rect.png") no-repeat;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  padding: 16px 22px;
+  border-radius: 0;
+  box-sizing: border-box;
+}
+
+body.theme-pixel #leaderboard {
+  background: url("assets/sprites/ui_panel_frame.png") no-repeat;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  padding: 22px 24px 18px;
+  border-radius: 0;
+  box-sizing: border-box;
+}
+
+body.theme-pixel #dash-ring,
+body.theme-pixel #dash-btn {
+  background: url("assets/sprites/dash_button_idle.png") no-repeat center / cover;
+  image-rendering: pixelated;
+  border: none;
+}
+
+/* Das Coin-Sprite hat "DASH" bereits eingebrannt - das eigene Text-/Emoji-Label
+   wäre doppelt gemoppelt. */
+body.theme-pixel .dash-icon {
+  display: none;
+}

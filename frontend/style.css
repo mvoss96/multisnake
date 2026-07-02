@@ -548,6 +548,18 @@ body.touch-device #dash-btn {
   margin-bottom: 4px;
 }
 
+/* Im Namens-Modal die Design-BUTTONS vertikal mittig zwischen Namensfeld und
+   Spielen-Button setzen: das Label über den Buttons frisst oben Platz, daher den
+   Abstand oben (Namensfeld) kleiner und unten (vor Spielen) größer, sodass die
+   Buttons selbst - nicht nur der Block inkl. Label - mittig sitzen. */
+#name-modal #name-input {
+  margin-bottom: 10px;
+}
+
+#name-modal .theme-select {
+  margin-bottom: 38px;
+}
+
 /* .panel button (Spielen-Button-Optik) würde hier sonst per Spezifität
    gewinnen - daher .panel im Selektor wiederholen. */
 .panel .theme-option {

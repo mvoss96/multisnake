@@ -18,10 +18,16 @@
       <circle class="dash-progress-track" cx="50" cy="50" r="44" pathLength="100" transform="rotate(-90 50 50)"></circle>
       <circle class="dash-progress-fill" cx="50" cy="50" r="44" pathLength="100" transform="rotate(-90 50 50)"></circle>
     </svg>
-    <!-- Pixel-Theme: gestufte Gold-Füllung, die im Coin von unten aufsteigt
-         (Höhe per JS, siehe updateDashMeter); nur unter body.theme-pixel
-         sichtbar (dann ist der SVG-Ring ausgeblendet). Gleich für Ring + Button. -->
+    <!-- Pixel-Theme: der Dash-Ladestand wird als Sanduhr gezeigt, die sich langsam
+         füllt. Die aufsteigende .dash-fill (Höhe per JS, siehe updateDashMeter) wird
+         dafür auf die Sanduhr-Silhouette geclippt (Sand), darüber liegt der SVG-Rahmen
+         (.dash-hourglass). Nur unter body.theme-pixel sichtbar (dann ist der SVG-Ring
+         aus). Gleich für Ring + Button. -->
     <div class="dash-fill"></div>
+    <div class="dash-hourglass">
+      <div class="hg-base"></div>
+      <div class="hg-lit"></div>
+    </div>
     <span class="dash-icon">⚡</span>
   </div>
 </div>
@@ -32,6 +38,10 @@
     <circle class="dash-progress-fill" cx="50" cy="50" r="44" pathLength="100" transform="rotate(-90 50 50)"></circle>
   </svg>
   <div class="dash-fill"></div>
+  <div class="dash-hourglass">
+    <div class="hg-base"></div>
+    <div class="hg-lit"></div>
+  </div>
   <span class="dash-icon">DASH</span>
 </div>
 

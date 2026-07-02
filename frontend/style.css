@@ -143,6 +143,34 @@ html, body {
   image-rendering: pixelated;
 }
 
+/* Pixel-Theme-Sanduhr aus der Pixel-Art-Sprite (assets/sprites/hourglass.png). Zwei
+   deckungsgleiche Ebenen: unten gedimmt (leerer/uncharged Look), darüber die volle
+   Farbversion, die per clip-path je nach Ladestand (--fill 0..1, per JS gesetzt, siehe
+   updateDashMeter) von unten nach oben freigegeben wird - so "füllt" sich die Sanduhr
+   beim Aufladen. Standardmäßig aus, nur unter body.theme-pixel sichtbar (siehe unten). */
+.dash-hourglass {
+  display: none;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.dash-hourglass .hg-base,
+.dash-hourglass .hg-lit {
+  position: absolute;
+  inset: 0;
+  background: url("assets/sprites/hourglass.png") no-repeat center / contain;
+  image-rendering: pixelated;
+}
+
+.dash-hourglass .hg-base {
+  filter: grayscale(0.85) brightness(0.4);
+}
+
+.dash-hourglass .hg-lit {
+  clip-path: inset(calc((1 - var(--fill, 0)) * 100%) 0 0 0);
+}
+
 /* #dash-btn/#dash-ring wechseln bei bereit/aktiv auf eine flächige Farbe
    (statt Fortschrittsring) als deutliches Signal - der Ring wird dafür
    ausgeblendet. */
@@ -353,24 +381,29 @@ body.touch-device #dash-btn {
 
 @media (max-width: 820px) {
   #hud {
-    /* Muss neben #leaderboard (max-width 46vw) Platz lassen. */
-    max-width: 58vw;
+    /* HUD (max-width) + #leaderboard (max-width) + die je 16px Ränder müssen
+       zusammen unter 100vw bleiben, sonst überlappen die beiden Ecken-Panels -
+       spürbar, seit die Debug-Zeile das HUD bis an seine max-width verbreitert.
+       48vw + 42vw = 90vw lässt auch am unteren Rand dieses Bereichs (481px) Luft. */
+    max-width: 48vw;
     box-sizing: border-box;
     padding: 6px 12px;
   }
 
   #leaderboard {
     min-width: 0;
-    max-width: 46vw;
+    max-width: 42vw;
     padding: 8px 14px;
   }
 }
 
 @media (max-width: 480px) {
   #hud {
-    /* Muss neben #leaderboard (max-width 42vw, siehe unten) Platz lassen,
-       sonst überlappen sich beide Boxen auf schmalen Screens. */
-    max-width: 60vw;
+    /* Wie oben, für kleine Handys enger gerechnet: 52vw + 40vw = 92vw plus die auf
+       8px reduzierten Ränder (~4vw bei 414px, iPhone XR) bleiben klar unter 100vw. */
+    max-width: 52vw;
+    left: 8px;
+    top: 8px;
     box-sizing: border-box;
     padding: 6px 10px;
   }
@@ -386,7 +419,9 @@ body.touch-device #dash-btn {
   }
 
   #leaderboard {
-    max-width: 42vw;
+    max-width: 40vw;
+    right: 8px;
+    top: 8px;
     padding: 6px 10px;
   }
 
@@ -512,13 +547,28 @@ body.theme-pixel .panel {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
 }
 
+/* Pixel-Theme Dash - zwei Zustände:
+   1) Beim Aufladen (kein .ready/.active): dunkler Hintergrund, darauf die
+      Sanduhr-Sprite, die sich von unten füllt (siehe .dash-hourglass).
+   2) Aufgeladen/aktiv (.ready/.active): die Sanduhr verschwindet und der eigentliche
+      Dash-Button (Coin-Sprite + ⚡-Icon + Glow) erscheint - siehe Regeln unten.
+   Die Basis-.ready/.active-Hintergründe (#dash-btn.ready usw.) werden hier bewusst
+   überschrieben. */
 body.theme-pixel #dash-ring,
 body.theme-pixel #dash-btn {
-  background: url("assets/sprites/dash_button_idle.png") no-repeat center / cover;
+  background: #1c1206;
   image-rendering: pixelated;
   border: none;
-  /* clippt die aufsteigende .dash-fill kreisförmig auf den Coin */
+  /* clippt die Sanduhr-Sprite auf die runde Button-/Ring-Fläche */
   overflow: hidden;
+}
+
+/* Aufgeladen/aktiv: der Coin-Dash-Button statt der Sanduhr. */
+body.theme-pixel #dash-ring.ready,
+body.theme-pixel #dash-btn.ready,
+body.theme-pixel #dash-ring.active,
+body.theme-pixel #dash-btn.active {
+  background: url("assets/sprites/dash_button_idle.png") no-repeat center / cover;
 }
 
 /* Der glatte SVG-Kreisbogen passt nicht zum harten Pixel-Look - im Pixel-Theme
@@ -530,15 +580,23 @@ body.theme-pixel #dash-btn .dash-progress {
   display: none;
 }
 
+/* Die alte gold-aufsteigende .dash-fill wird im Pixel-Theme nicht mehr genutzt -
+   die Sanduhr-Sprite (siehe .dash-hourglass) übernimmt die Ladeanzeige. */
 body.theme-pixel #dash-ring .dash-fill,
 body.theme-pixel #dash-btn .dash-fill {
+  display: none;
+}
+
+body.theme-pixel .dash-hourglass {
   display: block;
 }
 
-/* Beim aktiven Dash färbt sich die (voll aufgefüllte) Anzeige rot. */
-body.theme-pixel #dash-ring.active .dash-fill,
-body.theme-pixel #dash-btn.active .dash-fill {
-  background: linear-gradient(to bottom, #ffd0d0 0, #ffd0d0 2px, #ff5d5d 2px);
+/* Aufgeladen/aktiv: Sanduhr weg (der Coin-Dash-Button übernimmt). */
+body.theme-pixel #dash-ring.ready .dash-hourglass,
+body.theme-pixel #dash-btn.ready .dash-hourglass,
+body.theme-pixel #dash-ring.active .dash-hourglass,
+body.theme-pixel #dash-btn.active .dash-hourglass {
+  display: none;
 }
 
 /* Kräftigerer goldener Glow wie im Mockup (der große Touch-Button trägt ihn
@@ -556,9 +614,16 @@ body.theme-pixel #dash-btn.ready {
   box-shadow: 0 0 26px 8px rgba(255, 215, 0, 0.95);
 }
 
-/* Der generierte Coin-Sprite (siehe gen_sprites-Notiz im Commit) trägt keinen
-   eingebrannten Text mehr - das DOM-Label übernimmt wieder, mit Kontur für
-   Lesbarkeit auf der Holzfläche. */
+/* Beim Aufladen ist die Sanduhr die Anzeige - das ⚡-Label würde sie nur überdecken,
+   daher ausgeblendet. Erst wenn aufgeladen/aktiv (Coin-Dash-Button) kommt es zurück. */
 body.theme-pixel .dash-icon {
+  display: none;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
+}
+
+body.theme-pixel #dash-ring.ready .dash-icon,
+body.theme-pixel #dash-btn.ready .dash-icon,
+body.theme-pixel #dash-ring.active .dash-icon,
+body.theme-pixel #dash-btn.active .dash-icon {
+  display: block;
 }

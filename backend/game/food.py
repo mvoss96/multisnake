@@ -1,8 +1,10 @@
 import random
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from .board import Board
+from .obstacle import Obstacle
 from .types import FoodConfig
 from .vector import Vector2
 
@@ -21,8 +23,14 @@ class FoodManager:
         self.config = config
         self.foods: dict[str, Food] = {}
 
-    def spawn_random(self, board: Board) -> Food:
+    def spawn_random(self, board: Board, obstacles: Sequence[Obstacle] = ()) -> Food:
+        # Punkt außerhalb der Felsen wählen (ein paar Versuche; danach nimm den letzten -
+        # Futter im Fels wäre unerreichbar). Ohne Hindernisse ein einzelner Wurf.
         pos = board.random_point(margin=20)
+        for _ in range(8):
+            if all(pos.distance_to(o.position) > o.radius for o in obstacles):
+                break
+            pos = board.random_point(margin=20)
         roll = random.random()
         if roll < self.config.FOOD_BIG_SPAWN_CHANCE:
             score_value = self.config.FOOD_BIG_VALUE_MULTIPLIER
@@ -44,9 +52,9 @@ class FoodManager:
         self.foods[food.id] = food
         return food
 
-    def ensure_min_food(self, board: Board) -> None:
+    def ensure_min_food(self, board: Board, obstacles: Sequence[Obstacle] = ()) -> None:
         while len(self.foods) < self.config.FOOD_COUNT_TARGET:
-            self.spawn_random(board)
+            self.spawn_random(board, obstacles)
 
     def remove(self, food_id: str) -> None:
         self.foods.pop(food_id, None)

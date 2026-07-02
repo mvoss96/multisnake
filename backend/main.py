@@ -104,7 +104,9 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     await websocket.accept()
     player_id = str(uuid.uuid4())
     connections[player_id] = websocket
-    await websocket.send_json(welcome_message(player_id, game_room.board).model_dump())
+    await websocket.send_json(
+        welcome_message(player_id, game_room.board, game_room.obstacles).model_dump()
+    )
 
     try:
         while True:

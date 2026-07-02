@@ -3,6 +3,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field, TypeAdapter
 
 from .board import Board
+from .obstacle import Obstacle
 
 # --- Eingehende Nachrichten (Client -> Server) ----------------------------
 
@@ -80,10 +81,20 @@ class BoardInfo(BaseModel):
     height: float
 
 
+class ObstacleState(BaseModel):
+    x: float
+    y: float
+    radius: float
+    kind: str
+
+
 class WelcomeMessage(BaseModel):
     type: Literal["welcome"] = "welcome"
     player_id: str
     board: BoardInfo
+    # Statische Hindernisse (Felsen) - einmalig beim Verbinden mitgesendet, danach
+    # unveränderlich; das Frontend speichert und zeichnet sie (kein per-Tick-Broadcast).
+    obstacles: list[ObstacleState] = []
 
 
 class GameOverMessage(BaseModel):
@@ -124,10 +135,14 @@ class StateMessage(BaseModel):
     paused: bool
 
 
-def welcome_message(player_id: str, board: Board) -> WelcomeMessage:
+def welcome_message(player_id: str, board: Board, obstacles: list[Obstacle]) -> WelcomeMessage:
     return WelcomeMessage(
         player_id=player_id,
         board=BoardInfo(width=board.width, height=board.height),
+        obstacles=[
+            ObstacleState(x=o.position.x, y=o.position.y, radius=o.radius, kind=o.kind)
+            for o in obstacles
+        ],
     )
 
 

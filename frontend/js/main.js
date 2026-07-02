@@ -308,6 +308,7 @@ window.addEventListener("DOMContentLoaded", () => {
       GameState.playerId = msg.player_id;
       GameState.board = msg.board;
       renderer.setBoard(msg.board.width, msg.board.height);
+      renderer.setObstacles(msg.obstacles || []);
       camera = { x: msg.board.width / 2, y: msg.board.height / 2 };
       overlay.classList.add("hidden");
       client.sendJoin(pendingName);

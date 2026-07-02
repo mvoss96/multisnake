@@ -100,3 +100,9 @@ class GameConfig(FoodConfig, SnakeConfig, BotConfig, Protocol):
     FOOD_MAGNET_RADIUS: float
     FOOD_MAGNET_SPEED: float
     GRID_CELL_SIZE: float
+    OBSTACLE_COUNT: int
+    OBSTACLE_MIN_RADIUS: float
+    OBSTACLE_MAX_RADIUS: float
+    OBSTACLE_BORDER_MARGIN: float
+    OBSTACLE_GAP: float
+    OBSTACLE_SPAWN_CLEARANCE: float

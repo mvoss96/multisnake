@@ -50,6 +50,14 @@ def test_config() -> SimpleNamespace:
         FOOD_MAGNET_RADIUS=60.0,
         FOOD_MAGNET_SPEED=260.0,
         GRID_CELL_SIZE=40.0,
+        # Standard-Test-Config ohne Hindernisse (Obstacle-Verhalten wird in eigenen
+        # Tests mit passender Config geprüft), damit bestehende Tests unberührt bleiben.
+        OBSTACLE_COUNT=0,
+        OBSTACLE_MIN_RADIUS=20.0,
+        OBSTACLE_MAX_RADIUS=45.0,
+        OBSTACLE_BORDER_MARGIN=120.0,
+        OBSTACLE_GAP=90.0,
+        OBSTACLE_SPAWN_CLEARANCE=70.0,
         BOT_FAN_HALF_ANGLE=2.5,
         BOT_RAY_LENGTH=95.0,
         BOT_RAY_SAMPLES=4,

@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from game.board import Board
 from game.bot import Bot, DecisionContext
 from game.food import Food
+from game.obstacle import Obstacle
 from game.snake import Snake
 from game.vector import Vector2
 
@@ -94,7 +95,7 @@ def test_steers_away_from_wall_instead_of_into_it() -> None:
     board = Board(width=1000, height=1000)
     # Kopf dicht an der rechten Wand, Kurs geradewegs hinein.
     snake = make_snake(Vector2(975, 500), direction=0.0)
-    context = DecisionContext(board=board, foods=[], other_snakes=[])
+    context = DecisionContext(board=board, foods=[], other_snakes=[], obstacles=[])
 
     result = bot.decide(snake, context)
 
@@ -115,7 +116,7 @@ def test_steers_around_snake_ahead() -> None:
     snake = make_snake(Vector2(500, 500), direction=0.0)
     other = make_snake(Vector2(560, 500))
     other.points = [Vector2(560, 500)]  # sitzt direkt im geraden Kurs
-    context = DecisionContext(board=board, foods=[], other_snakes=[other])
+    context = DecisionContext(board=board, foods=[], other_snakes=[other], obstacles=[])
 
     result = bot.decide(snake, context)
 
@@ -134,7 +135,7 @@ def test_avoids_own_body_ahead() -> None:
     # Enge Windung: ein hinteres Segment liegt direkt voraus (jenseits der
     # übersprungenen Hals-Segmente), geradeaus liefe der Bot hinein.
     snake.points = [Vector2(500, 500)] + [Vector2(505, 500)] * 4 + [Vector2(555, 500)]
-    context = DecisionContext(board=board, foods=[], other_snakes=[])
+    context = DecisionContext(board=board, foods=[], other_snakes=[], obstacles=[])
 
     result = bot.decide(snake, context)
 
@@ -151,7 +152,7 @@ def test_prefers_higher_value_food_over_nearer_low_value() -> None:
     snake = make_snake(Vector2(1000, 1000), direction=math.pi / 2)
     cheap = Food(id="cheap", position=Vector2(1000, 1100), score_value=1)  # Richtung +y
     rich = Food(id="rich", position=Vector2(1120, 1000), score_value=5)  # Richtung +x
-    context = DecisionContext(board=board, foods=[cheap, rich], other_snakes=[])
+    context = DecisionContext(board=board, foods=[cheap, rich], other_snakes=[], obstacles=[])
 
     result = bot.decide(snake, context)
 
@@ -213,7 +214,10 @@ def test_easy_bot_has_no_attack_target() -> None:
 def test_decisions_are_deterministic_for_equal_seed() -> None:
     board = Board(width=1000, height=1000)
     context = DecisionContext(
-        board=board, foods=[Food(id="f", position=Vector2(600, 540))], other_snakes=[]
+        board=board,
+        foods=[Food(id="f", position=Vector2(600, 540))],
+        other_snakes=[],
+        obstacles=[],
     )
 
     a = make_bot("easy", seed=42)
@@ -222,3 +226,19 @@ def test_decisions_are_deterministic_for_equal_seed() -> None:
     second = b.decide(make_snake(Vector2(500, 500)), context)
 
     assert first == second
+
+
+def test_steers_around_obstacle_ahead() -> None:
+    cfg = bot_config()
+    bot = make_bot("hard")
+    board = Board(width=1000, height=1000)
+    snake = make_snake(Vector2(500, 500), direction=0.0)
+    rock = Obstacle(Vector2(560, 500), radius=25)  # direkt im geraden Kurs
+    context = DecisionContext(board=board, foods=[], other_snakes=[], obstacles=[rock])
+
+    result = bot.decide(snake, context)
+
+    chosen = _ray_point(snake.head(), result.direction, cfg.BOT_RAY_LENGTH)
+    safe = snake.radius + rock.radius + cfg.BOT_DANGER_MARGIN
+    assert chosen.distance_to(rock.position) >= safe
+    assert result.direction != snake.direction

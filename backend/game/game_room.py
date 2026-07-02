@@ -5,6 +5,7 @@ import uuid
 from .board import Board
 from .bot import BOT_SKILLS, SKILL_LABELS, Bot, DecisionContext
 from .food import Food, FoodManager
+from .obstacle import Obstacle
 from .player import AIPlayer, HumanPlayer, Player, PlayerManager
 from .protocol import FoodState, SnakeState, StateMessage
 from .snake import Snake
@@ -36,9 +37,34 @@ class GameRoom:
         self.players = PlayerManager()
         self.tick_count = 0
         self._rng = random.Random()
-        self.food_manager.ensure_min_food(self.board)
+        # Hindernisse zuerst (deterministisch), dann Futter/Bots - beide meiden sie.
+        self.obstacles = self._generate_obstacles()
+        self.food_manager.ensure_min_food(self.board, self.obstacles)
         self._rebalance_bots()
         self.paused = False
+
+    def _generate_obstacles(self) -> list[Obstacle]:
+        # Statische Felsen geseedet platzieren: ganz im Feld (Rand-Abstand), nicht
+        # überlappend (Lücke dazwischen). Best-effort: passt nicht alles rein (kleines
+        # Board), werden eben weniger - kein Endlosversuch.
+        obstacles: list[Obstacle] = []
+        margin = self.config.OBSTACLE_BORDER_MARGIN
+        gap = self.config.OBSTACLE_GAP
+        attempts = 0
+        max_attempts = self.config.OBSTACLE_COUNT * 30
+        while len(obstacles) < self.config.OBSTACLE_COUNT and attempts < max_attempts:
+            attempts += 1
+            radius = self._rng.uniform(
+                self.config.OBSTACLE_MIN_RADIUS, self.config.OBSTACLE_MAX_RADIUS
+            )
+            lo_x, hi_x = margin + radius, self.board.width - margin - radius
+            lo_y, hi_y = margin + radius, self.board.height - margin - radius
+            if lo_x >= hi_x or lo_y >= hi_y:
+                break  # Board zu klein für diesen Radius
+            pos = Vector2(self._rng.uniform(lo_x, hi_x), self._rng.uniform(lo_y, hi_y))
+            if all(pos.distance_to(o.position) > radius + o.radius + gap for o in obstacles):
+                obstacles.append(Obstacle(pos, radius))
+        return obstacles
 
     def _find_safe_spawn_point(self) -> Vector2:
         other_points = [
@@ -47,9 +73,12 @@ class GameRoom:
             if other_player.snake and other_player.snake.alive
             for point in other_player.snake.points
         ]
+        clearance = self.config.OBSTACLE_SPAWN_CLEARANCE
         for _ in range(20):
             candidate = self.board.random_point(margin=100)
-            if all(candidate.distance_to(p) > 150 for p in other_points):
+            if all(candidate.distance_to(p) > 150 for p in other_points) and all(
+                candidate.distance_to(o.position) > o.radius + clearance for o in self.obstacles
+            ):
                 return candidate
         return self.board.random_point(margin=100)
 
@@ -234,6 +263,7 @@ class GameRoom:
             "board": self.board,
             "foods": foods_list,
             "other_snakes": [],
+            "obstacles": self.obstacles,
         }
         for player in all_players:
             snake = player.snake
@@ -244,6 +274,7 @@ class GameRoom:
                     "board": self.board,
                     "foods": foods_list,
                     "other_snakes": [s for s in alive_snakes if s.id != snake.id],
+                    "obstacles": self.obstacles,
                 }
                 # Bot direkt entscheiden lassen, damit auch die Dash-Absicht ankommt
                 # (das Player-Interface get_input_direction liefert nur die Richtung).
@@ -279,6 +310,10 @@ class GameRoom:
             if self.board.is_out_of_bounds(head, margin=death_margin):
                 snake.alive = False
                 continue
+            # Statische Felsen (wenige -> simple Iteration): Kopf im Fels = Tod.
+            if any(head.distance_to(o.position) < snake.radius + o.radius for o in self.obstacles):
+                snake.alive = False
+                continue
             # reach deckt den größtmöglichen other.radius ab, damit das Grid keinen
             # echten Treffer verpasst; der exakte Check bleibt dahinter identisch.
             reach = snake.radius + self.config.SNAKE_MAX_RADIUS
@@ -311,7 +346,7 @@ class GameRoom:
                     eaten_ids.append(food.id)
         for food_id in eaten_ids:
             self.food_manager.remove(food_id)
-        self.food_manager.ensure_min_food(self.board)
+        self.food_manager.ensure_min_food(self.board, self.obstacles)
 
         game_over_events: list[tuple[str, int]] = []
         for player in all_players:

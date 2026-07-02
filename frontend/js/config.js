@@ -132,6 +132,14 @@ const TREE_SHADOW_WIDTH_FACTOR = 0.66; // Schattenradius relativ zur Baumbreite
 const TREE_SHADOW_FLATNESS = 0.52; // Höhe/Breite der Schatten-Ellipse
 const TREE_SHADOW_DROP = 10; // Welteinheiten unter den Stammfuß versetzt
 
+// Hindernisse (statische Felsen; Position/Radius kommen vom Server in der
+// welcome-Nachricht). Sprite etwas größer als die Kollisionsscheibe zeichnen,
+// damit der Fels solide über seinen Hitbox-Rand ragt. Vektor-Fallback (Klassik-
+// Theme) = gefüllter grauer Kreis mit Kontur.
+const ROCK_SPRITE_SCALE = 1.18;
+const ROCK_FILL_COLOR = "#6b6b74";
+const ROCK_STROKE_COLOR = "#33333c";
+
 // Spikes
 const SPIKE_SPACING = 30;
 const SPIKE_SIZE = 14;

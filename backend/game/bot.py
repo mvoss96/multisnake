@@ -5,6 +5,7 @@ from typing import Literal, NamedTuple, TypedDict
 
 from .board import Board
 from .food import Food
+from .obstacle import Obstacle
 from .snake import Snake
 from .types import BotConfig
 from .vector import Vector2
@@ -23,6 +24,7 @@ class DecisionContext(TypedDict):
     board: Board
     foods: list[Food]
     other_snakes: list[Snake]
+    obstacles: list[Obstacle]
 
 
 class BotDecision(NamedTuple):
@@ -183,6 +185,10 @@ class Bot:
         for point in snake.points[self.config.BOT_SELF_SKIP_SEGMENTS :: step]:
             if head.distance_to(point) <= reach:
                 obstacles.append((point, snake.radius))
+        # Statische Felsen wie fremde Körper behandeln (Kopf-Kollision = Tod).
+        for obs in context["obstacles"]:
+            if head.distance_to(obs.position) <= near + snake.radius + obs.radius:
+                obstacles.append((obs.position, obs.radius))
         return obstacles
 
     def _danger_cost(

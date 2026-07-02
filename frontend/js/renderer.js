@@ -97,6 +97,33 @@ function createRenderer(canvas, initialThemeId) {
     board = { width, height };
   }
 
+  // Statische Hindernisse (Felsen), einmalig aus der welcome-Nachricht gesetzt
+  // (siehe main.js). Liste von { x, y, radius, kind }.
+  let obstacles = [];
+  function setObstacles(list) {
+    obstacles = list || [];
+  }
+
+  // Felsen zeichnen: gethemetes Sprite (Pixel-Theme) etwas größer als die
+  // Kollisionsscheibe, sonst Vektor-Fallback (grauer Kreis mit Kontur).
+  function drawObstacles() {
+    const sprite = themedSprite("rock");
+    for (const o of obstacles) {
+      if (sprite) {
+        const w = 2 * o.radius * ROCK_SPRITE_SCALE;
+        ctx.drawImage(sprite, snap(o.x - w / 2), snap(o.y - w / 2), w, w);
+      } else {
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.radius, 0, Math.PI * 2);
+        ctx.fillStyle = ROCK_FILL_COLOR;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = ROCK_STROKE_COLOR;
+        ctx.stroke();
+      }
+    }
+  }
+
   function resizeToWindow() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -553,6 +580,7 @@ function createRenderer(canvas, initialThemeId) {
 
     drawBorderTrees();
     drawBoundary(camera);
+    drawObstacles();
 
     const blinkPhase = (performance.now() % FOOD_BLINK_PERIOD_MS) / FOOD_BLINK_PERIOD_MS;
     const blinkAlpha = FOOD_BLINK_MIN_ALPHA + (1 - FOOD_BLINK_MIN_ALPHA) * (0.5 + 0.5 * Math.sin(blinkPhase * Math.PI * 2));
@@ -702,5 +730,5 @@ function createRenderer(canvas, initialThemeId) {
     ctx.restore();
   }
 
-  return { setBoard, resizeToWindow, draw, setTheme };
+  return { setBoard, setObstacles, resizeToWindow, draw, setTheme };
 }

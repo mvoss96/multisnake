@@ -4,7 +4,9 @@ from game.player import AIPlayer, HumanPlayer, PlayerManager
 
 
 def _empty_context() -> DecisionContext:
-    return DecisionContext(board=Board(width=100, height=100), foods=[], other_snakes=[])
+    return DecisionContext(
+        board=Board(width=100, height=100), foods=[], other_snakes=[], obstacles=[]
+    )
 
 
 def test_human_player_set_direction_is_returned_via_get_input_direction() -> None:

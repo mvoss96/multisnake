@@ -418,7 +418,7 @@ body.touch-device #dash-btn {
 }
 
 /* Design-Umschalter im Namens-Modal (siehe applyTheme in main.js). */
-#theme-select {
+.theme-select {
   display: flex;
   gap: 8px;
   justify-content: center;

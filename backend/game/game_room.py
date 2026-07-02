@@ -3,7 +3,7 @@ import random
 import uuid
 
 from .board import Board
-from .bot import BOT_SKILLS, Bot, DecisionContext
+from .bot import BOT_SKILLS, SKILL_LABELS, Bot, DecisionContext
 from .food import Food, FoodManager
 from .player import AIPlayer, HumanPlayer, Player, PlayerManager
 from .protocol import FoodState, SnakeState, StateMessage
@@ -94,7 +94,8 @@ class GameRoom:
             # ist in Tests seedbar). Bot bekommt denselben RNG für deterministische Tests.
             skill = self._rng.choices(BOT_SKILLS, weights=self.config.BOT_SKILL_WEIGHTS)[0]
             bot = Bot(self.config, skill, self._rng)
-            name = self.players.unique_name(f"KI{self._rng.randint(1000, 9999)}")
+            # Name spiegelt die Schwierigkeit wider (siehe SKILL_LABELS in bot.py).
+            name = self.players.unique_name(f"{SKILL_LABELS[skill]}{self._rng.randint(100, 999)}")
             player = self.players.add_ai(player_id, name, bot)
             self._spawn_snake_for(player)
 

@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from game.bot import SKILL_LABELS
 from game.game_room import _PATTERNS, GameRoom
 from game.vector import Vector2
 
@@ -351,11 +352,14 @@ def test_joining_with_a_name_matching_an_existing_bot_gets_suffixed(
 def test_bot_generated_name_colliding_with_a_human_gets_suffixed(
     game_room: GameRoom, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    game_room.add_human_player("p1", "KI4821")
-    monkeypatch.setattr(game_room._rng, "randint", lambda a, b: 4821)
+    # Skill und Zufallszahl fest vorgeben, damit der generierte Bot-Name bekannt ist.
+    monkeypatch.setattr(game_room._rng, "choices", lambda *a, **k: ["hard"])
+    monkeypatch.setattr(game_room._rng, "randint", lambda a, b: 421)
+    taken = f"{SKILL_LABELS['hard']}421"
+    game_room.add_human_player("p1", taken)
     game_room.add_ai_players(1)
     bot = next(p for p in game_room.players.all() if p.player_type == "ai")
-    assert bot.name == "KI4821 (2)"
+    assert bot.name == f"{taken} (2)"
 
 
 def test_color_persists_across_human_respawn(

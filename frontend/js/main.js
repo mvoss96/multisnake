@@ -59,17 +59,22 @@ window.addEventListener("DOMContentLoaded", () => {
   const canvas = document.getElementById("game-canvas");
   const renderer = createRenderer(canvas, activeThemeId);
 
-  // Design-Umschalter im Namens-Modal dynamisch aus der Registry erzeugen -
-  // ein neues Theme in themes.js bekommt so automatisch seinen Button.
-  const themeSelect = document.getElementById("theme-select");
+  // Design-Umschalter dynamisch aus der Registry erzeugen - ein neues Theme in
+  // themes.js bekommt so automatisch seinen Button. Es gibt mehrere Umschalter
+  // (Namens-Modal UND Game-Over-Overlay, beide .theme-select); pro Theme werden
+  // alle zugehörigen Buttons in einer Liste gehalten, damit die Auswahl-Markierung
+  // überall synchron bleibt.
   const themeButtons = new Map();
-  for (const theme of THEMES) {
-    const btn = document.createElement("button");
-    btn.className = "theme-option";
-    btn.textContent = theme.label;
-    btn.addEventListener("click", () => applyTheme(theme.id));
-    themeSelect.appendChild(btn);
-    themeButtons.set(theme.id, btn);
+  for (const theme of THEMES) themeButtons.set(theme.id, []);
+  for (const container of document.querySelectorAll(".theme-select")) {
+    for (const theme of THEMES) {
+      const btn = document.createElement("button");
+      btn.className = "theme-option";
+      btn.textContent = theme.label;
+      btn.addEventListener("click", () => applyTheme(theme.id));
+      container.appendChild(btn);
+      themeButtons.get(theme.id).push(btn);
+    }
   }
 
   function applyTheme(themeId) {
@@ -81,7 +86,9 @@ window.addEventListener("DOMContentLoaded", () => {
       if (theme.bodyClass) {
         document.body.classList.toggle(theme.bodyClass, theme.id === themeId);
       }
-      themeButtons.get(theme.id).classList.toggle("selected", theme.id === themeId);
+      for (const btn of themeButtons.get(theme.id)) {
+        btn.classList.toggle("selected", theme.id === themeId);
+      }
     }
     renderer.setTheme(themeId);
   }

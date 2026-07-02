@@ -11,6 +11,12 @@ from .vector import Vector2
 
 BotSkill = Literal["easy", "medium", "hard"]
 BOT_SKILLS: tuple[BotSkill, ...] = ("easy", "medium", "hard")
+# Namens-Präfix je Schwierigkeit, damit die Leaderboard-Namen die Stärke zeigen.
+SKILL_LABELS: dict[BotSkill, str] = {
+    "easy": "Anfänger",
+    "medium": "Jäger",
+    "hard": "Raubtier",
+}
 
 
 class DecisionContext(TypedDict):

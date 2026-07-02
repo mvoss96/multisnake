@@ -183,8 +183,7 @@ function createRenderer(canvas, initialThemeId) {
     const aspect = tree.naturalWidth / tree.naturalHeight;
     const hMax = TREE_HEIGHT;
     const wMax = hMax * aspect;
-    const depthMin = TREE_FOOT_INSET - TREE_BASE_JITTER;
-    return Math.max(hMax, wMax) - depthMin + TREE_OVERHANG_MARGIN;
+    return Math.max(hMax, wMax) - TREE_FOOT_INSET + TREE_OVERHANG_MARGIN;
   }
 
   // Der Boden-Überhang (treeOverhang()) hat selbst wieder eine feste
@@ -240,8 +239,10 @@ function createRenderer(canvas, initialThemeId) {
 
     // Stammfuß-Positionen je Rand sammeln (Achse = entlang des Rands, footInset
     // = senkrecht ins Feld). "top"/"bottom" reihen entlang x, "left"/"right"
-    // entlang y. Ein zufälliger Tiefen-Jitter (r2) versetzt die Basis leicht
-    // senkrecht zum Rand, damit sich die Überlappungsrichtung mischt.
+    // entlang y. Alle Bäume stehen bewusst auf exakt derselben Höhe/Tiefe (kein
+    // Höhen-/Tiefen-Jitter); nur ein kleiner Versatz ENTLANG des Rands lockert
+    // die Reihe auf. Jeder Baum bekommt zusätzlich einen zufälligen z-Wert, der
+    // ausschließlich die Zeichenreihenfolge steuert (siehe Sortierung unten).
     const trees = [];
     for (const edge of edges) {
       const horizontal = edge === "top" || edge === "bottom";
@@ -255,37 +256,37 @@ function createRenderer(canvas, initialThemeId) {
         if (edges.includes("top")) startS = TREE_SPACING;
         if (edges.includes("bottom")) endS = along - TREE_SPACING;
       }
+      const h = TREE_HEIGHT; // gleiche Höhe für alle
+      const w = h * aspect;
       for (let i = 0, s = startS; s <= endS; i++, s += TREE_SPACING) {
         const r = hashUnit(edge + "t" + i);
-        const r2 = hashUnit(edge + "ty" + i);
-        const h = TREE_HEIGHT - r * TREE_STAGGER;
-        const w = h * aspect;
-        const jit = (r - 0.5) * TREE_SPACING * 0.3; // Versatz entlang des Rands
-        const depth = TREE_FOOT_INSET + (r2 - 0.5) * 2 * TREE_BASE_JITTER;
+        const z = hashUnit(edge + "z" + i); // nur Zeichenreihenfolge
+        const jit = (r - 0.5) * TREE_SPACING * TREE_ALONG_JITTER_FACTOR;
         let footX;
         let footY;
         if (edge === "top") {
           footX = s + jit;
-          footY = depth;
+          footY = TREE_FOOT_INSET;
         } else if (edge === "bottom") {
           footX = s + jit;
-          footY = board.height - depth;
+          footY = board.height - TREE_FOOT_INSET;
         } else if (edge === "left") {
           // Bäume bleiben aufrecht; um sie an den Rand zu rücken (nicht mittig
           // ins Feld), wird der Stamm um die halbe Breite nach außen versetzt,
           // sodass die Kronen-Feldkante bei TREE_FOOT_INSET liegt (wie oben).
-          footX = depth - w / 2;
+          footX = TREE_FOOT_INSET - w / 2;
           footY = s + jit;
         } else {
-          footX = board.width - depth + w / 2;
+          footX = board.width - TREE_FOOT_INSET + w / 2;
           footY = s + jit;
         }
-        trees.push({ footX, footY, w, h });
+        trees.push({ footX, footY, w, h, z });
       }
     }
-    // Von hinten (kleineres footY) nach vorn zeichnen - tiefer stehende Bäume
-    // überlappen die höher stehenden, unabhängig von der Reihenfolge im Array.
-    trees.sort((a, b) => a.footY - b.footY);
+    // Nach dem zufälligen z-Wert zeichnen: die Überlappung läuft dadurch mal in
+    // die eine, mal in die andere Richtung (statt gleichförmig immer rechts-vor-
+    // links), OHNE dass die Bäume dafür auf unterschiedlicher Höhe stehen müssen.
+    trees.sort((a, b) => a.z - b.z);
 
     for (const t of trees) {
       // Weicher Bodenschatten am Stammfuß (radialer Verlauf, gestaucht zur

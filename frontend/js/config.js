@@ -58,24 +58,22 @@ const DASH_PIP_RADIUS_BTN = 43;
 // dicht an dicht gereiht und leicht in der Höhe versetzt für eine Wald-Silhouette.
 const TREE_HEIGHT = 90; // gezeichnete Baumhöhe in Welteinheiten
 const TREE_SPACING = 62; // horizontaler Abstand der Stämme
-// Höhenversatz je Baum - hält die Kronenlinie einer Reihe grob auf ähnlicher
-// Höhe (kein wildes Gezacke), aber genug Varianz, damit die Reihe organisch
-// wirkt statt wie eine exakt lineale, künstlich wirkende Kante.
-const TREE_STAGGER = 6;
-// Zufälliger Tiefen-(quer zum Rand)-Versatz je Baum: bricht die gleichförmige
-// Überlappung auf (sonst liegt immer der hintere Baum vor dem vorderen).
-// Zusammen mit dem Zeichnen von hinten nach vorn (nach Stammfuß-Distanz
-// sortiert) überlappen die Bäume mal in die eine, mal in die andere Richtung.
-const TREE_BASE_JITTER = 6;
+// Kleiner seitlicher (entlang des Rands) Versatz je Baum als Bruchteil des
+// Abstands - lockert die perfekt-lineale Reihe minimal auf, OHNE die Höhe zu
+// verändern (alle Bäume stehen bewusst auf exakt derselben Höhe). Die
+// Überlappungsrichtung wird nicht über Höhen-/Tiefen-Jitter variiert (das
+// setzte die Bäume sichtbar unterschiedlich hoch), sondern nur über eine
+// zufällige Zeichenreihenfolge (siehe drawBorderTrees).
+const TREE_ALONG_JITTER_FACTOR = 0.15;
 // Stammfuß nicht exakt auf der Tile-Kante, sondern etwas ins Feld versetzt -
 // so stehen die Bäume auf dem Gras und die überlappenden Kronen verdecken die
 // sonst sichtbare harte Bodenkante zwischen den Bäumen.
 const TREE_FOOT_INSET = 26;
 // Sicherheitsmarge zusätzlich zum rechnerisch nötigen Boden-Überhang (siehe
 // treeOverhang() in renderer.js, das die Kronen-Maximalausdehnung aus
-// TREE_HEIGHT/Sprite-Seitenverhältnis/TREE_FOOT_INSET/TREE_BASE_JITTER
-// herleitet) - ein reiner Festwert hier wäre bei jeder Anpassung der Baum-
-// Konstanten erneut falsch (siehe Bug: bei 32px sichtbare Bodenkante links).
+// TREE_HEIGHT/Sprite-Seitenverhältnis/TREE_FOOT_INSET herleitet) - ein reiner
+// Festwert hier wäre bei jeder Anpassung der Baum-Konstanten erneut falsch
+// (siehe Bug: bei 32px sichtbare Bodenkante links).
 const TREE_OVERHANG_MARGIN = 6;
 // Der Boden-Überhang selbst hat eine feste (wenn auch korrekt berechnete)
 // Außenkante zum schwarzen Canvas-Hintergrund. Ohne Weichzeichnung ist das eine

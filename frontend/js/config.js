@@ -43,14 +43,13 @@ const RELATIVE_POLL_MS = 33;
 // the server becomes the limiting factor as intended (matches absolute-mode feel).
 const RELATIVE_TURN_STEP = 0.2;
 
-// Pixel-Theme: gestufte Pip-Anzeige fürs Dash-Laden auf dem großen
-// Touch-Button (siehe buildDashPips in main.js) statt eines glatten
-// SVG-Kreisbogens - eine anti-aliasierte Kurve passt nicht zum harten
-// Pixel-Look der übrigen Sprites. Der kompakte Desktop-Ring (#dash-ring)
-// behält den SVG-Bogen unverändert. Radius so gewählt, dass die Pips knapp
-// außerhalb des Button-Rands sitzen (#dash-btn ist 72px breit, Radius 36).
-const DASH_PIP_COUNT = 8;
-const DASH_PIP_RADIUS_BTN = 43;
+// Pixel-Theme: gestufte Gold-Füllung fürs Dash-Laden (steigt im Münz-Coin von
+// unten auf, siehe .dash-fill in style.css + updateDashMeter in main.js) -
+// einheitlich für Desktop-Ring UND Touch-Button, ersetzt den glatten SVG-Bogen
+// (eine anti-aliasierte Kurve passt nicht zum harten Pixel-Look). In so viele
+// Stufen gerundet, dass die aufsteigende Kante chunky/gepixelt wirkt statt
+// glatt zu gleiten.
+const DASH_FILL_STEPS = 8;
 
 // Deko-Bäume an Kartenrändern (nur Themes mit borderSprite-Rolle, siehe
 // themes.js/renderer.js) - rein optisch, keine Kollision. Der Stammfuß sitzt auf

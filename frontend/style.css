@@ -123,26 +123,23 @@ html, body {
   position: relative;
 }
 
-/* Pixel-Theme-Ladeanzeige: acht diskrete Pips statt eines glatten Kreisbogens
-   (siehe buildDashPips in main.js für die Positionierung, updateDashMeter für
-   die "lit"-Klasse je Ladefortschritt) - per Default unsichtbar, nur unter
-   body.theme-pixel eingeblendet (siehe unten im Pixel-Theme-Block). */
-.dash-pips {
+/* Pixel-Theme-Ladeanzeige: eine Gold-Füllung, die im Coin von unten aufsteigt
+   (Höhe per JS gesetzt, siehe updateDashMeter). Per Default unsichtbar, nur
+   unter body.theme-pixel eingeblendet (dann ist der SVG-Ring aus). Der Coin-
+   Container clippt sie kreisförmig (overflow:hidden + border-radius unten im
+   Pixel-Block). Position unter dem .dash-icon-Label (früher im DOM). */
+.dash-fill {
   display: none;
   position: absolute;
-  inset: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  /* Gold-Füllung mit heller 2px-"Oberfläche" oben als Gradient (nicht als
+     border-top - das bliebe bei height:0 als dünne Linie stehen; so ist bei
+     leerer Anzeige wirklich nichts zu sehen). */
+  background: linear-gradient(to bottom, #fff3b0 0, #fff3b0 2px, #ffd23f 2px);
   pointer-events: none;
-}
-
-.dash-pips .pip {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 6px;
-  height: 6px;
-  margin: -3px 0 0 -3px;
-  background: #2c1c10;
-  border: 1px solid #140c06;
   image-rendering: pixelated;
 }
 
@@ -520,25 +517,28 @@ body.theme-pixel #dash-btn {
   background: url("assets/sprites/dash_button_idle.png") no-repeat center / cover;
   image-rendering: pixelated;
   border: none;
+  /* clippt die aufsteigende .dash-fill kreisförmig auf den Coin */
+  overflow: hidden;
 }
 
-/* Der glatte SVG-Kreisbogen passt nicht zum harten Pixel-Look - im Pixel-
-   Theme übernimmt stattdessen die gestufte Pip-Anzeige (siehe .dash-pips
-   oben, Positionierung/Füllstand per JS in main.js). Nur für den großen
-   Touch-Button (#dash-btn): der kompakte Desktop-Ring (#dash-ring) war mit
-   dem Bogen schon in Ordnung, bleibt also unverändert. */
+/* Der glatte SVG-Kreisbogen passt nicht zum harten Pixel-Look - im Pixel-Theme
+   übernimmt für BEIDE (Desktop-Ring UND Touch-Button) dieselbe gestufte
+   Gold-Füllung, die im Coin von unten aufsteigt (Höhe per JS, siehe
+   updateDashMeter). */
+body.theme-pixel #dash-ring .dash-progress,
 body.theme-pixel #dash-btn .dash-progress {
   display: none;
 }
 
-body.theme-pixel #dash-btn .dash-pips {
+body.theme-pixel #dash-ring .dash-fill,
+body.theme-pixel #dash-btn .dash-fill {
   display: block;
 }
 
-body.theme-pixel #dash-btn .dash-pips .pip.lit {
-  background: #ffd23f;
-  border-color: #7a4a10;
-  box-shadow: 0 0 3px rgba(255, 210, 63, 0.85);
+/* Beim aktiven Dash färbt sich die (voll aufgefüllte) Anzeige rot. */
+body.theme-pixel #dash-ring.active .dash-fill,
+body.theme-pixel #dash-btn.active .dash-fill {
+  background: linear-gradient(to bottom, #ffd0d0 0, #ffd0d0 2px, #ff5d5d 2px);
 }
 
 /* Kräftigerer goldener Glow wie im Mockup (der große Touch-Button trägt ihn

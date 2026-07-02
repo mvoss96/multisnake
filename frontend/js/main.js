@@ -57,26 +57,6 @@ window.addEventListener("DOMContentLoaded", () => {
   const dashRing = document.getElementById("dash-ring");
   const dashBtn = document.getElementById("dash-btn");
 
-  // Pixel-Theme-Ladeanzeige (nur der große Touch-Button #dash-btn - der
-  // kompakte Desktop-Ring #dash-ring behält den SVG-Bogen, der dort schon
-  // gut aussah): DASH_PIP_COUNT Pips gleichmäßig auf einem Kreis verteilt
-  // (12-Uhr-Start wie der SVG-Ring). Positionen sind statisch, daher einmalig
-  // beim Start erzeugt statt pro Frame.
-  function buildDashPips(container, radius) {
-    const pipsEl = container.querySelector(".dash-pips");
-    if (!pipsEl) return;
-    for (let i = 0; i < DASH_PIP_COUNT; i++) {
-      const angle = (i / DASH_PIP_COUNT) * Math.PI * 2 - Math.PI / 2;
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
-      const pip = document.createElement("span");
-      pip.className = "pip";
-      pip.style.transform = `translate(${x}px, ${y}px)`;
-      pipsEl.appendChild(pip);
-    }
-  }
-  buildDashPips(dashBtn, DASH_PIP_RADIUS_BTN);
-
   let camera = { x: 0, y: 0 };
   let client = null;
   let pendingName = "";
@@ -131,19 +111,20 @@ window.addEventListener("DOMContentLoaded", () => {
 
   function updateDashMeter(charge, dashing) {
     // Beide Anzeigen (kompakter HUD-Ring für Desktop, großer Button für Touch)
-    // teilen sich dieselbe Ring-Füllung + Bereit/Aktiv-Farblogik. pathLength="100"
-    // auf den <circle>-Elementen (siehe index.html) macht dashoffset direkt zum
-    // Prozentwert, unabhängig vom tatsächlichen SVG-Radius.
+    // teilen sich dieselbe Füll-Logik + Bereit/Aktiv-Zustände.
+    // Klassik-Theme: SVG-Fortschrittsring (stroke-dashoffset, pathLength=100 auf
+    // den <circle>-Elementen macht dashoffset direkt zum Prozentwert).
     const offset = 100 * (1 - charge);
-    // Pixel-Theme-Pips: wie viele der DASH_PIP_COUNT Segmente "lit" sind -
-    // bei aktivem Dash alle, sonst nach Ladefortschritt gerundet.
-    const litCount = dashing ? DASH_PIP_COUNT : Math.floor(charge * DASH_PIP_COUNT + 1e-6);
+    // Pixel-Theme: gestufte Gold-Füllung, die im Münz-Coin von unten aufsteigt
+    // (siehe .dash-fill in style.css) - identisch für Ring und Button. In Stufen
+    // gerundet (DASH_FILL_STEPS) für einen chunky, harten Pixel-Look statt einer
+    // glatt gleitenden Kante.
+    const filled = dashing ? 1 : Math.round(charge * DASH_FILL_STEPS) / DASH_FILL_STEPS;
     for (const el of [dashRing, dashBtn]) {
       el.querySelector(".dash-progress-fill").style.strokeDashoffset = offset;
       el.classList.toggle("active", !!dashing);
       el.classList.toggle("ready", !dashing && charge >= 1);
-      const pips = el.querySelectorAll(".dash-pips .pip");
-      pips.forEach((pip, i) => pip.classList.toggle("lit", i < litCount));
+      el.querySelector(".dash-fill").style.height = filled * 100 + "%";
     }
   }
 

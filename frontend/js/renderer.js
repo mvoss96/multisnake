@@ -104,24 +104,52 @@ function createRenderer(canvas, initialThemeId) {
     obstacles = list || [];
   }
 
-  // Felsen zeichnen: gethemetes Sprite (Pixel-Theme) etwas größer als die
-  // Kollisionsscheibe, sonst Vektor-Fallback (grauer Kreis mit Kontur).
+  // Felsen zeichnen: gethemetes Sprite (Pixel-Theme) aufs Texel-Raster gerastert,
+  // sonst ein plastischer Vektor-Fels (Klassik) - klar als Hindernis erkennbar.
   function drawObstacles() {
     const sprite = themedSprite("rock");
     for (const o of obstacles) {
       if (sprite) {
-        const w = 2 * o.radius * ROCK_SPRITE_SCALE;
-        ctx.drawImage(sprite, snap(o.x - w / 2), snap(o.y - w / 2), w, w);
+        // Rastertreu: jedes Art-Pixel des (niedrig aufgelösten) Sprites bekommt eine
+        // GANZZAHLIGE Zahl Texel (k), Größe ~ Durchmesser*Scale. Damit sind die
+        // Fels-Pixel exakt so groß wie alle anderen Sprite-Pixel und liegen aufs
+        // gemeinsame Gitter; imageSmoothingEnabled=false hält die Kanten hart.
+        const nativeMax = Math.max(sprite.naturalWidth, sprite.naturalHeight);
+        const k = Math.max(
+          1,
+          Math.round((2 * o.radius * ROCK_SPRITE_SCALE) / (nativeMax * PIXEL_UNIT))
+        );
+        const w = sprite.naturalWidth * k * PIXEL_UNIT;
+        const h = sprite.naturalHeight * k * PIXEL_UNIT;
+        ctx.drawImage(sprite, snap(o.x - w / 2), snap(o.y - h / 2), w, h);
       } else {
-        ctx.beginPath();
-        ctx.arc(o.x, o.y, o.radius, 0, Math.PI * 2);
-        ctx.fillStyle = ROCK_FILL_COLOR;
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = ROCK_STROKE_COLOR;
-        ctx.stroke();
+        drawVectorRock(o.x, o.y, o.radius);
       }
     }
+  }
+
+  // Plastischer Fels für Vektor-Themes: Bodenschatten (erdet ihn), dunkle Kontur
+  // + heller Reflex oben-links -> liest sich als solider Brocken, nicht als Blob.
+  function drawVectorRock(x, y, r) {
+    ctx.beginPath();
+    ctx.ellipse(x, y + r * 0.6, r * 0.95, r * 0.42, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = ROCK_FILL_COLOR;
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = ROCK_STROKE_COLOR;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.ellipse(x - r * 0.3, y - r * 0.34, r * 0.4, r * 0.28, -0.5, 0, Math.PI * 2);
+    ctx.fillStyle = ROCK_HIGHLIGHT_COLOR;
+    ctx.globalAlpha = 0.55;
+    ctx.fill();
+    ctx.globalAlpha = 1;
   }
 
   function resizeToWindow() {

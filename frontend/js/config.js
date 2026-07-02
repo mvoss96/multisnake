@@ -136,9 +136,10 @@ const TREE_SHADOW_DROP = 10; // Welteinheiten unter den Stammfuß versetzt
 // welcome-Nachricht). Sprite etwas größer als die Kollisionsscheibe zeichnen,
 // damit der Fels solide über seinen Hitbox-Rand ragt. Vektor-Fallback (Klassik-
 // Theme) = gefüllter grauer Kreis mit Kontur.
-const ROCK_SPRITE_SCALE = 1.18;
+const ROCK_SPRITE_SCALE = 1.15;
 const ROCK_FILL_COLOR = "#6b6b74";
-const ROCK_STROKE_COLOR = "#33333c";
+const ROCK_STROKE_COLOR = "#2a2a30";
+const ROCK_HIGHLIGHT_COLOR = "#9a9aa6";
 
 // Spikes
 const SPIKE_SPACING = 30;

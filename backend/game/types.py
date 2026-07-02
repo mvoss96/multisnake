@@ -60,3 +60,4 @@ class GameConfig(FoodConfig, SnakeConfig, BotConfig, Protocol):
     FOOD_MAX_CONSOLIDATE_GAP: float
     FOOD_MAGNET_RADIUS: float
     FOOD_MAGNET_SPEED: float
+    GRID_CELL_SIZE: float

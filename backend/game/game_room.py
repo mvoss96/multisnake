@@ -5,9 +5,10 @@ import uuid
 from .board import Board
 from .bot import Bot, DecisionContext
 from .food import Food, FoodManager
-from .player import HumanPlayer, Player, PlayerManager
+from .player import AIPlayer, HumanPlayer, Player, PlayerManager
 from .protocol import FoodState, SnakeState, StateMessage
 from .snake import Snake
+from .spatial_grid import SpatialGrid
 from .types import GameConfig
 from .vector import Vector2
 
@@ -194,10 +195,16 @@ class GameRoom:
     def _apply_food_magnet(self, alive_snakes: list[Snake], dt: float) -> None:
         radius = self.config.FOOD_MAGNET_RADIUS
         speed = self.config.FOOD_MAGNET_SPEED
+        # Broad-Phase: Snake-Köpfe ins Grid; pro Food nur die Köpfe im Magnet-Radius
+        # abfragen statt aller Snakes. Köpfe bewegen sich hier nicht (nur Food wird
+        # bewegt), daher ist die eingefügte Position == aktueller Kopf.
+        head_grid: SpatialGrid[Snake] = SpatialGrid(self.config.GRID_CELL_SIZE)
+        for s in alive_snakes:
+            head_grid.insert(s.head(), s)
         for food in self.food_manager.foods.values():
             nearest_head = None
             nearest_dist = radius
-            for snake in alive_snakes:
+            for _pos, snake in head_grid.query(food.position, radius):
                 d = snake.head().distance_to(food.position)
                 if d < nearest_dist:
                     nearest_dist = d
@@ -215,21 +222,42 @@ class GameRoom:
         all_players = self.players.all()
         alive_snakes = [p.snake for p in all_players if p.snake and p.snake.alive]
 
+        # foods-Liste einmal bilden und teilen; den teuren AI-Kontext (other_snakes)
+        # nur für Bots bauen. Menschen ignorieren den Kontext ohnehin
+        # (HumanPlayer.get_input_direction), bekommen also einen geteilten Leer-Kontext.
+        foods_list = list(self.food_manager.foods.values())
+        human_ctx: DecisionContext = {
+            "board": self.board,
+            "foods": foods_list,
+            "other_snakes": [],
+        }
         for player in all_players:
             snake = player.snake
             if not snake or not snake.alive:
                 continue
-            context: DecisionContext = {
-                "board": self.board,
-                "foods": list(self.food_manager.foods.values()),
-                "other_snakes": [s for s in alive_snakes if s.id != snake.id],
-            }
+            if isinstance(player, AIPlayer):
+                context: DecisionContext = {
+                    "board": self.board,
+                    "foods": foods_list,
+                    "other_snakes": [s for s in alive_snakes if s.id != snake.id],
+                }
+            else:
+                context = human_ctx
             angle = player.get_input_direction(context)
             if angle is not None:
                 snake.set_desired_direction(angle)
             snake.move(dt, self.config.MAX_TURN_RATE)
 
         self._apply_food_magnet(alive_snakes, dt)
+
+        # Broad-Phase für die Snake-vs-Snake-Kollision: alle Körperpunkte der zu
+        # Tick-Beginn lebenden Snakes ins Grid. Bewusst aus `alive_snakes` (nicht
+        # neu gefiltert), damit eine in diesem Tick bereits gestorbene Snake weiterhin
+        # als Hindernis zählt - exakt wie im vorherigen All-Pairs-Loop.
+        body_grid: SpatialGrid[Snake] = SpatialGrid(self.config.GRID_CELL_SIZE)
+        for s in alive_snakes:
+            for p in s.points:
+                body_grid.insert(p, s)
 
         for player in all_players:
             snake = player.snake
@@ -242,15 +270,24 @@ class GameRoom:
             if self.board.is_out_of_bounds(head, margin=death_margin):
                 snake.alive = False
                 continue
-            for other in alive_snakes:
+            # reach deckt den größtmöglichen other.radius ab, damit das Grid keinen
+            # echten Treffer verpasst; der exakte Check bleibt dahinter identisch.
+            reach = snake.radius + self.config.SNAKE_MAX_RADIUS
+            for point, other in body_grid.query(head, reach):
                 if other.id == snake.id:
                     continue
-                for point in other.points:
-                    if head.distance_to(point) < snake.radius + other.radius:
-                        snake.alive = False
-                        break
-                if not snake.alive:
+                if head.distance_to(point) < snake.radius + other.radius:
+                    snake.alive = False
                     break
+
+        # Broad-Phase: alle Food-Positionen einmal ins Grid, pro Kopf nur nahe Foods.
+        # Das Grid wird vor der Schleife gebaut und währenddessen NICHT verändert -
+        # das Entfernen passiert erst danach über eaten_ids. Bewusst KEIN Dedup:
+        # erreichen zwei Köpfe dasselbe Food im selben Tick, wächst jede Snake
+        # (zwei grow()), das idempotente remove() räumt danach einmal auf.
+        food_grid: SpatialGrid[Food] = SpatialGrid(self.config.GRID_CELL_SIZE)
+        for f in self.food_manager.foods.values():
+            food_grid.insert(f.position, f)
 
         eaten_ids = []
         for player in all_players:
@@ -258,7 +295,8 @@ class GameRoom:
             if not snake or not snake.alive:
                 continue
             head = snake.head()
-            for food in list(self.food_manager.foods.values()):
+            reach = snake.radius + self.config.FOOD_BIG_RADIUS
+            for _pos, food in food_grid.query(head, reach):
                 if head.distance_to(food.position) < snake.radius + self._food_radius(food):
                     snake.grow(score_value=food.score_value)
                     eaten_ids.append(food.id)

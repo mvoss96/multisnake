@@ -92,6 +92,33 @@ def test_snake_vs_snake_collision_kills_the_colliding_snake(
     assert blocker.snake is None
 
 
+def test_collision_hit_just_within_combined_radius_kills(
+    game_room: GameRoom, spawn_snake_at: SpawnSnakeAt
+) -> None:
+    # Combined radius = SNAKE_RADIUS + SNAKE_RADIUS = 14; heads 13 apart are inside it.
+    victim = spawn_snake_at("victim", 150, 150)
+    blocker = spawn_snake_at("blocker", 163, 150)
+
+    game_room.tick(0.0)
+
+    assert victim.snake is None
+    assert blocker.snake is None
+
+
+def test_collision_near_miss_just_outside_combined_radius_survives(
+    game_room: GameRoom, spawn_snake_at: SpawnSnakeAt
+) -> None:
+    # Heads 15 apart, just past the 14-unit combined radius -> the exact check
+    # behind the grid must reject it and leave both snakes alive.
+    a = spawn_snake_at("a", 150, 150)
+    b = spawn_snake_at("b", 165, 150)
+
+    game_room.tick(0.0)
+
+    assert a.snake is not None and a.snake.alive
+    assert b.snake is not None and b.snake.alive
+
+
 def test_eating_food_grows_snake_and_removes_food(
     game_room: GameRoom, test_config: SimpleNamespace, spawn_snake_at: SpawnSnakeAt
 ) -> None:
@@ -102,6 +129,62 @@ def test_eating_food_grows_snake_and_removes_food(
 
     assert player.snake is not None
     assert player.snake.score == 1
+    assert food.id not in game_room.food_manager.foods
+
+
+def test_food_just_within_eating_reach_is_eaten(
+    game_room: GameRoom, test_config: SimpleNamespace, spawn_snake_at: SpawnSnakeAt
+) -> None:
+    # threshold = SNAKE_RADIUS + FOOD_RADIUS = 12; food 11 away is inside it.
+    player = spawn_snake_at("p1", 150, 150)
+    food = game_room.food_manager.spawn_at(Vector2(161, 150), score_value=1)
+
+    game_room.tick(0.0)  # dt=0 so the magnet doesn't move the food first
+
+    assert player.snake is not None and player.snake.score == 1
+    assert food.id not in game_room.food_manager.foods
+
+
+def test_food_just_outside_eating_reach_is_not_eaten(
+    game_room: GameRoom, test_config: SimpleNamespace, spawn_snake_at: SpawnSnakeAt
+) -> None:
+    # 13 away, just past the 12-unit combined radius -> the exact check rejects it.
+    player = spawn_snake_at("p1", 150, 150)
+    food = game_room.food_manager.spawn_at(Vector2(163, 150), score_value=1)
+
+    game_room.tick(0.0)
+
+    assert player.snake is not None and player.snake.score == 0
+    assert food.id in game_room.food_manager.foods
+
+
+def test_food_magnet_pulls_food_toward_the_nearer_of_two_heads(
+    game_room: GameRoom, spawn_snake_at: SpawnSnakeAt
+) -> None:
+    # Both heads within the 60-unit magnet radius; food at x=130 is nearer to the
+    # left head (30) than the right one (50), so it must drift left, not right.
+    spawn_snake_at("near", 100, 150)
+    spawn_snake_at("far", 180, 150)
+    food = game_room.food_manager.spawn_at(Vector2(130, 150))
+
+    game_room.tick(1 / 30)
+
+    assert food.position.x < 130
+
+
+def test_one_food_reached_by_two_heads_grows_both_and_is_removed_once(
+    game_room: GameRoom, spawn_snake_at: SpawnSnakeAt
+) -> None:
+    # Heads 18 apart in y (past the 14-unit collision radius, so neither dies);
+    # food between them is within eating reach of both (9 < 12 each).
+    a = spawn_snake_at("a", 150, 150)
+    b = spawn_snake_at("b", 150, 168)
+    food = game_room.food_manager.spawn_at(Vector2(150, 159), score_value=1)
+
+    game_room.tick(0.0)
+
+    assert a.snake is not None and a.snake.score == 1
+    assert b.snake is not None and b.snake.score == 1
     assert food.id not in game_room.food_manager.foods
 
 

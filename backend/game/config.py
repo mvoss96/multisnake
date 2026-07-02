@@ -75,6 +75,12 @@ FOOD_LIFETIME_SECONDS: Final[float] = 25.0
 
 SPIKE_ZONE_DEPTH: Final[float] = 14  # muss zu SPIKE_SIZE im Frontend-Renderer passen
 
+# Zellgröße des Spatial-Grids (Broad-Phase für Kollision/Food, siehe game/spatial_grid.py).
+# Rein Tuning der Kandidatenmenge/Geschwindigkeit - die Korrektheit ist unabhängig davon,
+# solange query() mit dem echten Interaktionsradius aufgerufen wird. Sinnvoll gewählt >=
+# typischer Interaktionsabstand (Kollision ~28, Food-Fressen ~23, Magnet 60).
+GRID_CELL_SIZE: Final[float] = 40.0
+
 BOT_SIGHT_RADIUS: Final[float] = 350.0
 BOT_LOOKAHEAD: Final[float] = 60.0
 BOT_DANGER_MARGIN: Final[float] = 10.0

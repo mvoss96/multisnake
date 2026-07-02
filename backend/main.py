@@ -42,17 +42,16 @@ FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
 async def broadcast_tick() -> None:
     game_over_events = [] if game_room.paused else game_room.tick(config.TICK_DT)
-    state = game_room.serialize_state().model_dump()
+    # State nur EINMAL pro Tick zu JSON-Text serialisieren (nicht C-mal), dann
+    # denselben Frame parallel an alle Verbindungen senden.
+    text = game_room.serialize_state().model_dump_json()
 
-    stale = []
-    for player_id, ws in list(connections.items()):
-        try:
-            await ws.send_json(state)
-        except Exception:
-            stale.append(player_id)
-    for player_id in stale:
-        connections.pop(player_id, None)
-        game_room.remove_player(player_id)
+    items = list(connections.items())
+    results = await asyncio.gather(*(ws.send_text(text) for _, ws in items), return_exceptions=True)
+    for (player_id, _), res in zip(items, results, strict=True):
+        if isinstance(res, Exception):
+            connections.pop(player_id, None)
+            game_room.remove_player(player_id)
 
     for player_id, score in game_over_events:
         target_ws = connections.get(player_id)
@@ -63,10 +62,19 @@ async def broadcast_tick() -> None:
                 pass
 
 
+def sleep_duration(elapsed: float, tick_dt: float) -> float:
+    """Verbleibende Schlafzeit bis zur nächsten Tick-Deadline. Bei Überlast
+    (elapsed >= tick_dt) 0.0 -> die Loop läuft ohne Pause weiter, statt durch
+    eine feste Pause in Zeitlupe zu geraten."""
+    return max(0.0, tick_dt - elapsed)
+
+
 async def game_loop() -> None:
+    loop = asyncio.get_running_loop()
     while True:
-        await asyncio.sleep(config.TICK_DT)
+        start = loop.time()
         await broadcast_tick()
+        await asyncio.sleep(sleep_duration(loop.time() - start, config.TICK_DT))
 
 
 @asynccontextmanager

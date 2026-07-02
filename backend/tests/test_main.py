@@ -42,6 +42,19 @@ async def _send_and_settle(ws: WebSocketTestSession, message: dict[str, object])
     await asyncio.sleep(0.05)
 
 
+def test_sleep_duration_returns_remaining_time_when_under_budget() -> None:
+    assert main.sleep_duration(0.01, 1 / 30) == pytest.approx(1 / 30 - 0.01)
+
+
+def test_sleep_duration_clamps_to_zero_when_over_budget() -> None:
+    # Überlast: der Tick brauchte länger als das Budget -> keine (negative) Pause.
+    assert main.sleep_duration(0.05, 1 / 30) == 0.0
+
+
+def test_sleep_duration_is_zero_at_exact_deadline() -> None:
+    assert main.sleep_duration(1 / 30, 1 / 30) == 0.0
+
+
 @pytest.mark.asyncio
 async def test_join_then_tick_includes_my_snake_in_state(client: TestClient) -> None:
     with client.websocket_connect("/ws") as ws:

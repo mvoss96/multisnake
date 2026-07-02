@@ -49,6 +49,7 @@ def test_config() -> SimpleNamespace:
         FOOD_BIG_SPAWN_CHANCE=0.04,
         FOOD_MAGNET_RADIUS=60.0,
         FOOD_MAGNET_SPEED=260.0,
+        GRID_CELL_SIZE=40.0,
         BOT_SIGHT_RADIUS=350.0,
         BOT_LOOKAHEAD=60.0,
         BOT_DANGER_MARGIN=10.0,

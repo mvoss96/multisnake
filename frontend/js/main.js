@@ -1,13 +1,34 @@
 window.addEventListener("DOMContentLoaded", () => {
-  // Experimentelles Pixel-Art-Retheme nur mit ?theme=pixel in der URL aktiv
-  // (siehe body.theme-pixel in style.css und den pixelTheme-Parameter von
-  // createRenderer) - Standardverhalten bleibt unangetastet, während das neue
-  // Theme parallel getestet werden kann.
-  const pixelTheme = new URLSearchParams(window.location.search).get("theme") === "pixel";
-  document.body.classList.toggle("theme-pixel", pixelTheme);
+  // Pixel-Art-Retheme: wählbar über den Design-Umschalter im Namens-Modal
+  // (gespeichert in localStorage), ein ?theme=...-URL-Parameter übersteuert
+  // die gespeicherte Wahl (praktisch zum Verschicken von Test-Links).
+  const themeParam = new URLSearchParams(window.location.search).get("theme");
+  let pixelTheme;
+  if (themeParam === "pixel") {
+    pixelTheme = true;
+  } else if (themeParam) {
+    pixelTheme = false;
+  } else {
+    pixelTheme = localStorage.getItem("snakeTheme") === "pixel";
+  }
 
   const canvas = document.getElementById("game-canvas");
   const renderer = createRenderer(canvas, pixelTheme);
+  const themeClassicBtn = document.getElementById("theme-classic-btn");
+  const themePixelBtn = document.getElementById("theme-pixel-btn");
+
+  function applyTheme(usePixel) {
+    pixelTheme = usePixel;
+    localStorage.setItem("snakeTheme", usePixel ? "pixel" : "classic");
+    document.body.classList.toggle("theme-pixel", usePixel);
+    renderer.setPixelTheme(usePixel);
+    themeClassicBtn.classList.toggle("selected", !usePixel);
+    themePixelBtn.classList.toggle("selected", usePixel);
+  }
+
+  applyTheme(pixelTheme);
+  themeClassicBtn.addEventListener("click", () => applyTheme(false));
+  themePixelBtn.addEventListener("click", () => applyTheme(true));
   const scoreEl = document.getElementById("score");
   const overlay = document.getElementById("game-over-overlay");
   const finalScoreEl = document.getElementById("final-score");

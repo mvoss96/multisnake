@@ -386,27 +386,89 @@ body.touch-device #dash-btn {
   }
 }
 
-/* Experimenteller Pixel-Art-Retheme - nur aktiv mit ?theme=pixel in der URL
-   (siehe main.js), damit das bisherige Erscheinungsbild standardmäßig
-   unangetastet bleibt, während das neue Theme parallel getestet werden kann.
-   Sprites liegen in frontend/assets/sprites/ (siehe renderer.js für die
-   Canvas-Seite: Bodentextur, Futter-Icons, Stacheln). */
+/* Design-Umschalter im Namens-Modal (siehe applyTheme in main.js). */
+#theme-select {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: #9d9db8;
+}
+
+/* .panel button (Spielen-Button-Optik) würde hier sonst per Spezifität
+   gewinnen - daher .panel im Selektor wiederholen. */
+.panel .theme-option {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #22223a;
+  color: #cfcfe0;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.panel .theme-option:hover {
+  transform: none;
+  box-shadow: none;
+  background: #2e2e4d;
+}
+
+.panel .theme-option.selected {
+  background: #ffd23f;
+  border-color: #ffd23f;
+  color: #1a1a2e;
+  font-weight: 700;
+}
+
+.panel .theme-option.selected:hover {
+  background: #ffd23f;
+}
+
+/* Pixel-Art-Retheme - wählbar im Namens-Modal (localStorage) oder per
+   ?theme=pixel in der URL (siehe main.js), damit das bisherige
+   Erscheinungsbild standardmäßig unangetastet bleibt. Sprites liegen in
+   frontend/assets/sprites/ (siehe renderer.js für die Canvas-Seite:
+   Bodentextur, Futter-Icons, Stacheln, Schlangen-Sprites).
+   Die Holz-Panels werden per border-image (9-Slice) skaliert statt das
+   ganze Bild auf 100%/100% zu strecken - so bleiben Ecken und Rahmenbreite
+   bei jeder Panelgröße unverzerrt. */
 body.theme-pixel #hud {
-  background: url("assets/sprites/ui_panel_rect.png") no-repeat;
-  background-size: 100% 100%;
+  background: none;
+  border: 12px solid transparent;
+  border-image: url("assets/sprites/ui_panel_rect.png") 24 fill stretch;
   image-rendering: pixelated;
-  padding: 16px 22px;
+  padding: 4px 10px;
   border-radius: 0;
   box-sizing: border-box;
 }
 
 body.theme-pixel #leaderboard {
-  background: url("assets/sprites/ui_panel_frame.png") no-repeat;
-  background-size: 100% 100%;
+  background: none;
+  border: 16px solid transparent;
+  border-image: url("assets/sprites/ui_panel_frame.png") 30 fill stretch;
   image-rendering: pixelated;
-  padding: 22px 24px 18px;
+  padding: 2px 8px 6px;
   border-radius: 0;
   box-sizing: border-box;
+}
+
+/* Innenfläche des Leaderboard-Rahmens ist helles Pergament - dunkle
+   Konturen halten die bunten Spielerfarben dort lesbar. */
+body.theme-pixel #leaderboard h3 {
+  color: #6b3f1e;
+  text-shadow: none;
+}
+
+body.theme-pixel #leaderboard-list li {
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.65);
+}
+
+body.theme-pixel #score,
+body.theme-pixel #hud .hud-btn {
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
 }
 
 body.theme-pixel #dash-ring,

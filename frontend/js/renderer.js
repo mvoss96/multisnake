@@ -66,9 +66,15 @@ function foodSprite(food) {
   return FOOD_SPRITES[Math.min(idx, FOOD_SPRITES.length - 1)];
 }
 
-function createRenderer(canvas, pixelTheme) {
+function createRenderer(canvas, initialPixelTheme) {
   const ctx = canvas.getContext("2d");
   let board = { width: 0, height: 0 };
+  // Umschaltbar zur Laufzeit (Design-Wahl im Namens-Modal, siehe main.js).
+  let pixelTheme = !!initialPixelTheme;
+
+  function setPixelTheme(value) {
+    pixelTheme = !!value;
+  }
 
   function setBoard(width, height) {
     board = { width, height };
@@ -448,5 +454,5 @@ function createRenderer(canvas, pixelTheme) {
     ctx.restore();
   }
 
-  return { setBoard, resizeToWindow, draw };
+  return { setBoard, resizeToWindow, draw, setPixelTheme };
 }

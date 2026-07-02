@@ -202,24 +202,7 @@ body.theme-pixel button {
   font-weight: 700;
 }
 
-#connection-banner {
-  position: fixed;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #b33939;
-  color: #fff;
-  padding: 8px 18px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-}
-
-#connection-banner.hidden {
-  display: none;
-}
-
+#connection-overlay,
 #game-over-overlay,
 #name-modal {
   position: fixed;
@@ -232,9 +215,118 @@ body.theme-pixel button {
   animation: fade-in 0.2s ease;
 }
 
+#connection-overlay.hidden,
 #game-over-overlay.hidden,
 #name-modal.hidden {
   display: none;
+}
+
+/* Reconnect-Karte (nutzt die themebare .panel-Optik). Der Spinner dreht,
+   der Titel ist wie bei Game Over rot - klares "etwas stimmt nicht". */
+.reconnect-card {
+  color: #ff8a8a;
+}
+
+.reconnect-spin {
+  color: #ff8a8a;
+  margin: 0 0 6px;
+  animation: reconnect-spin 1s linear infinite;
+}
+
+@keyframes reconnect-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Vektor-Snake-Maskottchen über dem Titel im Namens-Modal. */
+.mascot {
+  display: block;
+  margin: 0 auto 4px;
+}
+
+/* Ergebnis-Karte (Game Over): großer Score, Label darüber, Bestwert/Platz darunter. */
+.result {
+  margin: 0 0 20px;
+}
+
+.result-label {
+  font-size: 13px;
+  color: #9d9db8;
+  margin: 0 0 2px;
+}
+
+.result-score {
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1;
+  color: #ffd23f;
+  margin: 0 0 8px;
+}
+
+.record-badge {
+  display: inline-block;
+  background: #2f5e2f;
+  color: #bff0bf;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 6px;
+  margin: 0 0 10px;
+}
+
+.record-badge.hidden {
+  display: none;
+}
+
+.result-stats {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.result-stats .stat {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 6px 12px;
+  border-radius: 8px;
+  color: #eee;
+}
+
+.result-stats .stat-label {
+  color: #9d9db8;
+}
+
+/* Sekundäre Textaktion ("Name ändern") - kein voller Button. Bewusst als
+   .panel .linklike gescoped, um die .panel-button-Optik (inkl. Pixel-Rand) zu schlagen. */
+.panel .linklike {
+  display: block;
+  margin: 12px auto 0;
+  padding: 6px 8px;
+  background: none;
+  border: none;
+  border-radius: 0;
+  color: #9d9db8;
+  font-size: 13px;
+  font-weight: 400;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.panel .linklike:hover {
+  color: #cfcfe0;
+  transform: none;
+  box-shadow: none;
+  background: none;
+}
+
+body.theme-pixel .panel .linklike {
+  border: none;
+  background: none;
+  letter-spacing: 0;
 }
 
 .panel {
@@ -439,12 +531,21 @@ body.touch-device #dash-btn {
 /* Design-Umschalter im Namens-Modal (siehe applyTheme in main.js). */
 .theme-select {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   justify-content: center;
   align-items: center;
   margin: 0 0 20px;
   font-size: 13px;
   color: #9d9db8;
+}
+
+/* Label über den Buttons (volle Zeile), damit die Buttons sauber zentriert sind
+   statt durch das linksstehende Label aus der Mitte gedrückt zu werden. */
+.theme-select-label {
+  flex: 0 0 100%;
+  text-align: center;
+  margin-bottom: 4px;
 }
 
 /* .panel button (Spielen-Button-Optik) würde hier sonst per Spezifität
@@ -651,8 +752,7 @@ body.theme-pixel .panel p {
 body.theme-pixel #name-input,
 body.theme-pixel .panel button,
 body.theme-pixel .panel .theme-option,
-body.theme-pixel .hud-btn,
-body.theme-pixel #connection-banner {
+body.theme-pixel .hud-btn {
   border-radius: 0;
   letter-spacing: 0;
 }
@@ -661,11 +761,6 @@ body.theme-pixel .panel button,
 body.theme-pixel .panel .theme-option,
 body.theme-pixel #name-input {
   border: 2px solid #1a1206;
-}
-
-body.theme-pixel #connection-banner {
-  border: 2px solid #3a0f0f;
-  font-size: 13px;
 }
 
 /* Blitz im Dash-Ring als Pixel-Sprite statt Unicode-Glyph (der Touch-Button

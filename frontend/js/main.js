@@ -105,8 +105,13 @@ window.addEventListener("DOMContentLoaded", () => {
   const scoreEl = document.getElementById("score");
   const overlay = document.getElementById("game-over-overlay");
   const finalScoreEl = document.getElementById("final-score");
+  const goBestEl = document.getElementById("go-best");
+  const goRankEl = document.getElementById("go-rank");
+  const goRecordEl = document.getElementById("go-record");
+  const goChangeNameBtn = document.getElementById("go-changename");
   const restartBtn = document.getElementById("restart-btn");
-  const connectionBanner = document.getElementById("connection-banner");
+  const connectionOverlay = document.getElementById("connection-overlay");
+  const reconnectRetryBtn = document.getElementById("reconnect-retry");
   const nameModal = document.getElementById("name-modal");
   const nameInput = document.getElementById("name-input");
   const joinBtn = document.getElementById("join-btn");
@@ -117,6 +122,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
   let camera = { x: 0, y: 0 };
   let client = null;
+  // Zuletzt bekannte Platzierung/Feldgröße der eigenen Schlange (aus onState),
+  // für die Ergebnis-Karte beim Game Over festgehalten (der Game-Over-Tick selbst
+  // enthält die eigene Schlange nicht mehr).
+  let lastRank = 0;
+  let lastTotal = 0;
   let pendingName = "";
 
   // Zustandspuffer fuer die Interpolation (siehe renderFrame unten): die letzten zwei
@@ -291,7 +301,7 @@ window.addEventListener("DOMContentLoaded", () => {
     window.__debugClient = client; // Konsole: window.__debugClient.sendDebugTeleport(x, y) etc.
 
     client.onConnectionChange = (isConnected) => {
-      connectionBanner.classList.toggle("hidden", isConnected);
+      connectionOverlay.classList.toggle("hidden", isConnected);
     };
 
     client.onWelcome = (msg) => {
@@ -327,6 +337,10 @@ window.addEventListener("DOMContentLoaded", () => {
       const mySnake = msg.snakes.find((s) => s.player_id === GameState.playerId);
       if (mySnake) {
         GameState.ownDirection = mySnake.direction;
+        // Platzierung merken (Rang nach Score) - für die Game-Over-Ergebnis-Karte.
+        lastTotal = msg.snakes.length;
+        lastRank =
+          msg.snakes.filter((s) => s.score > mySnake.score).length + 1;
         let scoreText;
         if (showDebugInfo) {
           const netHz = interpDurationMs > 0 ? 1000 / interpDurationMs : 0;
@@ -371,7 +385,17 @@ window.addEventListener("DOMContentLoaded", () => {
     };
 
     client.onGameOver = (msg) => {
-      finalScoreEl.textContent = `Score: ${msg.score}`;
+      // Ergebnis-Karte füllen: großer Score, Bestwert (localStorage) + Rekord-Badge,
+      // zuletzt bekannte Platzierung.
+      const score = msg.score;
+      const prevBest = parseInt(localStorage.getItem("snakeBest") || "0", 10);
+      const isRecord = score > prevBest;
+      const best = Math.max(prevBest, score);
+      localStorage.setItem("snakeBest", String(best));
+      finalScoreEl.textContent = String(score);
+      goBestEl.textContent = String(best);
+      goRankEl.textContent = lastRank ? `${lastRank}/${lastTotal}` : "–";
+      goRecordEl.classList.toggle("hidden", !isRecord);
       overlay.classList.remove("hidden");
     };
 
@@ -379,6 +403,10 @@ window.addEventListener("DOMContentLoaded", () => {
       overlay.classList.add("hidden");
       client.sendRestart();
     });
+
+    // "Erneut versuchen": der Client reconnectet ohnehin automatisch (siehe
+    // network.js), dies forciert einen sofortigen Versuch statt zu warten.
+    reconnectRetryBtn.addEventListener("click", () => client.connect());
 
     client.connect();
     setupInput(client, toggleControlMode);
@@ -389,4 +417,8 @@ window.addEventListener("DOMContentLoaded", () => {
   nameInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") doJoin();
   });
+
+  // "Name ändern" (Game Over): sauberster Weg zurück zum Namens-Modal ist ein
+  // Reload - der Name ist aus sessionStorage vorbefüllt, danach frisch verbinden.
+  goChangeNameBtn.addEventListener("click", () => window.location.reload());
 });

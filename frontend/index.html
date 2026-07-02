@@ -41,10 +41,28 @@
   <ol id="leaderboard-list"></ol>
 </div>
 
-<div id="connection-banner" class="hidden">Verbindung getrennt – verbinde neu…</div>
+<!-- Verbindungsabbruch: verdunkelndes Overlay statt dünnem Balken, mit Spinner
+     und manuellem Retry (der Client reconnectet automatisch, der Button forciert). -->
+<div id="connection-overlay" class="hidden">
+  <div class="panel reconnect-card">
+    <svg class="reconnect-spin" viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+      <path d="M12 3 a9 9 0 1 1 -8.5 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+    <h2>Verbindung verloren</h2>
+    <p>verbinde neu …</p>
+    <button id="reconnect-retry">Erneut versuchen</button>
+  </div>
+</div>
 
 <div id="name-modal">
   <div class="panel">
+    <!-- Vektor-Snake-Maskottchen: passt in beide Themes (Schlangenkörper ist auch
+         im Spiel in beiden Themes Vektor). -->
+    <svg class="mascot" viewBox="0 0 76 44" width="84" height="49" aria-hidden="true">
+      <path d="M8 32 Q 24 6 38 24 T 66 20" fill="none" stroke="#4caf50" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="66" cy="20" r="7.5" fill="#4caf50"/>
+      <circle cx="68.5" cy="17.5" r="2.2" fill="#0d1b0d"/>
+    </svg>
     <h2>multiSnake</h2>
     <p>Gib deinen Namen ein und leg los</p>
     <input id="name-input" type="text" maxlength="20" placeholder="Dein Name" autocomplete="off">
@@ -60,11 +78,22 @@
 <div id="game-over-overlay" class="hidden">
   <div class="panel">
     <h2>Game Over</h2>
-    <p id="final-score"></p>
+    <!-- Ergebnis-Karte: großer Score im Fokus, darunter Bestwert + Platzierung,
+         Rekord-Badge nur bei neuem Bestwert (per JS ein-/ausgeblendet). -->
+    <div class="result">
+      <div class="result-label">Dein Score</div>
+      <div id="final-score" class="result-score">0</div>
+      <div id="go-record" class="record-badge hidden">Neuer Rekord</div>
+      <div class="result-stats">
+        <span class="stat"><span class="stat-label">Best</span><span id="go-best">0</span></span>
+        <span class="stat"><span class="stat-label">Platz</span><span id="go-rank">–</span></span>
+      </div>
+    </div>
     <div class="theme-select">
       <span class="theme-select-label">Design:</span>
     </div>
     <button id="restart-btn">Neu starten</button>
+    <button id="go-changename" class="linklike">Name ändern</button>
   </div>
 </div>
 

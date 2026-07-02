@@ -56,22 +56,17 @@ const DASH_PIP_RADIUS_BTN = 43;
 // themes.js/renderer.js) - rein optisch, keine Kollision. Der Stammfuß sitzt auf
 // der oberen Weltkante (y=0), die Krone ragt nach oben aus dem Feld. Bäume werden
 // dicht an dicht gereiht und leicht in der Höhe versetzt für eine Wald-Silhouette.
-// Baumhöhe bewusst recht groß gewählt: bei starkem Rauszoomen (hoher Score,
-// bis VIEW_WORLD_HEIGHT_MAX) nimmt eine zu kleine Deko nur einen winzigen
-// Bildschirmanteil ein - die Kronenreihe wirkt dann wie eine dünne Linie vor
-// viel Schwarz, was wie eine sichtbare Kartenkante aussieht (Bug-Report). Eine
-// deutlich größere Krone bleibt auch dort noch präsent genug.
-const TREE_HEIGHT = 130;
+const TREE_HEIGHT = 90; // gezeichnete Baumhöhe in Welteinheiten
 const TREE_SPACING = 62; // horizontaler Abstand der Stämme
 // Höhenversatz je Baum - hält die Kronenlinie einer Reihe grob auf ähnlicher
 // Höhe (kein wildes Gezacke), aber genug Varianz, damit die Reihe organisch
 // wirkt statt wie eine exakt lineale, künstlich wirkende Kante.
-const TREE_STAGGER = 10;
+const TREE_STAGGER = 6;
 // Zufälliger Tiefen-(quer zum Rand)-Versatz je Baum: bricht die gleichförmige
 // Überlappung auf (sonst liegt immer der hintere Baum vor dem vorderen).
 // Zusammen mit dem Zeichnen von hinten nach vorn (nach Stammfuß-Distanz
 // sortiert) überlappen die Bäume mal in die eine, mal in die andere Richtung.
-const TREE_BASE_JITTER = 9;
+const TREE_BASE_JITTER = 6;
 // Stammfuß nicht exakt auf der Tile-Kante, sondern etwas ins Feld versetzt -
 // so stehen die Bäume auf dem Gras und die überlappenden Kronen verdecken die
 // sonst sichtbare harte Bodenkante zwischen den Bäumen.
@@ -82,21 +77,19 @@ const TREE_FOOT_INSET = 26;
 // herleitet) - ein reiner Festwert hier wäre bei jeder Anpassung der Baum-
 // Konstanten erneut falsch (siehe Bug: bei 32px sichtbare Bodenkante links).
 const TREE_OVERHANG_MARGIN = 6;
-// Der Boden-Überhang selbst hat weiterhin eine feste (wenn auch korrekt
-// berechnete) Außenkante - bei starkem Rauszoomen (hoher Score, siehe
-// VIEW_WORLD_HEIGHT_MAX) nimmt diese Kante auf dem Bildschirm mehr Raum ein
-// und die Grenze zum schwarzen Canvas-Hintergrund wird wieder als harte
-// Linie sichtbar. Ein weicher Verlauf statt eines Hart-Schnitts löst das bei
-// jeder Zoomstufe: von START_FACTOR*Overhang (noch voll sichtbare Textur) bis
-// END_FACTOR*Overhang blendet der Boden ins Dunkel über. END_FACTOR MUSS <= 1
-// sein (leicht darunter, siehe 0.94) - der Verlauf muss vollständig auf der
-// bereits gefüllten Überhang-Fläche liegen. Reicht er darüber hinaus (in den
-// noch ungefüllten, längst schwarzen Bereich), trifft die Halbtransparenz dort
-// auf denselben Hintergrundton und bleibt wirkungslos - der eigentliche
-// Bruch verschiebt sich dann nur unsichtbar auf die Fill-Außenkante (genau
-// der Bug, den der Verlauf beheben soll).
+// Der Boden-Überhang selbst hat eine feste (wenn auch korrekt berechnete)
+// Außenkante zum schwarzen Canvas-Hintergrund. Ohne Weichzeichnung ist das eine
+// harte Linie am Rand der Waldkante - genau das "diese eine Linie"-Problem. Ein
+// linearer Alpha-Verlauf blendet den Boden ins Dunkel über: von
+// START_FACTOR*Overhang (noch voll sichtbare Textur) bis END_FACTOR*Overhang
+// (voll deckend schwarz). END_FACTOR MUSS GENAU 1.0 sein: der Verlauf muss
+// exakt an der Fill-Außenkante (= Overhang) voll deckend werden. Ist er
+// kleiner (früherer Bug: 0.94), bleibt zwischen END*Overhang und der Fill-Kante
+// ein schmaler, NICHT weichgezeichneter Streifen voller Textur übrig, der hart
+// ins Schwarze schneidet - das ist die sichtbare Linie. Größer als 1.0 wäre
+// unnötig (malt nur Schwarz auf bereits schwarzen Hintergrund).
 const BORDER_FADE_START_FACTOR = 0.3;
-const BORDER_FADE_END_FACTOR = 0.94;
+const BORDER_FADE_END_FACTOR = 1.0;
 // Weicher elliptischer Bodenschatten am Stammfuß (Licht von oben) - erdet die
 // Bäume auf dem Waldboden, orientiert am Mockup. Radialer Verlauf mit dunklem
 // Kern (Mid-Stop im Verlauf) für weiche, aber klar sichtbare Kante.

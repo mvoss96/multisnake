@@ -50,6 +50,11 @@ function foodColor(food) {
 
 function createRenderer(canvas, initialThemeId) {
   const ctx = canvas.getContext("2d");
+  // Canvas glättet drawImage()-Aufrufe standardmäßig - bei jedem Kameraschwenk
+  // landen Sprites auf leicht unterschiedlichen Subpixel-Positionen, was durch
+  // die Glättung als sichtbares "Flimmern" auffällt. Aus (harte Pixelkanten,
+  // kein erneutes Weichzeichnen pro Frame) - passt zudem zum Pixel-Art-Look.
+  ctx.imageSmoothingEnabled = false;
   let board = { width: 0, height: 0 };
   // Aktives Theme, umschaltbar zur Laufzeit (Design-Wahl im Namens-Modal,
   // siehe main.js) - alles Themebare geht über theme.sprites (siehe themes.js).
@@ -165,6 +170,21 @@ function createRenderer(canvas, initialThemeId) {
   function borderEdges() {
     if (!themedSprite("borderSprite")) return [];
     return theme.borderEdges || ["top"];
+  }
+
+  // Wie weit das Boden-Tile über einen Baum-Rand hinausragen muss, damit die
+  // Kronen nirgends über die harte Kante des Fülls hinausragen (sonst wird die
+  // Fläche dahinter als sichtbare gerade Kante sichtbar - siehe Bug bei einem
+  // festen 32px-Wert). Rechnerisch aus der tatsächlichen Sprite-Geometrie
+  // hergeleitet statt geschätzt, damit das bei jeder TREE_*-Anpassung stimmt.
+  function treeOverhang() {
+    const tree = themedSprite("borderSprite");
+    if (!tree) return 0;
+    const aspect = tree.naturalWidth / tree.naturalHeight;
+    const hMax = TREE_HEIGHT;
+    const wMax = hMax * aspect;
+    const depthMin = TREE_FOOT_INSET - TREE_BASE_JITTER;
+    return Math.max(hMax, wMax) - depthMin + TREE_OVERHANG_MARGIN;
   }
 
   // Aufrechte Deko-Bäume entlang eines Kartenrands (nur Themes mit borderSprite):
@@ -438,13 +458,15 @@ function createRenderer(canvas, initialThemeId) {
     }
     ctx.fillStyle = (boardTile && patternCache[boardTileName]) || "#14141e";
     // An Rändern mit Baum-Deko zieht das Boden-Tile hinter der Reihe etwas über
-    // die Kante hinaus (TREE_GRASS_OVERHANG), damit die harte Bodenkante hinter
-    // den Kronen verschwindet statt als Linie zwischen den Bäumen sichtbar zu sein.
+    // die Kante hinaus (treeOverhang(), aus der Sprite-Geometrie hergeleitet),
+    // damit die harte Bodenkante hinter den Kronen verschwindet statt als Linie
+    // zwischen/neben den Bäumen sichtbar zu sein.
     const edges = borderEdges();
-    const oT = edges.includes("top") ? TREE_GRASS_OVERHANG : 0;
-    const oB = edges.includes("bottom") ? TREE_GRASS_OVERHANG : 0;
-    const oL = edges.includes("left") ? TREE_GRASS_OVERHANG : 0;
-    const oR = edges.includes("right") ? TREE_GRASS_OVERHANG : 0;
+    const overhang = treeOverhang();
+    const oT = edges.includes("top") ? overhang : 0;
+    const oB = edges.includes("bottom") ? overhang : 0;
+    const oL = edges.includes("left") ? overhang : 0;
+    const oR = edges.includes("right") ? overhang : 0;
     ctx.fillRect(-oL, -oT, board.width + oL + oR, board.height + oT + oB);
 
     drawBorderTrees();

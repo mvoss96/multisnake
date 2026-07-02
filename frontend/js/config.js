@@ -43,26 +43,42 @@ const RELATIVE_POLL_MS = 33;
 // the server becomes the limiting factor as intended (matches absolute-mode feel).
 const RELATIVE_TURN_STEP = 0.2;
 
+// Pixel-Theme: gestufte Pip-Anzeige fürs Dash-Laden (siehe buildDashPips in
+// main.js) statt eines glatten SVG-Kreisbogens - eine anti-aliasierte Kurve
+// passt nicht zum harten Pixel-Look der übrigen Sprites. Radius je Container
+// (Desktop-Ring/Touch-Button haben unterschiedliche CSS-Größen, siehe
+// style.css #dash-ring/#dash-btn) so gewählt, dass die Pips knapp außerhalb
+// des Kreisrands sitzen.
+const DASH_PIP_COUNT = 8;
+const DASH_PIP_RADIUS_RING = 25; // #dash-ring ist 40px breit (Radius 20)
+const DASH_PIP_RADIUS_BTN = 43; // #dash-btn ist 72px breit (Radius 36)
+
 // Deko-Bäume an Kartenrändern (nur Themes mit borderSprite-Rolle, siehe
 // themes.js/renderer.js) - rein optisch, keine Kollision. Der Stammfuß sitzt auf
 // der oberen Weltkante (y=0), die Krone ragt nach oben aus dem Feld. Bäume werden
 // dicht an dicht gereiht und leicht in der Höhe versetzt für eine Wald-Silhouette.
 const TREE_HEIGHT = 90; // gezeichnete Baumhöhe in Welteinheiten
 const TREE_SPACING = 62; // horizontaler Abstand der Stämme
-const TREE_STAGGER = 14; // maximaler zufälliger Höhenversatz je Baum
-// Zufälliger Tiefen-(y-)Versatz je Baum: bricht die gleichförmige Überlappung
-// auf (sonst liegt immer der rechte Baum vor dem linken). Zusammen mit dem
-// Zeichnen von hinten nach vorn (nach Stammfuß-y sortiert) überlappen die Bäume
-// mal in die eine, mal in die andere Richtung - wirkt natürlicher.
-const TREE_BASE_JITTER = 12;
-// Stammfuß nicht exakt auf der Tile-Kante (y=0), sondern etwas ins Feld
-// versetzt - so stehen die Bäume auf dem Gras und die überlappenden Kronen
-// verdecken die sonst sichtbare harte Bodenkante zwischen den Bäumen.
+// Kleiner Höhenversatz je Baum - bewusst gering gehalten, damit die
+// Kronenlinie einer Reihe (v.a. oben) durchgehend auf ähnlicher Höhe bleibt
+// statt sichtbar zu "zacken", aber noch nicht komplett robotisch-gleich wirkt.
+const TREE_STAGGER = 6;
+// Kleiner zufälliger Tiefen-(quer zum Rand)-Versatz je Baum: bricht die
+// gleichförmige Überlappung auf (sonst liegt immer der hintere Baum vor dem
+// vorderen). Zusammen mit dem Zeichnen von hinten nach vorn (nach Stammfuß-
+// Distanz sortiert) überlappen die Bäume mal in die eine, mal in die andere
+// Richtung - wirkt natürlicher, ohne die Reihenhöhe sichtbar zu verzerren.
+const TREE_BASE_JITTER = 6;
+// Stammfuß nicht exakt auf der Tile-Kante, sondern etwas ins Feld versetzt -
+// so stehen die Bäume auf dem Gras und die überlappenden Kronen verdecken die
+// sonst sichtbare harte Bodenkante zwischen den Bäumen.
 const TREE_FOOT_INSET = 26;
-// Das Boden-Tile ragt hinter der Baumreihe über die obere Kante (y=0) hinaus,
-// damit die sonst sichtbare harte Bodenkante zwischen den Bäumen hinter den
-// breitesten Stellen der überlappenden Kronen verschwindet.
-const TREE_GRASS_OVERHANG = 32;
+// Sicherheitsmarge zusätzlich zum rechnerisch nötigen Boden-Überhang (siehe
+// treeOverhang() in renderer.js, das die Kronen-Maximalausdehnung aus
+// TREE_HEIGHT/Sprite-Seitenverhältnis/TREE_FOOT_INSET/TREE_BASE_JITTER
+// herleitet) - ein reiner Festwert hier wäre bei jeder Anpassung der Baum-
+// Konstanten erneut falsch (siehe Bug: bei 32px sichtbare Bodenkante links).
+const TREE_OVERHANG_MARGIN = 6;
 // Weicher elliptischer Bodenschatten am Stammfuß (Licht von oben) - erdet die
 // Bäume auf dem Waldboden, orientiert am Mockup. Radialer Verlauf mit dunklem
 // Kern (Mid-Stop im Verlauf) für weiche, aber klar sichtbare Kante.

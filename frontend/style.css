@@ -123,6 +123,29 @@ html, body {
   position: relative;
 }
 
+/* Pixel-Theme-Ladeanzeige: acht diskrete Pips statt eines glatten Kreisbogens
+   (siehe buildDashPips in main.js für die Positionierung, updateDashMeter für
+   die "lit"-Klasse je Ladefortschritt) - per Default unsichtbar, nur unter
+   body.theme-pixel eingeblendet (siehe unten im Pixel-Theme-Block). */
+.dash-pips {
+  display: none;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.dash-pips .pip {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  background: #2c1c10;
+  border: 1px solid #140c06;
+  image-rendering: pixelated;
+}
+
 /* #dash-btn/#dash-ring wechseln bei bereit/aktiv auf eine flächige Farbe
    (statt Fortschrittsring) als deutliches Signal - der Ring wird dafür
    ausgeblendet. */
@@ -449,16 +472,18 @@ body.theme-pixel #hud {
   box-sizing: border-box;
 }
 
-/* Pergament-Schriftrolle (Holzrollen oben/unten) - asymmetrisches 9-Slice:
-   oben/unten = Rollenhöhe (36px im Sprite), links/rechts = schmale
-   Pergamentkante (12px). Auf dem hellen Pergament dunkler Text; die bunten
-   Spieler-Namen bekommen einen dunklen Schein als Kontrast-Kante. */
+/* Holzrahmen mit Pergament-Innenfläche (aus dem Referenz-Sprite-Sheet
+   extrahiert, nicht generiert - die generierte Schriftrolle sah unsauber
+   aus). 9-Slice mit leicht unterschiedlicher Slice-Breite oben/unten (34px,
+   dickerer Querbalken im Sprite) vs. links/rechts (26px). Auf dem hellen
+   Pergament dunkler Text; die bunten Spieler-Namen bekommen einen dunklen
+   Schein als Kontrast-Kante. */
 body.theme-pixel #leaderboard {
   background: none;
   border-style: solid;
   border-color: transparent;
-  border-width: 22px 12px;
-  border-image: url("assets/sprites/ui_scroll.png") 36 12 fill stretch;
+  border-width: 26px 20px;
+  border-image: url("assets/sprites/ui_panel_frame.png") 34 26 fill stretch;
   image-rendering: pixelated;
   padding: 2px 8px 4px;
   border-radius: 0;
@@ -496,6 +521,23 @@ body.theme-pixel #dash-btn {
   background: url("assets/sprites/dash_button_idle.png") no-repeat center / cover;
   image-rendering: pixelated;
   border: none;
+}
+
+/* Der glatte SVG-Kreisbogen passt nicht zum harten Pixel-Look - im Pixel-
+   Theme übernimmt stattdessen die gestufte Pip-Anzeige (siehe .dash-pips
+   oben, Positionierung/Füllstand per JS in main.js). */
+body.theme-pixel .dash-progress {
+  display: none;
+}
+
+body.theme-pixel .dash-pips {
+  display: block;
+}
+
+body.theme-pixel .dash-pips .pip.lit {
+  background: #ffd23f;
+  border-color: #7a4a10;
+  box-shadow: 0 0 3px rgba(255, 210, 63, 0.85);
 }
 
 /* Kräftigerer goldener Glow wie im Mockup (der große Touch-Button trägt ihn

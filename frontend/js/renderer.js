@@ -10,14 +10,12 @@ function loadSprite(name) {
 
 const TILE_STONE_SPRITE = loadSprite("tile_stone");
 const SPIKE_SPRITE = loadSprite("spike_tile");
-const FOOD_SPRITES = [
-  loadSprite("food_gem"),
-  loadSprite("food_potion"),
-  loadSprite("food_strawberry"),
-  loadSprite("food_cherry"),
-  loadSprite("food_blueberry"),
-  loadSprite("food_grape"),
-];
+// Ein Sprite pro Wertstufe (nicht mehr zufällig aus einem bunten Obst-Pool):
+// Münze = 1, Edelstein = 2, Trank = 5 - der Sprite verrät damit direkt den
+// Wert (siehe FOOD_*_VALUE_MULTIPLIER in backend/game/config.py).
+const FOOD_SPRITE_COIN = loadSprite("food_coin");
+const FOOD_SPRITE_GEM = loadSprite("food_gem");
+const FOOD_SPRITE_POTION = loadSprite("food_potion");
 
 let tileStonePattern = null;
 
@@ -42,11 +40,12 @@ function foodColor(food) {
   return `hsl(${hue}, 80%, ${lightness}%)`;
 }
 
-// Fester, aber pro Futterstück "zufälliger" Sprite (gleiches hashUnit-Muster wie
-// foodColor) - so bleibt jedes Futterstück über seine Lebensdauer visuell stabil.
+// Sprite anhand der Wertstufe (siehe foodRadius) - Trank (>=5), Edelstein (>=2),
+// sonst Münze. So ist der Wert eines Futterstücks direkt am Bild ablesbar.
 function foodSprite(food) {
-  const idx = Math.floor(hashUnit(food.id) * FOOD_SPRITES.length);
-  return FOOD_SPRITES[Math.min(idx, FOOD_SPRITES.length - 1)];
+  if (food.value >= 5) return FOOD_SPRITE_POTION;
+  if (food.value >= 2) return FOOD_SPRITE_GEM;
+  return FOOD_SPRITE_COIN;
 }
 
 function createRenderer(canvas, initialPixelTheme) {

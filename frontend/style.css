@@ -159,8 +159,10 @@ html, body {
 .dash-hourglass .hg-lit {
   position: absolute;
   inset: 0;
-  background: url("assets/sprites/hourglass.png") no-repeat center / contain;
-  image-rendering: pixelated;
+  /* auto-Breite bei 82% Hoehe: die Sanduhr sitzt etwas kleiner/zentriert im Button.
+     Kein image-rendering:pixelated - das Sprite ist hoch aufgeloest mit weicher
+     Alpha-Kante, glattes Skalieren (Default) gibt sauberere, antialiaste Raender. */
+  background: url("assets/sprites/hourglass.png") no-repeat center / auto 82%;
 }
 
 .dash-hourglass .hg-base {

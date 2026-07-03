@@ -786,6 +786,42 @@ body.theme-pixel #dash-ring .dash-icon {
   text-shadow: none;
 }
 
+/* Admin-Passwort-Gate (nur /admin, siehe main.js) - gleiche Overlay-Optik wie das
+   Namens-Modal, nutzt die themebare .panel. */
+#admin-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(5, 5, 15, 0.72);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#admin-gate.hidden {
+  display: none;
+}
+#admin-gate #admin-token {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 10px;
+  padding: 12px 14px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #0f0f1a;
+  color: #eee;
+}
+.admin-error {
+  margin-top: 10px;
+  color: #ff6b6b;
+  font-size: 14px;
+}
+.admin-error.hidden {
+  display: none;
+}
+
 /* Debug-Konsole (nur bei freigeschaltetem Debug, siehe main.js). Bewusst ein
    schlichtes, theme-unabhängiges Dev-Panel - kein Pixel-/Holz-Styling. */
 #dbg-toggle {

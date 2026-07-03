@@ -30,6 +30,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     zero_bots_config = SimpleNamespace(**{**vars(config), "NUM_BOTS": 0})
     monkeypatch.setattr(main, "game_room", GameRoom(zero_bots_config))
     monkeypatch.setattr(main, "connections", {})
+    monkeypatch.setattr(main, "admin_ids", set())
     yield TestClient(main.app)
 
 
@@ -279,3 +280,53 @@ async def test_debug_bots_is_ignored_when_debug_commands_disabled(
         player = main.game_room.players.get(player_id)
         assert player is not None and player.snake is not None
         assert (player.snake.points[0].x, player.snake.points[0].y) != (12.0, 34.0)
+
+
+@pytest.mark.asyncio
+async def test_admin_token_unlocks_debug_for_this_connection(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Global aus, aber ein Admin-Token gesetzt -> nach debug_auth wirken debug_* Befehle.
+    monkeypatch.setattr(main, "DEBUG_COMMANDS_ENABLED", False)
+    monkeypatch.setattr(main, "DEBUG_ADMIN_TOKEN", "sekret")
+    with client.websocket_connect("/ws") as ws:
+        welcome = ws.receive_json()
+        assert welcome["debug_auth_available"] is True
+
+        await _send_and_settle(ws, {"type": "debug_auth", "token": "sekret"})
+        assert ws.receive_json() == {"type": "debug_auth_result", "ok": True}
+
+        await _send_and_settle(ws, {"type": "debug_bots", "count": 3})
+        assert _bot_count(main.game_room) == 3
+
+
+@pytest.mark.asyncio
+async def test_wrong_admin_token_stays_locked(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(main, "DEBUG_COMMANDS_ENABLED", False)
+    monkeypatch.setattr(main, "DEBUG_ADMIN_TOKEN", "sekret")
+    with client.websocket_connect("/ws") as ws:
+        ws.receive_json()  # welcome
+
+        await _send_and_settle(ws, {"type": "debug_auth", "token": "falsch"})
+        assert ws.receive_json() == {"type": "debug_auth_result", "ok": False}
+
+        await _send_and_settle(ws, {"type": "debug_bots", "count": 3})
+        assert _bot_count(main.game_room) == 0
+
+
+def test_welcome_reports_no_admin_auth_without_token(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Ohne gesetzten DEBUG_ADMIN_TOKEN meldet welcome debug_auth_available=false.
+    monkeypatch.setattr(main, "DEBUG_ADMIN_TOKEN", "")
+    with client.websocket_connect("/ws") as ws:
+        msg = ws.receive_json()
+        assert msg["debug_auth_available"] is False
+
+
+def test_admin_route_serves_the_spa(client: TestClient) -> None:
+    resp = client.get("/admin")
+    assert resp.status_code == 200
+    assert "<canvas" in resp.text  # dieselbe index.html wie /

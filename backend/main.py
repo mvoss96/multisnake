@@ -1,5 +1,6 @@
 import asyncio
 import os
+import secrets
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -9,13 +10,15 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 from starlette.middleware.base import RequestResponseEndpoint
-from starlette.responses import Response
+from starlette.responses import FileResponse, Response
 
 from game import config
 from game.game_room import GameRoom
 from game.player import HumanPlayer
 from game.protocol import (
     DashMessage,
+    DebugAuthMessage,
+    DebugAuthResultMessage,
     DebugBotsMessage,
     DebugInvulnerableMessage,
     DebugPauseMessage,
@@ -37,6 +40,16 @@ connections: dict[str, WebSocket] = {}  # player_id -> WebSocket
 # their own; default on so `uv run uvicorn` keeps working unconfigured, but
 # disable explicitly for the public Docker deployment.
 DEBUG_COMMANDS_ENABLED = os.environ.get("ENABLE_DEBUG_COMMANDS", "true").lower() != "false"
+
+# Optionaler Admin-Token: ist er gesetzt, kann sich eine EINZELNE Verbindung über die
+# /admin-Seite per debug_auth freischalten (is_admin) und dann - auch bei ansonsten
+# deaktiviertem DEBUG_COMMANDS_ENABLED - debug_*-Befehle senden. Leer => Auth-Pfad aus.
+DEBUG_ADMIN_TOKEN = os.environ.get("DEBUG_ADMIN_TOKEN", "")
+# player_ids der pro-Verbindung als Admin authentifizierten Clients.
+admin_ids: set[str] = set()
+# Zu viele Fehlversuche auf einer Verbindung -> Socket schließen (Brute-Force-Bremse,
+# da es kein globales WS-Rate-Limit gibt).
+MAX_DEBUG_AUTH_ATTEMPTS = 5
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
@@ -100,14 +113,26 @@ async def add_no_cache_header(request: Request, call_next: RequestResponseEndpoi
     return response
 
 
+# /admin liefert dieselbe SPA wie / - der Client erkennt den Pfad und schaltet den
+# Admin-Modus (Passwort-Gate -> debug_auth) frei. Muss VOR dem StaticFiles-Mount stehen.
+@app.get("/admin")
+async def admin_page() -> FileResponse:
+    return FileResponse(str(FRONTEND_DIR / "index.html"))
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:
     await websocket.accept()
     player_id = str(uuid.uuid4())
     connections[player_id] = websocket
+    auth_attempts = 0
     await websocket.send_json(
         welcome_message(
-            player_id, game_room.board, game_room.obstacles, DEBUG_COMMANDS_ENABLED
+            player_id,
+            game_room.board,
+            game_room.obstacles,
+            DEBUG_COMMANDS_ENABLED,
+            bool(DEBUG_ADMIN_TOKEN),
         ).model_dump()
     )
 
@@ -118,6 +143,10 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 msg = parse_client_message(raw)
             except ValidationError:
                 continue
+
+            # debug_*-Befehle sind erlaubt, wenn sie global freigeschaltet sind
+            # (lokaler Dev) ODER diese Verbindung sich als Admin authentifiziert hat.
+            debug_ok = DEBUG_COMMANDS_ENABLED or player_id in admin_ids
 
             match msg:
                 case JoinMessage(name=name):
@@ -134,22 +163,35 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                     player = game_room.players.get(player_id)
                     if player and player.snake:
                         player.snake.try_dash()
-                case DebugPauseMessage(paused=paused) if DEBUG_COMMANDS_ENABLED:
+                case DebugAuthMessage(token=token):
+                    ok = bool(DEBUG_ADMIN_TOKEN) and secrets.compare_digest(
+                        token.encode(), DEBUG_ADMIN_TOKEN.encode()
+                    )
+                    if ok:
+                        admin_ids.add(player_id)
+                    else:
+                        auth_attempts += 1
+                    await websocket.send_json(DebugAuthResultMessage(ok=ok).model_dump())
+                    if auth_attempts >= MAX_DEBUG_AUTH_ATTEMPTS:
+                        await websocket.close()
+                        return  # das finally räumt auf
+                case DebugPauseMessage(paused=paused) if debug_ok:
                     game_room.set_paused(paused)
-                case DebugTeleportMessage(x=x, y=y) if DEBUG_COMMANDS_ENABLED:
+                case DebugTeleportMessage(x=x, y=y) if debug_ok:
                     game_room.debug_teleport(player_id, x, y)
-                case DebugSpawnAtMessage(x=x, y=y) if DEBUG_COMMANDS_ENABLED:
+                case DebugSpawnAtMessage(x=x, y=y) if debug_ok:
                     game_room.debug_respawn_at(player_id, x, y)
-                case DebugInvulnerableMessage(enabled=enabled) if DEBUG_COMMANDS_ENABLED:
+                case DebugInvulnerableMessage(enabled=enabled) if debug_ok:
                     game_room.debug_set_invulnerable(player_id, enabled)
-                case DebugBotsMessage(count=count) if DEBUG_COMMANDS_ENABLED:
+                case DebugBotsMessage(count=count) if debug_ok:
                     game_room.debug_set_bot_count(count)
-                case DebugResetMessage() if DEBUG_COMMANDS_ENABLED:
+                case DebugResetMessage() if debug_ok:
                     game_room.debug_reset()
     except WebSocketDisconnect:
         pass
     finally:
         connections.pop(player_id, None)
+        admin_ids.discard(player_id)
         game_room.remove_player(player_id)
 
 

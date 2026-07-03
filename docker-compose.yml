@@ -8,6 +8,9 @@ services:
     restart: unless-stopped
     environment:
       - ENABLE_DEBUG_COMMANDS=false
+      # Admin-Token für die /admin-Debug-Konsole; leer => Auth-Pfad aus (Server gesperrt).
+      # Auf dem VPS in einer nicht-committeten .env neben dieser Datei setzen.
+      - DEBUG_ADMIN_TOKEN=${DEBUG_ADMIN_TOKEN:-}
     mem_limit: 512m
     cpus: 1.0
     read_only: true

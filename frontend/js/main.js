@@ -182,6 +182,48 @@ window.addEventListener("DOMContentLoaded", () => {
     if (me && document.activeElement !== dbgEls.invuln) dbgEls.invuln.checked = !!me.invulnerable;
     dbgEls.info.textContent = `Schlangen im Spiel: ${msg.snakes.length}`;
   }
+
+  // Admin-Modus: auf /admin schaltet ein Passwort-Gate die Debug-Konsole frei (die
+  // eigentliche Prüfung macht der Server per debug_auth, siehe main.py). Auf / bleibt
+  // die Konsole öffentlich unsichtbar (nur bei welcome.debug_enabled im lokalen Dev).
+  const isAdminMode = /^\/admin\/?$/.test(location.pathname);
+  let adminWired = false;
+  let lastSentToken = "";
+  function sendAdminAuth(c, token) {
+    lastSentToken = token;
+    c.sendDebugAuth(token);
+  }
+  function setupAdminGate(c) {
+    if (adminWired) return;
+    adminWired = true;
+    const gate = document.getElementById("admin-gate");
+    const input = document.getElementById("admin-token");
+    const err = document.getElementById("admin-error");
+    const unlock = () => {
+      if (!input.value) return;
+      err.classList.add("hidden");
+      sendAdminAuth(c, input.value);
+    };
+    document.getElementById("admin-unlock").addEventListener("click", unlock);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") unlock();
+    });
+    c.onDebugAuthResult = (msg) => {
+      if (msg.ok) {
+        sessionStorage.setItem("snakeAdminToken", lastSentToken);
+        gate.classList.add("hidden");
+        err.classList.add("hidden");
+        if (!dbgEls) dbgEls = setupDebugConsole(c);
+        document.getElementById("debug-console").classList.remove("hidden");
+      } else {
+        sessionStorage.removeItem("snakeAdminToken");
+        gate.classList.remove("hidden");
+        err.classList.remove("hidden");
+        input.focus();
+      }
+    };
+  }
+
   let client = null;
   // Zuletzt bekannte Platzierung/Feldgröße der eigenen Schlange (aus onState),
   // für die Ergebnis-Karte beim Game Over festgehalten (der Game-Over-Tick selbst
@@ -374,6 +416,15 @@ window.addEventListener("DOMContentLoaded", () => {
       camera = { x: msg.board.width / 2, y: msg.board.height / 2 };
       overlay.classList.add("hidden");
       if (msg.debug_enabled && !dbgEls) dbgEls = setupDebugConsole(client);
+      // /admin: Passwort-Gate (bzw. bei gemerktem Token direkt neu authentifizieren
+      // nach einem Reconnect). Nur wenn der Server ein Admin-Token gesetzt hat und die
+      // Konsole nicht ohnehin schon offen ist (lokaler Dev).
+      if (isAdminMode && msg.debug_auth_available && !msg.debug_enabled) {
+        setupAdminGate(client);
+        const saved = sessionStorage.getItem("snakeAdminToken");
+        if (saved) sendAdminAuth(client, saved);
+        else document.getElementById("admin-gate").classList.remove("hidden");
+      }
       client.sendJoin(pendingName);
     };
 

@@ -59,6 +59,13 @@ class DebugResetMessage(BaseModel):
     type: Literal["debug_reset"] = "debug_reset"
 
 
+class DebugAuthMessage(BaseModel):
+    # Authentifiziert DIESE Verbindung als Admin (server-seitig gegen DEBUG_ADMIN_TOKEN,
+    # siehe main.py) - schaltet die debug_*-Befehle nur für diese eine Verbindung frei.
+    type: Literal["debug_auth"] = "debug_auth"
+    token: str = Field(max_length=512)
+
+
 ClientMessage = Annotated[
     JoinMessage
     | DirectionMessage
@@ -69,7 +76,8 @@ ClientMessage = Annotated[
     | DebugSpawnAtMessage
     | DebugInvulnerableMessage
     | DebugBotsMessage
-    | DebugResetMessage,
+    | DebugResetMessage
+    | DebugAuthMessage,
     Field(discriminator="type"),
 ]
 
@@ -106,12 +114,20 @@ class WelcomeMessage(BaseModel):
     # siehe main.py). Nur dann blendet das Frontend die Debug-Konsole ein - auf dem
     # öffentlichen Deployment (Debug aus) gibt es also keine tote/wirkungslose Konsole.
     debug_enabled: bool = False
+    # Ob ein Admin-Token gesetzt ist (DEBUG_ADMIN_TOKEN) - dann kann sich die
+    # /admin-Seite per debug_auth freischalten (auch wenn debug_enabled false ist).
+    debug_auth_available: bool = False
 
 
 class GameOverMessage(BaseModel):
     type: Literal["game_over"] = "game_over"
     player_id: str
     score: int
+
+
+class DebugAuthResultMessage(BaseModel):
+    type: Literal["debug_auth_result"] = "debug_auth_result"
+    ok: bool
 
 
 class SnakeState(BaseModel):
@@ -147,7 +163,11 @@ class StateMessage(BaseModel):
 
 
 def welcome_message(
-    player_id: str, board: Board, obstacles: list[Obstacle], debug_enabled: bool = False
+    player_id: str,
+    board: Board,
+    obstacles: list[Obstacle],
+    debug_enabled: bool = False,
+    debug_auth_available: bool = False,
 ) -> WelcomeMessage:
     return WelcomeMessage(
         player_id=player_id,
@@ -157,6 +177,7 @@ def welcome_message(
             for o in obstacles
         ],
         debug_enabled=debug_enabled,
+        debug_auth_available=debug_auth_available,
     )
 
 

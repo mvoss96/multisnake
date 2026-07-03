@@ -144,6 +144,76 @@ function createRenderer(canvas, initialThemeId) {
         ctx.fillRect(sx, sy, layer.size, layer.size);
       }
     }
+    // Vignette: dunkle Welt zum Rand hin, damit die Lichtquellen (Futter/Schlangen)
+    // wirklich "leuchten" (siehe drawWorldGlow).
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.25, W / 2, H / 2, Math.max(W, H) * 0.62);
+    vg.addColorStop(0, "rgba(0, 0, 0, 0)");
+    vg.addColorStop(1, `rgba(0, 0, 0, ${WORLD_VIGNETTE_ALPHA})`);
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // Licht-/Halo-Ebene (nur dynamicBg): Futter und Schlangen strahlen additiv Licht
+  // ab. Ein einmal gebautes weißes Radial-Glow-Sprite wird pro Farbe getönt gecacht
+  // und nur geblittet (billig, statt teurer Live-Gradienten je Objekt).
+  let glowSprite = null;
+  function baseGlow() {
+    if (glowSprite) return glowSprite;
+    const S = 128;
+    const c = document.createElement("canvas");
+    c.width = S;
+    c.height = S;
+    const g = c.getContext("2d");
+    const grad = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    grad.addColorStop(0, "rgba(255,255,255,1)");
+    grad.addColorStop(0.45, "rgba(255,255,255,0.35)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = grad;
+    g.fillRect(0, 0, S, S);
+    glowSprite = c;
+    return c;
+  }
+  const glowTintCache = {};
+  function tintedGlow(color) {
+    if (glowTintCache[color]) return glowTintCache[color];
+    const base = baseGlow();
+    const c = document.createElement("canvas");
+    c.width = base.width;
+    c.height = base.height;
+    const g = c.getContext("2d");
+    g.drawImage(base, 0, 0);
+    g.globalCompositeOperation = "source-in";
+    g.fillStyle = color;
+    g.fillRect(0, 0, c.width, c.height);
+    glowTintCache[color] = c;
+    return c;
+  }
+  function blitGlow(color, x, y, radius, alpha) {
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(tintedGlow(color), x - radius, y - radius, radius * 2, radius * 2);
+  }
+  function drawWorldGlow(state) {
+    const prevOp = ctx.globalCompositeOperation;
+    const prevSmooth = ctx.imageSmoothingEnabled;
+    ctx.globalCompositeOperation = "lighter"; // additiv -> überlappendes Licht addiert sich
+    ctx.imageSmoothingEnabled = true; // weicher Verlauf (nicht pixelig)
+    for (const food of state.food) {
+      const col = GLOW_FOOD_COLORS[food.value >= 5 ? 2 : food.value >= 2 ? 1 : 0];
+      blitGlow(col, food.x, food.y, foodRadius(food.value) * GLOW_FOOD_RADIUS_FACTOR, GLOW_FOOD_ALPHA);
+    }
+    for (const snake of state.snakes) {
+      const pts = snake.points;
+      if (!pts.length) continue;
+      const rad = snake.radius;
+      for (let i = 0; i < pts.length; i += GLOW_SNAKE_STEP) {
+        blitGlow(snake.color, pts[i][0], pts[i][1], rad * GLOW_SNAKE_RADIUS_FACTOR, GLOW_SNAKE_ALPHA);
+      }
+      const boost = snake.dashing ? GLOW_DASH_BOOST : 1;
+      blitGlow(snake.color, pts[0][0], pts[0][1], rad * GLOW_HEAD_RADIUS_FACTOR * boost, Math.min(1, GLOW_HEAD_ALPHA * boost));
+    }
+    ctx.globalAlpha = 1;
+    ctx.imageSmoothingEnabled = prevSmooth;
+    ctx.globalCompositeOperation = prevOp;
   }
 
   // Statische Hindernisse (Felsen), einmalig aus der welcome-Nachricht gesetzt
@@ -672,6 +742,9 @@ function createRenderer(canvas, initialThemeId) {
     drawBorderTrees();
     drawBoundary(camera);
     drawObstacles();
+
+    // Licht-/Halo-Ebene unter Futter/Schlangen (nur dunkle Welt-Themes).
+    if (theme.dynamicBg) drawWorldGlow(state);
 
     const blinkPhase = (performance.now() % FOOD_BLINK_PERIOD_MS) / FOOD_BLINK_PERIOD_MS;
     const blinkAlpha = FOOD_BLINK_MIN_ALPHA + (1 - FOOD_BLINK_MIN_ALPHA) * (0.5 + 0.5 * Math.sin(blinkPhase * Math.PI * 2));

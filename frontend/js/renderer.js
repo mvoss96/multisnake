@@ -513,10 +513,12 @@ function createRenderer(canvas, initialThemeId) {
       drawSpikeRow(board.width, 0, board.width, board.height, -1, 0);
     }
 
-    // Baum-Ränder tragen keine Spikes, sind aber genauso tödlich -> als Warnung ein
-    // WEICHER roter Verlauf, der direkt an der Todeskante am kräftigsten ist und über
-    // DANGER_EDGE_BAND ins Feld ausfädelt (kein harter Strich). nx/ny = Einheitsnormale
-    // ins Feld hinein. Intensität steigt mit der Nähe (leichter Puls).
+    // Baum-Ränder tragen keine Spikes, sind aber genauso tödlich -> als Warnung leuchtet
+    // die Spielfeldkante rot: ein ADDITIVES rotes Glühen (globalCompositeOperation
+    // "lighter"), das direkt an der Todeskante am kräftigsten ist und über
+    // DANGER_EDGE_BAND ins Feld ausfädelt. Additiv statt Deckfarbe, damit die Kante
+    // wirklich LEUCHTET (heller wird) statt die Baumstämme braun/matschig zu übertönen.
+    // nx/ny = Einheitsnormale ins Feld hinein; Intensität steigt mit der Nähe (Puls).
     function drawEdgeDangerGlow(edgePos, nx, ny, distance) {
       const proximity = Math.max(0, 1 - distance / SPIKE_GLOW_PROXIMITY);
       if (proximity <= 0) return;
@@ -535,8 +537,11 @@ function createRenderer(canvas, initialThemeId) {
       const g = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
       g.addColorStop(0, `rgba(${DANGER_EDGE_RGB}, ${alpha})`);
       g.addColorStop(1, `rgba(${DANGER_EDGE_RGB}, 0)`);
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
       ctx.fillStyle = g;
       ctx.fillRect(rx, ry, rw, rh);
+      ctx.restore();
     }
     if (treed("top")) drawEdgeDangerGlow(0, 0, 1, camera.y);
     if (treed("bottom")) drawEdgeDangerGlow(board.height, 0, -1, board.height - camera.y);

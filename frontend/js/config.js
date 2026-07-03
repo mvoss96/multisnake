@@ -182,9 +182,9 @@ const SPIKE_GLOW_PROXIMITY = 130;
 // der an der Todeskante am kräftigsten ist und über DANGER_EDGE_BAND Welteinheiten
 // ins Feld ausfädelt (kein harter Strich). ALPHA = Deckkraft direkt an der Kante bei
 // maximaler Nähe.
-const DANGER_EDGE_BAND = 65;
-const DANGER_EDGE_ALPHA = 0.42;
-const DANGER_EDGE_RGB = "255, 40, 40";
+const DANGER_EDGE_BAND = 70;
+const DANGER_EDGE_ALPHA = 0.85;
+const DANGER_EDGE_RGB = "255, 30, 30";
 const SPIKE_CORNER_MARGIN = 9; // Randabstand am Kanten-Anfang/-Ende, frei einstellbar (siehe drawSpikeRow)
 
 // Futter

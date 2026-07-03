@@ -282,51 +282,54 @@ async def test_debug_bots_is_ignored_when_debug_commands_disabled(
         assert (player.snake.points[0].x, player.snake.points[0].y) != (12.0, 34.0)
 
 
-@pytest.mark.asyncio
-async def test_admin_token_unlocks_debug_for_this_connection(
+def test_admin_route_requires_basic_auth(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # Global aus, aber ein Admin-Token gesetzt -> nach debug_auth wirken debug_* Befehle.
-    monkeypatch.setattr(main, "DEBUG_COMMANDS_ENABLED", False)
-    monkeypatch.setattr(main, "DEBUG_ADMIN_TOKEN", "sekret")
-    with client.websocket_connect("/ws") as ws:
-        welcome = ws.receive_json()
-        assert welcome["debug_auth_available"] is True
+    monkeypatch.setattr(main, "ADMIN_PASSWORD", "geheim")
+    unauth = client.get("/admin")
+    assert unauth.status_code == 401
+    assert "Basic" in unauth.headers.get("www-authenticate", "")
 
-        await _send_and_settle(ws, {"type": "debug_auth", "token": "sekret"})
-        assert ws.receive_json() == {"type": "debug_auth_result", "ok": True}
+    ok = client.get("/admin", auth=("admin", "geheim"))
+    assert ok.status_code == 200
+    assert "<canvas" in ok.text
+    assert ok.cookies.get("admin_session")
+
+
+def test_admin_route_served_without_auth_when_disabled(client: TestClient) -> None:
+    # Ohne gesetztes ADMIN_PASSWORD ist /admin nur die normale SPA (keine Auth).
+    resp = client.get("/admin")
+    assert resp.status_code == 200
+    assert "<canvas" in resp.text
+
+
+@pytest.mark.asyncio
+async def test_admin_cookie_unlocks_debug_over_ws(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Global aus. Wer /admin mit Basic Auth passiert, bekommt ein Cookie, das die
+    # /ws-Verbindung als Admin ausweist -> debug_* Befehle wirken.
+    monkeypatch.setattr(main, "DEBUG_COMMANDS_ENABLED", False)
+    monkeypatch.setattr(main, "ADMIN_PASSWORD", "geheim")
+    cookie = client.get("/admin", auth=("admin", "geheim")).cookies["admin_session"]
+
+    with client.websocket_connect("/ws", headers={"Cookie": f"admin_session={cookie}"}) as ws:
+        welcome = ws.receive_json()
+        assert welcome["is_admin"] is True
 
         await _send_and_settle(ws, {"type": "debug_bots", "count": 3})
         assert _bot_count(main.game_room) == 3
 
 
 @pytest.mark.asyncio
-async def test_wrong_admin_token_stays_locked(
+async def test_ws_without_admin_cookie_stays_locked(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(main, "DEBUG_COMMANDS_ENABLED", False)
-    monkeypatch.setattr(main, "DEBUG_ADMIN_TOKEN", "sekret")
+    monkeypatch.setattr(main, "ADMIN_PASSWORD", "geheim")
     with client.websocket_connect("/ws") as ws:
-        ws.receive_json()  # welcome
-
-        await _send_and_settle(ws, {"type": "debug_auth", "token": "falsch"})
-        assert ws.receive_json() == {"type": "debug_auth_result", "ok": False}
+        welcome = ws.receive_json()
+        assert welcome["is_admin"] is False
 
         await _send_and_settle(ws, {"type": "debug_bots", "count": 3})
         assert _bot_count(main.game_room) == 0
-
-
-def test_welcome_reports_no_admin_auth_without_token(
-    client: TestClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    # Ohne gesetzten DEBUG_ADMIN_TOKEN meldet welcome debug_auth_available=false.
-    monkeypatch.setattr(main, "DEBUG_ADMIN_TOKEN", "")
-    with client.websocket_connect("/ws") as ws:
-        msg = ws.receive_json()
-        assert msg["debug_auth_available"] is False
-
-
-def test_admin_route_serves_the_spa(client: TestClient) -> None:
-    resp = client.get("/admin")
-    assert resp.status_code == 200
-    assert "<canvas" in resp.text  # dieselbe index.html wie /

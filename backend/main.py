@@ -1,4 +1,8 @@
 import asyncio
+import base64
+import binascii
+import hashlib
+import hmac
 import os
 import secrets
 import uuid
@@ -17,8 +21,6 @@ from game.game_room import GameRoom
 from game.player import HumanPlayer
 from game.protocol import (
     DashMessage,
-    DebugAuthMessage,
-    DebugAuthResultMessage,
     DebugBotsMessage,
     DebugInvulnerableMessage,
     DebugPauseMessage,
@@ -41,15 +43,44 @@ connections: dict[str, WebSocket] = {}  # player_id -> WebSocket
 # disable explicitly for the public Docker deployment.
 DEBUG_COMMANDS_ENABLED = os.environ.get("ENABLE_DEBUG_COMMANDS", "true").lower() != "false"
 
-# Optionaler Admin-Token: ist er gesetzt, kann sich eine EINZELNE Verbindung über die
-# /admin-Seite per debug_auth freischalten (is_admin) und dann - auch bei ansonsten
-# deaktiviertem DEBUG_COMMANDS_ENABLED - debug_*-Befehle senden. Leer => Auth-Pfad aus.
-DEBUG_ADMIN_TOKEN = os.environ.get("DEBUG_ADMIN_TOKEN", "")
-# player_ids der pro-Verbindung als Admin authentifizierten Clients.
+# Admin-Zugang für die /admin-Debug-Konsole per HTTP Basic Auth: ist ADMIN_PASSWORD
+# gesetzt, verlangt /admin Basic Auth (Browser-Login-Dialog) und setzt danach ein
+# signiertes HttpOnly-Cookie. Die /ws-Verbindung trägt dieses Cookie -> der Server
+# markiert nur DIESE Verbindung als Admin (admin_ids) und akzeptiert von ihr die
+# debug_*-Befehle, auch wenn DEBUG_COMMANDS_ENABLED (global) false ist. Leeres
+# Passwort => Admin-Pfad aus (Server gesperrt).
+ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+# player_ids der pro-Verbindung als Admin erkannten Clients.
 admin_ids: set[str] = set()
-# Zu viele Fehlversuche auf einer Verbindung -> Socket schließen (Brute-Force-Bremse,
-# da es kein globales WS-Rate-Limit gibt).
-MAX_DEBUG_AUTH_ATTEMPTS = 5
+
+
+def _check_basic_auth(header: str | None) -> bool:
+    """Konstantzeit-Prüfung des Authorization: Basic <base64(user:pass)>-Headers."""
+    if not ADMIN_PASSWORD or not header or not header.startswith("Basic "):
+        return False
+    try:
+        user, _, pw = base64.b64decode(header[6:]).decode("utf-8").partition(":")
+    except (binascii.Error, UnicodeDecodeError):
+        return False
+    # Beide Vergleiche IMMER ausführen (kein kurzschließendes and), damit die Dauer
+    # nicht vom Nutzernamen abhängt.
+    user_ok = secrets.compare_digest(user.encode(), ADMIN_USER.encode())
+    pw_ok = secrets.compare_digest(pw.encode(), ADMIN_PASSWORD.encode())
+    return user_ok and pw_ok
+
+
+def _admin_cookie_value() -> str:
+    """Signierter, nicht fälschbarer Cookie-Wert (HMAC über das Passwort als Schlüssel;
+    ändert sich das Passwort, werden alte Cookies ungültig)."""
+    return hmac.new(ADMIN_PASSWORD.encode(), b"multisnake-admin-v1", hashlib.sha256).hexdigest()
+
+
+def _valid_admin_cookie(value: str | None) -> bool:
+    if not ADMIN_PASSWORD or not value:
+        return False
+    return secrets.compare_digest(value, _admin_cookie_value())
+
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
@@ -113,11 +144,33 @@ async def add_no_cache_header(request: Request, call_next: RequestResponseEndpoi
     return response
 
 
-# /admin liefert dieselbe SPA wie / - der Client erkennt den Pfad und schaltet den
-# Admin-Modus (Passwort-Gate -> debug_auth) frei. Muss VOR dem StaticFiles-Mount stehen.
+# /admin liefert dieselbe SPA wie / - verlangt aber (bei gesetztem ADMIN_PASSWORD)
+# HTTP Basic Auth und setzt danach das signierte Admin-Cookie, das die spätere
+# /ws-Verbindung als Admin ausweist. Muss VOR dem StaticFiles-Mount stehen.
 @app.get("/admin")
-async def admin_page() -> FileResponse:
-    return FileResponse(str(FRONTEND_DIR / "index.html"))
+async def admin_page(request: Request) -> Response:
+    index = str(FRONTEND_DIR / "index.html")
+    if not ADMIN_PASSWORD:
+        return FileResponse(index)  # Admin deaktiviert -> Seite ohne Konsole
+    if not _check_basic_auth(request.headers.get("Authorization")):
+        return Response(
+            status_code=401,
+            headers={"WWW-Authenticate": 'Basic realm="multisnake admin"'},
+        )
+    # Secure-Cookie nur, wenn hinter TLS (Caddy setzt X-Forwarded-Proto=https) -
+    # lokal über http bleibt es sonst ungesendet.
+    https = request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
+    resp = FileResponse(index)
+    resp.set_cookie(
+        "admin_session",
+        _admin_cookie_value(),
+        max_age=86400,
+        httponly=True,
+        secure=https,
+        samesite="strict",
+        path="/",
+    )
+    return resp
 
 
 @app.websocket("/ws")
@@ -125,14 +178,17 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     await websocket.accept()
     player_id = str(uuid.uuid4())
     connections[player_id] = websocket
-    auth_attempts = 0
+    # Admin, wenn die Verbindung das signierte Cookie von /admin mitbringt.
+    is_admin = _valid_admin_cookie(websocket.cookies.get("admin_session"))
+    if is_admin:
+        admin_ids.add(player_id)
     await websocket.send_json(
         welcome_message(
             player_id,
             game_room.board,
             game_room.obstacles,
             DEBUG_COMMANDS_ENABLED,
-            bool(DEBUG_ADMIN_TOKEN),
+            is_admin,
         ).model_dump()
     )
 
@@ -163,18 +219,6 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                     player = game_room.players.get(player_id)
                     if player and player.snake:
                         player.snake.try_dash()
-                case DebugAuthMessage(token=token):
-                    ok = bool(DEBUG_ADMIN_TOKEN) and secrets.compare_digest(
-                        token.encode(), DEBUG_ADMIN_TOKEN.encode()
-                    )
-                    if ok:
-                        admin_ids.add(player_id)
-                    else:
-                        auth_attempts += 1
-                    await websocket.send_json(DebugAuthResultMessage(ok=ok).model_dump())
-                    if auth_attempts >= MAX_DEBUG_AUTH_ATTEMPTS:
-                        await websocket.close()
-                        return  # das finally räumt auf
                 case DebugPauseMessage(paused=paused) if debug_ok:
                     game_room.set_paused(paused)
                 case DebugTeleportMessage(x=x, y=y) if debug_ok:

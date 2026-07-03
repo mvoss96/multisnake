@@ -97,19 +97,6 @@
   </div>
 </div>
 
-<!-- Admin-Passwort-Gate: nur auf /admin und wenn der Server ein Admin-Token gesetzt
-     hat (welcome.debug_auth_available). Nach Erfolg schaltet main.js die Debug-Konsole
-     frei. Rein clientseitiges Gate; die eigentliche Prüfung macht der Server. -->
-<div id="admin-gate" class="hidden">
-  <div class="panel">
-    <h2>Admin</h2>
-    <p>Passwort für die Debug-Konsole</p>
-    <input id="admin-token" type="password" placeholder="Admin-Passwort" autocomplete="off">
-    <button id="admin-unlock">Freischalten</button>
-    <div id="admin-error" class="admin-error hidden">Falsches Passwort</div>
-  </div>
-</div>
-
 <!-- Debug-Konsole: nur eingeblendet, wenn der Server die debug_*-Befehle
      freigeschaltet hat (welcome.debug_enabled, siehe main.js). Toggle per Button
      oder Taste `. Auf dem öffentlichen Deployment (Debug aus) existiert sie nicht. -->

@@ -6,7 +6,6 @@ class WebSocketClient {
     this.onState = null;
     this.onGameOver = null;
     this.onConnectionChange = null;
-    this.onDebugAuthResult = null;
   }
 
   connect() {
@@ -27,9 +26,6 @@ class WebSocketClient {
           break;
         case "game_over":
           if (this.onGameOver) this.onGameOver(msg);
-          break;
-        case "debug_auth_result":
-          if (this.onDebugAuthResult) this.onDebugAuthResult(msg);
           break;
       }
     };
@@ -85,9 +81,5 @@ class WebSocketClient {
 
   sendDebugReset() {
     this.send({ type: "debug_reset" });
-  }
-
-  sendDebugAuth(token) {
-    this.send({ type: "debug_auth", token });
   }
 }

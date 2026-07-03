@@ -59,13 +59,6 @@ class DebugResetMessage(BaseModel):
     type: Literal["debug_reset"] = "debug_reset"
 
 
-class DebugAuthMessage(BaseModel):
-    # Authentifiziert DIESE Verbindung als Admin (server-seitig gegen DEBUG_ADMIN_TOKEN,
-    # siehe main.py) - schaltet die debug_*-Befehle nur für diese eine Verbindung frei.
-    type: Literal["debug_auth"] = "debug_auth"
-    token: str = Field(max_length=512)
-
-
 ClientMessage = Annotated[
     JoinMessage
     | DirectionMessage
@@ -76,8 +69,7 @@ ClientMessage = Annotated[
     | DebugSpawnAtMessage
     | DebugInvulnerableMessage
     | DebugBotsMessage
-    | DebugResetMessage
-    | DebugAuthMessage,
+    | DebugResetMessage,
     Field(discriminator="type"),
 ]
 
@@ -114,20 +106,16 @@ class WelcomeMessage(BaseModel):
     # siehe main.py). Nur dann blendet das Frontend die Debug-Konsole ein - auf dem
     # öffentlichen Deployment (Debug aus) gibt es also keine tote/wirkungslose Konsole.
     debug_enabled: bool = False
-    # Ob ein Admin-Token gesetzt ist (DEBUG_ADMIN_TOKEN) - dann kann sich die
-    # /admin-Seite per debug_auth freischalten (auch wenn debug_enabled false ist).
-    debug_auth_available: bool = False
+    # Ob DIESE Verbindung als Admin gilt (Basic-Auth über /admin + signiertes Cookie,
+    # siehe main.py) - dann blendet das Frontend die Debug-Konsole ein, auch wenn
+    # debug_enabled (global) false ist.
+    is_admin: bool = False
 
 
 class GameOverMessage(BaseModel):
     type: Literal["game_over"] = "game_over"
     player_id: str
     score: int
-
-
-class DebugAuthResultMessage(BaseModel):
-    type: Literal["debug_auth_result"] = "debug_auth_result"
-    ok: bool
 
 
 class SnakeState(BaseModel):
@@ -167,7 +155,7 @@ def welcome_message(
     board: Board,
     obstacles: list[Obstacle],
     debug_enabled: bool = False,
-    debug_auth_available: bool = False,
+    is_admin: bool = False,
 ) -> WelcomeMessage:
     return WelcomeMessage(
         player_id=player_id,
@@ -177,7 +165,7 @@ def welcome_message(
             for o in obstacles
         ],
         debug_enabled=debug_enabled,
-        debug_auth_available=debug_auth_available,
+        is_admin=is_admin,
     )
 
 

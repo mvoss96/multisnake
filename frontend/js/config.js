@@ -26,9 +26,9 @@ const ZOOM_LERP_FACTOR_IN = 0.08;
 // Classic-Theme: dynamischer Hintergrund (Aurora-Farbwolken + Parallax-Sternenfeld,
 // siehe drawDynamicBackground in renderer.js). Nur Themes mit dynamicBg (themes.js).
 // Screen-Space + leichter Kamera-Versatz (Parallax) = Tiefe/Weite; bewusst dezent.
-const AURORA_BG_BASE = "#080810"; // sehr dunkles Blau-Schwarz als Basis
+const AURORA_BG_BASE = "#03030a"; // fast schwarzes Blau als Basis (dunkel, damit das Leuchten trägt)
 const AURORA_BLOB_COLORS = ["70,90,220", "140,70,210", "40,165,175"]; // rgb je Farbwolke
-const AURORA_ALPHA = 0.26; // Deckkraft der Farbwolken (dezent)
+const AURORA_ALPHA = 0.18; // Deckkraft der Farbwolken (dezent, dunkler gehalten)
 const AURORA_RADIUS_FACTOR = 0.62; // Wolken-Radius relativ zur größeren Canvas-Kante
 const AURORA_DRIFT = 0.1; // Wander-Amplitude (Bruchteil der Canvas-Größe)
 const AURORA_PARALLAX = 0.03; // Wolken-Versatz mit der Kamera (Tiefe)

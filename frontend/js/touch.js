@@ -28,6 +28,13 @@ function setupTouchControls(client, canvas) {
   }
 
   canvas.addEventListener("pointerdown", (event) => {
+    // Rechtsklick mit der Maus = Dash (das Kontextmenü ist unten unterdrückt).
+    // Zuerst geprüft, damit ein Rechtsklick auch während des Lenkens (linke Taste
+    // gehalten) noch dasht und nicht den Ursprung/Steuer-Pointer beeinflusst.
+    if (event.button === 2) {
+      client.sendDash();
+      return;
+    }
     if (activePointerId !== null) return; // erste Berührung gewinnt, Mehrfach-Touch ignoriert
     activePointerId = event.pointerId;
     const rect = canvas.getBoundingClientRect();

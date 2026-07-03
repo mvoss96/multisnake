@@ -565,46 +565,13 @@ function createRenderer(canvas, initialThemeId) {
       drawSnakeCap(points[0], radius * 2, outlineWidth, outlineColor, bodyColor);
       return;
     }
-    // Durchgang 1: durchgehende Kontur unter dem ganzen Körper (ein zusammenhängender
-    // Zug mit runden Verbindungen/Kappen). Sie liefert die GLATTE Außenkante - auch an
-    // engen Kurven/Spiralen - und konturiert Kopf/Schwanz sauber rund.
+    // Durchgehende Kontur, dann durchgehende Füllung - je ein zusammenhängender Zug
+    // mit runden Verbindungen/Kappen. Überall glatt (auch an engen Kurven/Spiralen),
+    // keine Nähte/Zacken. Bei Selbstüberlappung verschmelzen zwei gleichfarbige
+    // Stränge allerdings ohne trennende Kontur (bewusster Kompromiss - siehe die
+    // ausführliche Diskussion zum Über/Unter-Zielkonflikt in der Git-Historie).
     drawTaperedBody(points, 2 * radius + 2 * outlineWidth, outlineColor);
-    // Runde, konturierte Schwanz- UND Kopf-Kappe, beide UNTER dem Körper (Durchgang 2
-    // überzeichnet die zum Hals zeigende Hälfte). Nötig, weil die Chunks aus
-    // Durchgang 2 an ihren Enden Butt-Caps haben (s.u.) und die echten Spitzen sonst
-    // flach abgeschnitten wären.
-    drawSnakeCap(points[n - 1], 2 * radius * taperFactorAt(n - 1, n), outlineWidth, outlineColor, bodyColor);
-    drawSnakeCap(points[0], 2 * radius * taperFactorAt(0, n), outlineWidth, outlineColor, bodyColor);
-    // Durchgang 2: Über/Unter bei Selbstüberlappung. Der Körper wird in ÜBERLAPPENDEN,
-    // zusammenhängenden Chunks von Schwanz zu Kopf gezeichnet, je erst Kontur, dann
-    // Füllung. Ein Chunk ist ein durchgehender Teilzug mit runden VERBINDUNGEN ->
-    // innerhalb glatt, KEINE "gestrichelten" Lücken wie bei pro-Segment-Konturen. Ein
-    // späterer, kopfwärtiger Chunk legt seine dunkle Kontur über den darunterliegenden
-    // Körper -> die überkreuzende Windung liegt sichtbar oben.
-    // Chunk-ENDEN mit BUTT-Cap statt rund: eine runde Kappe stünde am (mitten im
-    // Körper liegenden) Naht-Ende über und ergäbe ein dunkles Querband ("Raupen-
-    // Segmente"). Butt schneidet bündig ab, sodass an der Naht nur winzige Nibs auf
-    // dem ohnehin dunklen Rand bleiben - der gefüllte Körper bleibt durchgehend.
-    const strokeChunk = (tail, head, width, style) => {
-      ctx.strokeStyle = style;
-      ctx.lineWidth = width;
-      ctx.beginPath();
-      ctx.moveTo(points[tail][0], points[tail][1]);
-      for (let i = tail - 1; i >= head; i--) ctx.lineTo(points[i][0], points[i][1]);
-      ctx.stroke();
-    };
-    ctx.lineCap = "butt";
-    ctx.lineJoin = "round";
-    const span = SNAKE_BODY_CHUNK_POINTS;
-    const stepBack = Math.max(1, span - SNAKE_BODY_CHUNK_OVERLAP);
-    for (let tail = n - 1; tail > 0; tail -= stepBack) {
-      const head = Math.max(0, tail - span);
-      const w = 2 * radius * taperFactorAt((tail + head) / 2, n); // mittlere Breite des Chunks
-      strokeChunk(tail, head, w + outlineWidth * 2, outlineColor);
-      strokeChunk(tail, head, w, bodyColor);
-      if (head === 0) break;
-    }
-    ctx.lineCap = "round";
+    drawTaperedBody(points, 2 * radius, bodyColor);
   }
 
   // Zeichnet die optionale Oberflächen-Textur ("stripes"/"dots") auf den

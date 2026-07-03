@@ -736,6 +736,10 @@ function createRenderer(canvas, initialThemeId) {
     const blinkPhase = (performance.now() % FOOD_BLINK_PERIOD_MS) / FOOD_BLINK_PERIOD_MS;
     const blinkAlpha = FOOD_BLINK_MIN_ALPHA + (1 - FOOD_BLINK_MIN_ALPHA) * (0.5 + 0.5 * Math.sin(blinkPhase * Math.PI * 2));
     for (const food of state.food) {
+      // Während der eigenen Todesanimation das echte (schon gedroppte) Futter im
+      // Todesbereich ausblenden - dort stehen die Auflöse-Kugeln dafür ein; erst nach
+      // der Animation erscheint das Futter, sodass es nicht "vorher" auftaucht.
+      if (isInDeathZone(food.x, food.y)) continue;
       const life = food.life ?? 1;
       const blinkFactor = life < FOOD_BLINK_START_LIFE ? blinkAlpha : 1;
       const fadeAlpha = life >= FOOD_FADE_START_LIFE
@@ -910,6 +914,16 @@ function createRenderer(canvas, initialThemeId) {
         r: snapshot.radius * DEATH_ORB_RADIUS_FACTOR * (0.8 + Math.random() * 0.5),
       });
     }
+    // Bounding-Box des Körpers (+ Marge) - darin wird das echte Futter während der
+    // Animation ausgeblendet (die gedroppte Spur liegt entlang des Körpers).
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const [x, y] of pts) {
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+    const m = snapshot.radius * 3;
     deathAnim = {
       pts,
       n,
@@ -917,11 +931,17 @@ function createRenderer(canvas, initialThemeId) {
       radius: snapshot.radius,
       color: snapshot.color,
       direction: snapshot.direction || 0,
+      box: { minX: minX - m, minY: minY - m, maxX: maxX + m, maxY: maxY + m },
       start: performance.now(),
     };
   }
   function isDeathAnimating() {
     return deathAnim !== null;
+  }
+  function isInDeathZone(x, y) {
+    if (!deathAnim) return false;
+    const b = deathAnim.box;
+    return x >= b.minX && x <= b.maxX && y >= b.minY && y <= b.maxY;
   }
   function drawDeathAnimation() {
     if (!deathAnim) return;

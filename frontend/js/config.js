@@ -252,7 +252,10 @@ const DEATH_ANIM_MS = 1100; // Gesamtdauer der Animation
 const DEATH_ORB_COLORS = ["#ff6b6b", "#c07bff", "#5aa0ff", "#ffd166"];
 const DEATH_ORB_RADIUS_FACTOR = 0.6; // Kugelgröße relativ zur lokalen Körperbreite
 const DEATH_ORB_POP_MS = 150; // Dauer des Aufpopp-Impulses je Kugel (dann Einpendeln)
-const DEATH_ORB_FADE_START = 0.7; // ab dieser Fraktion (0..1) faden die Kugeln aus
+// Ab dieser Fraktion (0..1) faden die Kugeln aus - spät gesetzt, damit sie bis fast
+// zum Ende hell bleiben und dann sauber ans echte Futter übergeben (das während der
+// Animation ausgeblendet ist, siehe isInDeathZone in renderer.js).
+const DEATH_ORB_FADE_START = 0.88;
 // Wie stark die Auflöse-Front der Zeit vorauseilt, damit auch der Kopf klar vor Schluss
 // verschwindet (>1 = Front erreicht den Kopf früher als t=1).
 const DEATH_DISSOLVE_LEAD = 1.15;

@@ -8,3 +8,5 @@ __pycache__/
 .coverage
 htmlcov/
 .claude/scheduled_tasks.lock
+# Secrets (z.B. DEBUG_ADMIN_TOKEN für die /admin-Debug-Konsole) - nur auf dem VPS.
+.env

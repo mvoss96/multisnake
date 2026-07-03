@@ -637,17 +637,13 @@ function createRenderer(canvas, initialThemeId) {
     }
 
     if (theme.pixelPerfect) {
-      // Pixel-Art-Raster: die Skalierung so wählen, dass ein Art-Texel auf ganze
-      // Bildschirmpixel fällt (pxPerTexel ganzzahlig) - der Zoom rastet dadurch in
-      // kleinen Stufen. Nur wenn ein Texel mindestens 1px groß ist; bei extremem
-      // Rauszoomen (Texel < 1px, echte Schärfe unmöglich) sanfter Fallback auf
-      // kontinuierlich. Kamera-Offset auf ganze Pixel runden -> pixelweiser
-      // Schwenk, kein Subpixel-Drift/Flimmern.
-      const pxPerTexel = scale * PIXEL_UNIT;
-      const useScale = pxPerTexel >= 1 ? Math.round(pxPerTexel) / PIXEL_UNIT : scale;
-      const ox = Math.round(canvas.width / 2 - camera.x * useScale);
-      const oy = Math.round(canvas.height / 2 - camera.y * useScale);
-      ctx.setTransform(useScale, 0, 0, useScale, ox, oy);
+      // Pixel-Art-Raster: Kamera-Offset auf ganze Pixel runden (pixelweiser Schwenk,
+      // kein Subpixel-Drift/Flimmern), aber die SKALIERUNG kontinuierlich lassen -
+      // ein früheres Runden auf ganze Texel-Pixel machte den Zoom stufig statt smooth.
+      // Der harte Pixel-Look kommt weiterhin aus imageSmoothingEnabled=false.
+      const ox = Math.round(canvas.width / 2 - camera.x * scale);
+      const oy = Math.round(canvas.height / 2 - camera.y * scale);
+      ctx.setTransform(scale, 0, 0, scale, ox, oy);
     } else {
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.scale(scale, scale);

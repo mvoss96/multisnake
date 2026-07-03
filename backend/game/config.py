@@ -9,7 +9,7 @@ BOARD_HEIGHT: Final[float] = 1500
 
 # Ziel-Gesamtpopulation (Bots + Menschen), nicht nur eine einmalige Startanzahl:
 # GameRoom._rebalance_bots() haelt die Bot-Anzahl staendig bei max(0, NUM_BOTS - human_count).
-NUM_BOTS: Final[int] = 6
+NUM_BOTS: Final[int] = 12
 
 SNAKE_START_LENGTH: Final[int] = 10  # Segmente
 SEGMENT_SPACING: Final[float] = 8.0  # Distanz-Einheiten pro Segment

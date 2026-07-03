@@ -176,9 +176,22 @@ function createRenderer(canvas, initialThemeId) {
 
   // Felsen zeichnen: gethemetes Sprite (Pixel-Theme) aufs Texel-Raster gerastert,
   // sonst ein plastischer Vektor-Fels (Klassik) - klar als Hindernis erkennbar.
-  function drawObstacles() {
+  function drawObstacles(camera) {
+    const glowPhase = (performance.now() % SPIKE_GLOW_PERIOD_MS) / SPIKE_GLOW_PERIOD_MS;
+    const pulse = 0.5 + 0.5 * Math.sin(glowPhase * Math.PI * 2);
     const sprite = themedSprite("rock");
     for (const o of obstacles) {
+      // Steine sind tödlich -> rotes Warn-Glühen (Sprite-Schatten in Rot), wenn der
+      // Spieler (Kamera ~ eigener Kopf) innerhalb des Gefahren-Radius ist.
+      const dist = Math.max(0, Math.hypot(camera.x - o.x, camera.y - o.y) - o.radius);
+      const proximity = Math.max(0, 1 - dist / SPIKE_GLOW_PROXIMITY);
+      if (proximity > 0) {
+        ctx.shadowColor = SPIKE_GLOW_COLOR;
+        ctx.shadowBlur = proximity * (SPIKE_GLOW_BLUR_MIN + (SPIKE_GLOW_BLUR_MAX - SPIKE_GLOW_BLUR_MIN) * pulse);
+      } else {
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = "transparent";
+      }
       if (!sprite) {
         drawVectorRock(o.x, o.y, o.radius);
         continue;
@@ -201,6 +214,8 @@ function createRenderer(canvas, initialThemeId) {
       }
       ctx.drawImage(sprite, snap(o.x - w / 2), snap(o.y - h / 2), w, h);
     }
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = "transparent";
   }
 
   // Plastischer Fels für Vektor-Themes: Bodenschatten (erdet ihn), dunkle Kontur
@@ -498,6 +513,29 @@ function createRenderer(canvas, initialThemeId) {
       drawSpikeRow(board.width, 0, board.width, board.height, -1, 0);
     }
 
+    // Baum-Ränder tragen keine Spikes, sind aber genauso tödlich -> als Warnung
+    // eine rote, pulsierend leuchtende Linie direkt auf der Todeskante, deren
+    // Intensität mit der Nähe steigt (gleiche Gefahren-Logik wie bei den Spikes).
+    function drawEdgeDangerGlow(x1, y1, x2, y2, distance) {
+      const proximity = Math.max(0, 1 - distance / SPIKE_GLOW_PROXIMITY);
+      if (proximity <= 0) return;
+      ctx.save();
+      ctx.strokeStyle = SPIKE_GLOW_COLOR;
+      ctx.globalAlpha = proximity;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = SPIKE_GLOW_COLOR;
+      ctx.shadowBlur = proximity * (SPIKE_GLOW_BLUR_MIN + (SPIKE_GLOW_BLUR_MAX - SPIKE_GLOW_BLUR_MIN) * pulse);
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (treed("top")) drawEdgeDangerGlow(0, 0, board.width, 0, camera.y);
+    if (treed("bottom")) drawEdgeDangerGlow(0, board.height, board.width, board.height, board.height - camera.y);
+    if (treed("left")) drawEdgeDangerGlow(0, 0, 0, board.height, camera.x);
+    if (treed("right")) drawEdgeDangerGlow(board.width, 0, board.width, board.height, board.width - camera.x);
+
     ctx.shadowBlur = 0;
     ctx.shadowColor = "transparent";
   }
@@ -694,7 +732,7 @@ function createRenderer(canvas, initialThemeId) {
 
     drawBorderTrees();
     drawBoundary(camera);
-    drawObstacles();
+    drawObstacles(camera);
 
     const blinkPhase = (performance.now() % FOOD_BLINK_PERIOD_MS) / FOOD_BLINK_PERIOD_MS;
     const blinkAlpha = FOOD_BLINK_MIN_ALPHA + (1 - FOOD_BLINK_MIN_ALPHA) * (0.5 + 0.5 * Math.sin(blinkPhase * Math.PI * 2));

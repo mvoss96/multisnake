@@ -173,7 +173,11 @@ const SPIKE_GLOW_COLOR = "#ff2020";
 const SPIKE_GLOW_PERIOD_MS = 1400;
 const SPIKE_GLOW_BLUR_MIN = 10;
 const SPIKE_GLOW_BLUR_MAX = 24;
-const SPIKE_GLOW_PROXIMITY = 45; // Einheiten - erst kurz vor der tödlichen Zone beginnt das Glühen
+// Gefahren-Radius (Einheiten): ab dieser Nähe beginnt das rote Warn-Glühen ALLER
+// tödlichen Hindernisse - Spikes/Ränder, Baum-Ränder UND Steine (siehe
+// drawBoundary/drawObstacles in renderer.js). Bewusst großzügig, damit man die
+// Todeszone rechtzeitig sieht.
+const SPIKE_GLOW_PROXIMITY = 130;
 const SPIKE_CORNER_MARGIN = 9; // Randabstand am Kanten-Anfang/-Ende, frei einstellbar (siehe drawSpikeRow)
 
 // Futter

@@ -543,10 +543,14 @@ function createRenderer(canvas, initialThemeId) {
       ctx.fillRect(rx, ry, rw, rh);
       ctx.restore();
     }
-    if (treed("top")) drawEdgeDangerGlow(0, 0, 1, camera.y);
-    if (treed("bottom")) drawEdgeDangerGlow(board.height, 0, -1, board.height - camera.y);
-    if (treed("left")) drawEdgeDangerGlow(0, 1, 0, camera.x);
-    if (treed("right")) drawEdgeDangerGlow(board.width, -1, 0, board.width - camera.x);
+    // Start des Glühens auf die Stammfuß-Linie (Baum-Unterkante, TREE_FOOT_INSET ins
+    // Feld versetzt) legen statt auf die Board-Kante (y/x=0) - sonst läge das Glühen
+    // mitten in den Baumstämmen. So beginnt es erst unter den Bäumen im Feld.
+    const inset = TREE_FOOT_INSET;
+    if (treed("top")) drawEdgeDangerGlow(inset, 0, 1, camera.y);
+    if (treed("bottom")) drawEdgeDangerGlow(board.height - inset, 0, -1, board.height - camera.y);
+    if (treed("left")) drawEdgeDangerGlow(inset, 1, 0, camera.x);
+    if (treed("right")) drawEdgeDangerGlow(board.width - inset, -1, 0, board.width - camera.x);
 
     ctx.shadowBlur = 0;
     ctx.shadowColor = "transparent";

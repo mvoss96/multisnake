@@ -241,16 +241,21 @@ const SNAKE_DASH_GLOW_BLUR = 16;
 const SNAKE_TAIL_TAPER_FACTOR = 0.35;
 const SNAKE_TAPER_SEGMENTS = 12;
 
-// Todesanimation der EIGENEN Schlange: statt sofort "Game Over" zerplatzt der Körper
-// in leuchtende Partikel (additiv) + eine kurze Schockwelle; erst danach erscheint der
-// Ergebnis-Screen (main.js verzögert das Overlay um DEATH_ANIM_MS). Rein clientseitig.
-const DEATH_ANIM_MS = 950; // Gesamtdauer der Animation
-const DEATH_PARTICLE_COUNT = 26; // ~so viele Körperpunkte werden zu Partikeln
-const DEATH_PARTICLE_SPEED = 130; // Welteinheiten, mit denen ein Partikel nach außen fliegt
-const DEATH_PARTICLE_JITTER = 45; // zufälliger Geschwindigkeits-Zuschlag je Partikel
-const DEATH_FLASH_MS = 130; // kurzer heller Aufblitz zu Beginn
-const DEATH_SHOCKWAVE_RADIUS = 150; // Endradius des expandierenden Rings
-const DEATH_SHOCKWAVE_COLOR = "255, 90, 90"; // rgb der Schockwelle
+// Todesanimation der EIGENEN Schlange: statt sofort "Game Over" LÖST sich der Körper
+// von hinten nach vorn (Schwanz -> Kopf) in leuchtende Kugeln auf, die kurz aufpoppen
+// und AN ORT UND STELLE liegen bleiben und am Ende sanft ausfaden - darunter liegt dann
+// das echte Futter, das das Backend beim Tod ohnehin fallen lässt (die Schlange "wird"
+// also zum liegenbleibenden Futter). Erst danach erscheint der Ergebnis-Screen (main.js
+// verzögert das Overlay um DEATH_ANIM_MS). Rein clientseitig.
+const DEATH_ANIM_MS = 1100; // Gesamtdauer der Animation
+// Farb-Palette der Kugeln (nimmt das liegenbleibende Futter optisch vorweg).
+const DEATH_ORB_COLORS = ["#ff6b6b", "#c07bff", "#5aa0ff", "#ffd166"];
+const DEATH_ORB_RADIUS_FACTOR = 0.6; // Kugelgröße relativ zur lokalen Körperbreite
+const DEATH_ORB_POP_MS = 150; // Dauer des Aufpopp-Impulses je Kugel (dann Einpendeln)
+const DEATH_ORB_FADE_START = 0.7; // ab dieser Fraktion (0..1) faden die Kugeln aus
+// Wie stark die Auflöse-Front der Zeit vorauseilt, damit auch der Kopf klar vor Schluss
+// verschwindet (>1 = Front erreicht den Kopf früher als t=1).
+const DEATH_DISSOLVE_LEAD = 1.15;
 // Dezenter heller Glanzstreifen mittig auf dem Körper (Tuben-Look statt flacher Fläche).
 const SNAKE_SHINE_WIDTH_FACTOR = 0.35; // relativ zur jeweiligen Körperbreite
 const SNAKE_SHINE_ALPHA = 0.25;

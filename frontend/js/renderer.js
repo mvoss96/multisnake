@@ -883,36 +883,40 @@ function createRenderer(canvas, initialThemeId) {
     ctx.restore();
   }
 
-  // Todesanimation der eigenen Schlange (siehe main.js): der Körper zerplatzt in
-  // leuchtende Partikel, die nach außen fliegen und verblassen, plus ein kurzer
-  // Aufblitz und eine expandierende Schockwelle. Rein clientseitig, in Welt-
-  // Koordinaten (wird innerhalb des Welt-Transforms von draw() gezeichnet).
+  // Todesanimation der eigenen Schlange (siehe main.js): der Körper LÖST sich von hinten
+  // nach vorn (Schwanz -> Kopf) in leuchtende Kugeln auf, die kurz aufpoppen und AN ORT
+  // UND STELLE liegen bleiben; am Ende faden sie sanft aus - darunter liegt dann das
+  // echte Futter, das das Backend beim Tod fallen lässt (die Schlange "wird" zum
+  // liegenbleibenden Futter). Rein clientseitig, in Welt-Koordinaten (wird innerhalb
+  // des Welt-Transforms von draw() gezeichnet).
   let deathAnim = null;
   function startDeathAnimation(snapshot) {
-    const pts = snapshot.points;
-    if (!pts || pts.length === 0) return;
-    const [hx, hy] = pts[0];
-    const step = Math.max(1, Math.floor(pts.length / DEATH_PARTICLE_COUNT));
-    const particles = [];
-    for (let i = 0; i < pts.length; i += step) {
-      const [x, y] = pts[i];
-      // Flugrichtung rundum zufällig -> die Schlange zerstiebt allseitig (Explosion),
-      // statt einseitig in Körperrichtung wegzufliegen.
-      const ang = Math.random() * Math.PI * 2;
-      const speed = DEATH_PARTICLE_SPEED * (0.5 + Math.random());
-      particles.push({
-        x,
-        y,
-        vx: Math.cos(ang) * speed + (Math.random() - 0.5) * DEATH_PARTICLE_JITTER,
-        vy: Math.sin(ang) * speed + (Math.random() - 0.5) * DEATH_PARTICLE_JITTER,
-        r: snapshot.radius * (0.6 + Math.random() * 0.7),
+    const src = snapshot.points;
+    if (!src || src.length === 0) return;
+    const pts = src.map((p) => [p[0], p[1]]); // Kopie (Zustand friert ein)
+    const n = pts.length;
+    // Kugeln nur an gestuften Punkten (nicht jeder Körperpunkt) -> wirkt wie diskretes
+    // Futter, nicht wie eine dichte Linie. Jede Kugel bekommt ihre Auflöse-Zeit
+    // (Schwanz zuerst, gleiche Formel wie die Körper-Front unten) und stabile Werte.
+    const orbCount = Math.max(6, Math.min(28, Math.round(n / 2)));
+    const step = Math.max(1, Math.floor(n / orbCount));
+    const orbs = [];
+    for (let i = 0; i < n; i += step) {
+      orbs.push({
+        x: pts[i][0],
+        y: pts[i][1],
+        dissolveT: ((n - 1 - i) / Math.max(1, n - 1)) / DEATH_DISSOLVE_LEAD,
+        color: DEATH_ORB_COLORS[orbs.length % DEATH_ORB_COLORS.length],
+        r: snapshot.radius * DEATH_ORB_RADIUS_FACTOR * (0.8 + Math.random() * 0.5),
       });
     }
     deathAnim = {
-      particles,
-      cx: hx,
-      cy: hy,
+      pts,
+      n,
+      orbs,
+      radius: snapshot.radius,
       color: snapshot.color,
+      direction: snapshot.direction || 0,
       start: performance.now(),
     };
   }
@@ -926,36 +930,59 @@ function createRenderer(canvas, initialThemeId) {
       deathAnim = null;
       return;
     }
-    const ease = 1 - Math.pow(1 - t, 2); // schnelles Auseinanderfliegen, dann auslaufend
+    const { pts, n, orbs, radius, color } = deathAnim;
+
+    // (a) Restkörper: von Kopf (Index 0) bis zur Auflöse-Front. Die Front läuft mit der
+    // Zeit vom Schwanz zum Kopf (DEATH_DISSOLVE_LEAD > 1 -> Kopf verschwindet vor Schluss).
+    const frontIdx = Math.ceil((n - 1) * (1 - t * DEATH_DISSOLVE_LEAD)) - 1;
+    if (frontIdx >= 1) {
+      const body = pts.slice(0, frontIdx + 1);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      drawTaperedBody(body, radius * 2 + SNAKE_OUTLINE_WIDTH * 2, SNAKE_OUTLINE_COLOR);
+      drawTaperedBody(body, radius * 2, color);
+      // dezente Augen, solange der Kopf noch da ist
+      const d = deathAnim.direction;
+      const [hx, hy] = pts[0];
+      const er = radius * SNAKE_EYE_RADIUS_FACTOR;
+      for (const side of [1, -1]) {
+        const ex = hx + Math.cos(d) * radius * SNAKE_EYE_FORWARD_OFFSET + Math.cos(d + Math.PI / 2) * radius * SNAKE_EYE_SIDE_OFFSET * side;
+        const ey = hy + Math.sin(d) * radius * SNAKE_EYE_FORWARD_OFFSET + Math.sin(d + Math.PI / 2) * radius * SNAKE_EYE_SIDE_OFFSET * side;
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(ex, ey, er, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#111";
+        ctx.beginPath();
+        ctx.arc(ex + Math.cos(d) * er * 0.4, ey + Math.sin(d) * er * 0.4, radius * SNAKE_PUPIL_RADIUS_FACTOR, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // (b) aufgelöste Kugeln: poppen auf, bleiben liegen, faden am Ende aus (additiv).
+    const fadeAlpha = t < DEATH_ORB_FADE_START ? 1 : Math.max(0, 1 - (t - DEATH_ORB_FADE_START) / (1 - DEATH_ORB_FADE_START));
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     ctx.imageSmoothingEnabled = true;
-    // Kurzer heller Aufblitz zu Beginn (der Kopf "explodiert").
-    const flash = 1 - Math.min(1, (performance.now() - deathAnim.start) / DEATH_FLASH_MS);
-    if (flash > 0) {
-      ctx.globalAlpha = flash * 0.9;
-      ctx.fillStyle = "#ffffff";
+    for (const o of orbs) {
+      if (t < o.dissolveT) continue;
+      const age = (t - o.dissolveT) * DEATH_ANIM_MS;
+      const pop = age < DEATH_ORB_POP_MS ? (age / DEATH_ORB_POP_MS) * 1.5 : 1 + 0.5 * Math.exp(-(age - DEATH_ORB_POP_MS) / 120);
+      const r = o.r * Math.min(1.5, pop);
+      // weicher Glüh-Hof
+      const g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, r * 2.4);
+      g.addColorStop(0, o.color);
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.globalAlpha = fadeAlpha * 0.5;
+      ctx.fillStyle = g;
       ctx.beginPath();
-      ctx.arc(deathAnim.cx, deathAnim.cy, deathAnim.particles[0].r * 3, 0, Math.PI * 2);
+      ctx.arc(o.x, o.y, r * 2.4, 0, Math.PI * 2);
       ctx.fill();
-    }
-    // Expandierende Schockwelle.
-    const ringR = DEATH_SHOCKWAVE_RADIUS * ease;
-    ctx.globalAlpha = (1 - t) * 0.6;
-    ctx.strokeStyle = `rgba(${DEATH_SHOCKWAVE_COLOR}, 1)`;
-    ctx.lineWidth = 3 + 4 * (1 - t);
-    ctx.beginPath();
-    ctx.arc(deathAnim.cx, deathAnim.cy, ringR, 0, Math.PI * 2);
-    ctx.stroke();
-    // Partikel: fliegen nach außen, schrumpfen und verblassen (in Schlangenfarbe).
-    for (const p of deathAnim.particles) {
-      const px = p.x + p.vx * ease;
-      const py = p.y + p.vy * ease;
-      const rr = Math.max(0, p.r * (1 - 0.55 * t));
-      ctx.globalAlpha = (1 - t) * 0.85;
-      ctx.fillStyle = deathAnim.color;
+      // heller Kern
+      ctx.globalAlpha = fadeAlpha;
+      ctx.fillStyle = o.color;
       ctx.beginPath();
-      ctx.arc(px, py, rr, 0, Math.PI * 2);
+      ctx.arc(o.x, o.y, r, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();

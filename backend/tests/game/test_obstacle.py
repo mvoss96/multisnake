@@ -81,6 +81,26 @@ def test_invulnerable_snake_survives_obstacle(test_config: SimpleNamespace) -> N
     assert player.snake.alive
 
 
+def test_invulnerable_snake_is_pushed_out_of_obstacle(test_config: SimpleNamespace) -> None:
+    room = GameRoom(_obstacle_config(test_config))
+    rock = room.obstacles[0]
+    player = room.add_human_player("p1")
+    assert player.snake is not None
+    snake = player.snake
+    snake.invulnerable = True
+    # Kopf INNERHALB des Fels (überlappend, aber nicht exakt im Zentrum).
+    snake.points = [Vector2(rock.position.x + rock.radius * 0.4, rock.position.y)]
+    snake.direction = 0.0
+    snake.desired_direction = 0.0
+
+    room.tick(0.016)
+
+    assert player.snake is not None and player.snake.alive
+    # Nicht durchgegangen: der Kopf wurde auf die Fels-Oberfläche zurückgeschoben.
+    min_d = snake.radius + rock.radius
+    assert snake.head().distance_to(rock.position) >= min_d - 1e-6
+
+
 def test_snake_survives_next_to_obstacle(test_config: SimpleNamespace) -> None:
     room = GameRoom(_obstacle_config(test_config))
     rock = room.obstacles[0]

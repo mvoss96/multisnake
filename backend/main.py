@@ -1,10 +1,5 @@
 import asyncio
-import base64
-import binascii
-import hashlib
-import hmac
 import os
-import secrets
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -43,44 +38,17 @@ connections: dict[str, WebSocket] = {}  # player_id -> WebSocket
 # disable explicitly for the public Docker deployment.
 DEBUG_COMMANDS_ENABLED = os.environ.get("ENABLE_DEBUG_COMMANDS", "true").lower() != "false"
 
-# Admin-Zugang für die /admin-Debug-Konsole per HTTP Basic Auth: ist ADMIN_PASSWORD
-# gesetzt, verlangt /admin Basic Auth (Browser-Login-Dialog) und setzt danach ein
-# signiertes HttpOnly-Cookie. Die /ws-Verbindung trägt dieses Cookie -> der Server
-# markiert nur DIESE Verbindung als Admin (admin_ids) und akzeptiert von ihr die
-# debug_*-Befehle, auch wenn DEBUG_COMMANDS_ENABLED (global) false ist. Leeres
-# Passwort => Admin-Pfad aus (Server gesperrt).
-ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+# Admin-Zugang für die /admin-Debug-Konsole: Die Authentifizierung macht der Reverse-
+# Proxy (Caddy basic_auth auf /admin*, inkl. der Admin-WS-Route /admin/ws). Die App
+# selbst prüft kein Passwort - sie VERTRAUT Verbindungen auf /admin/ws als Admin, aber
+# nur wenn TRUST_PROXY_ADMIN=true gesetzt ist. Das Flag ist der Sicherheits-Schalter:
+# solange es aus ist (Default), gewährt /admin/ws KEINE Admin-Rechte - so ist die Route
+# nicht versehentlich offen, bevor die Caddy-basic_auth-Regel steht. Da der Container nur
+# an 127.0.0.1 lauscht, erreicht die App ausschließlich über Caddy; ist /admin* dort
+# geschützt, sind /admin/ws-Verbindungen also authentifiziert.
+TRUST_PROXY_ADMIN = os.environ.get("TRUST_PROXY_ADMIN", "false").lower() == "true"
 # player_ids der pro-Verbindung als Admin erkannten Clients.
 admin_ids: set[str] = set()
-
-
-def _check_basic_auth(header: str | None) -> bool:
-    """Konstantzeit-Prüfung des Authorization: Basic <base64(user:pass)>-Headers."""
-    if not ADMIN_PASSWORD or not header or not header.startswith("Basic "):
-        return False
-    try:
-        user, _, pw = base64.b64decode(header[6:]).decode("utf-8").partition(":")
-    except (binascii.Error, UnicodeDecodeError):
-        return False
-    # Beide Vergleiche IMMER ausführen (kein kurzschließendes and), damit die Dauer
-    # nicht vom Nutzernamen abhängt.
-    user_ok = secrets.compare_digest(user.encode(), ADMIN_USER.encode())
-    pw_ok = secrets.compare_digest(pw.encode(), ADMIN_PASSWORD.encode())
-    return user_ok and pw_ok
-
-
-def _admin_cookie_value() -> str:
-    """Signierter, nicht fälschbarer Cookie-Wert (HMAC über das Passwort als Schlüssel;
-    ändert sich das Passwort, werden alte Cookies ungültig)."""
-    return hmac.new(ADMIN_PASSWORD.encode(), b"multisnake-admin-v1", hashlib.sha256).hexdigest()
-
-
-def _valid_admin_cookie(value: str | None) -> bool:
-    if not ADMIN_PASSWORD or not value:
-        return False
-    return secrets.compare_digest(value, _admin_cookie_value())
-
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
@@ -144,42 +112,18 @@ async def add_no_cache_header(request: Request, call_next: RequestResponseEndpoi
     return response
 
 
-# /admin liefert dieselbe SPA wie / - verlangt aber (bei gesetztem ADMIN_PASSWORD)
-# HTTP Basic Auth und setzt danach das signierte Admin-Cookie, das die spätere
-# /ws-Verbindung als Admin ausweist. Muss VOR dem StaticFiles-Mount stehen.
+# /admin liefert dieselbe SPA wie / - der Reverse-Proxy (Caddy) schützt den Pfad per
+# basic_auth. Die App macht hier KEINE Auth (das Frontend verbindet dann auf /admin/ws).
+# Muss VOR dem StaticFiles-Mount stehen.
 @app.get("/admin")
-async def admin_page(request: Request) -> Response:
-    index = str(FRONTEND_DIR / "index.html")
-    if not ADMIN_PASSWORD:
-        return FileResponse(index)  # Admin deaktiviert -> Seite ohne Konsole
-    if not _check_basic_auth(request.headers.get("Authorization")):
-        return Response(
-            status_code=401,
-            headers={"WWW-Authenticate": 'Basic realm="multisnake admin"'},
-        )
-    # Secure-Cookie nur, wenn hinter TLS (Caddy setzt X-Forwarded-Proto=https) -
-    # lokal über http bleibt es sonst ungesendet.
-    https = request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
-    resp = FileResponse(index)
-    resp.set_cookie(
-        "admin_session",
-        _admin_cookie_value(),
-        max_age=86400,
-        httponly=True,
-        secure=https,
-        samesite="strict",
-        path="/",
-    )
-    return resp
+async def admin_page() -> FileResponse:
+    return FileResponse(str(FRONTEND_DIR / "index.html"))
 
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket) -> None:
+async def _serve_ws(websocket: WebSocket, is_admin: bool) -> None:
     await websocket.accept()
     player_id = str(uuid.uuid4())
     connections[player_id] = websocket
-    # Admin, wenn die Verbindung das signierte Cookie von /admin mitbringt.
-    is_admin = _valid_admin_cookie(websocket.cookies.get("admin_session"))
     if is_admin:
         admin_ids.add(player_id)
     await websocket.send_json(
@@ -237,6 +181,20 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         connections.pop(player_id, None)
         admin_ids.discard(player_id)
         game_room.remove_player(player_id)
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket) -> None:
+    # Öffentliche Spieler-Verbindung - nie Admin.
+    await _serve_ws(websocket, is_admin=False)
+
+
+@app.websocket("/admin/ws")
+async def admin_websocket_endpoint(websocket: WebSocket) -> None:
+    # Admin-Verbindung: Caddy schützt /admin* per basic_auth, daher gilt eine Verbindung
+    # hier als authentifiziert - aber nur wenn TRUST_PROXY_ADMIN gesetzt ist (sonst nicht
+    # als Admin, damit die Route vor der Caddy-Regel nicht offen ist).
+    await _serve_ws(websocket, is_admin=TRUST_PROXY_ADMIN)
 
 
 app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")

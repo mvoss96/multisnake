@@ -8,11 +8,11 @@ services:
     restart: unless-stopped
     environment:
       - ENABLE_DEBUG_COMMANDS=false
-      # HTTP Basic Auth für die /admin-Debug-Konsole; leeres ADMIN_PASSWORD => Admin-Pfad
-      # aus (Server gesperrt). Auf dem VPS in einer nicht-committeten .env neben dieser
-      # Datei setzen (ADMIN_USER optional, Default "admin").
-      - ADMIN_USER=${ADMIN_USER:-admin}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      # Admin-Debug-Konsole via /admin: die Auth macht Caddy (basic_auth auf /admin*).
+      # Nur auf true setzen, WENN Caddy /admin* (inkl. /admin/ws) schützt - dann gelten
+      # /admin/ws-Verbindungen als Admin. Default false => Route gewährt keine Admin-
+      # Rechte (nicht offen). Auf dem VPS in einer nicht-committeten .env setzen.
+      - TRUST_PROXY_ADMIN=${TRUST_PROXY_ADMIN:-false}
     mem_limit: 512m
     cpus: 1.0
     read_only: true

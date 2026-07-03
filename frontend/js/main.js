@@ -360,7 +360,11 @@ window.addEventListener("DOMContentLoaded", () => {
     if (client) return; // already connected from an earlier submit
 
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    client = new WebSocketClient(`${protocol}://${window.location.host}/ws`);
+    // Auf /admin die vom Reverse-Proxy (Caddy basic_auth) geschützte Admin-WS-Route
+    // nutzen - der Browser sendet dort die zwischengespeicherten Basic-Auth-Credentials
+    // mit; der Server stuft solche Verbindungen als Admin ein (welcome.is_admin).
+    const wsPath = /^\/admin\/?$/.test(window.location.pathname) ? "/admin/ws" : "/ws";
+    client = new WebSocketClient(`${protocol}://${window.location.host}${wsPath}`);
     window.__debugClient = client; // Konsole: window.__debugClient.sendDebugTeleport(x, y) etc.
 
     client.onConnectionChange = (isConnected) => {

@@ -390,17 +390,15 @@ function createRenderer(canvas, initialThemeId) {
   // ergibt eine unregelmäßige Wald-Silhouette statt gleichförmiger Schindeln.
   // Die Bäume bleiben an jedem Rand aufrecht (nicht gedreht) - so wirkt es an
   // allen Seiten wie eine natürliche Waldkante.
-  // Rotes Warn-Glühen an den tödlichen Baum-Rändern. Wird VOR den Bäumen gezeichnet
-  // (die Bäume liegen also darüber), und startet an der Board-Kante (y/x=0) mitten im
-  // Baum-Bereich, um von dort über DANGER_EDGE_BAND ins Feld auszufädeln - so quillt
-  // das Rot hinter den Baumstämmen hervor und läuft ins Feld aus, während die Bäume
-  // den oberen Teil verdecken. Intensität steigt mit der Nähe (Puls).
-  function drawTreeEdgeGlow(camera) {
-    const edges = borderEdges();
-    if (edges.length === 0) return;
+  // Rotes Warn-Glühen an ALLEN tödlichen Kanten (Baum- wie Spike-Ränder). Wird VOR
+  // Bäumen UND Spikes gezeichnet, sodass die (später gezeichneten) Bäume/Spikes
+  // darüber liegen; es startet an der Board-Kante (y/x=0) und fädelt über
+  // DANGER_EDGE_BAND ins Feld aus - so quillt das Rot hinter dem Rand-Deko hervor und
+  // läuft ins Feld aus. Intensität steigt mit der Nähe (Puls). Ersetzt das frühere
+  // Eigenglühen der Spikes.
+  function drawEdgeDangerGlow(camera) {
     const glowPhase = (performance.now() % SPIKE_GLOW_PERIOD_MS) / SPIKE_GLOW_PERIOD_MS;
     const pulse = 0.5 + 0.5 * Math.sin(glowPhase * Math.PI * 2);
-    const treed = (e) => edges.includes(e);
     function band(edgePos, nx, ny, distance) {
       const proximity = Math.max(0, 1 - distance / SPIKE_GLOW_PROXIMITY);
       if (proximity <= 0) return;
@@ -420,10 +418,10 @@ function createRenderer(canvas, initialThemeId) {
       ctx.fillStyle = g;
       ctx.fillRect(rx, ry, rw, rh);
     }
-    if (treed("top")) band(0, 0, 1, camera.y);
-    if (treed("bottom")) band(board.height, 0, -1, board.height - camera.y);
-    if (treed("left")) band(0, 1, 0, camera.x);
-    if (treed("right")) band(board.width, -1, 0, board.width - camera.x);
+    band(0, 0, 1, camera.y); // oben
+    band(board.height, 0, -1, board.height - camera.y); // unten
+    band(0, 1, 0, camera.x); // links
+    band(board.width, -1, 0, board.width - camera.x); // rechts
   }
 
   function drawBorderTrees() {
@@ -523,35 +521,12 @@ function createRenderer(canvas, initialThemeId) {
     if (!treed("right")) { ctx.moveTo(board.width, 0); ctx.lineTo(board.width, board.height); }
     ctx.stroke();
 
-    const glowPhase = (performance.now() % SPIKE_GLOW_PERIOD_MS) / SPIKE_GLOW_PERIOD_MS;
-    const pulse = 0.5 + 0.5 * Math.sin(glowPhase * Math.PI * 2);
-    ctx.shadowColor = SPIKE_GLOW_COLOR;
-
-    function glowForDistance(distance) {
-      const proximity = Math.max(0, 1 - distance / SPIKE_GLOW_PROXIMITY);
-      ctx.shadowBlur = proximity * (SPIKE_GLOW_BLUR_MIN + (SPIKE_GLOW_BLUR_MAX - SPIKE_GLOW_BLUR_MIN) * pulse);
-    }
-
-    if (!treed("top")) {
-      glowForDistance(camera.y);
-      drawSpikeRow(0, 0, board.width, 0, 0, 1);
-    }
-    if (!treed("bottom")) {
-      glowForDistance(board.height - camera.y);
-      drawSpikeRow(0, board.height, board.width, board.height, 0, -1);
-    }
-    if (!treed("left")) {
-      glowForDistance(camera.x);
-      drawSpikeRow(0, 0, 0, board.height, 1, 0);
-    }
-    if (!treed("right")) {
-      glowForDistance(board.width - camera.x);
-      drawSpikeRow(board.width, 0, board.width, board.height, -1, 0);
-    }
-
-
-    ctx.shadowBlur = 0;
-    ctx.shadowColor = "transparent";
+    // Spikes ohne Eigenglühen zeichnen - die Gefahren-Warnung übernimmt jetzt
+    // einheitlich das rote Kanten-Glühen (drawEdgeDangerGlow, unter den Spikes).
+    if (!treed("top")) drawSpikeRow(0, 0, board.width, 0, 0, 1);
+    if (!treed("bottom")) drawSpikeRow(0, board.height, board.width, board.height, 0, -1);
+    if (!treed("left")) drawSpikeRow(0, 0, 0, board.height, 1, 0);
+    if (!treed("right")) drawSpikeRow(board.width, 0, board.width, board.height, -1, 0);
   }
 
   // Breite/Radius am Punkt-Index i (0 = Kopf, n-1 = Schwanzende) unter
@@ -744,7 +719,7 @@ function createRenderer(canvas, initialThemeId) {
       drawOutOfBoundsShade(camera, scale);
     }
 
-    drawTreeEdgeGlow(camera); // rotes Kanten-Glühen UNTER die Bäume (die liegen drüber)
+    drawEdgeDangerGlow(camera); // rotes Kanten-Glühen UNTER Bäume/Spikes (die liegen drüber)
     drawBorderTrees();
     drawBoundary(camera);
     drawObstacles(camera);

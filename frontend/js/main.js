@@ -121,6 +121,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const dashBtn = document.getElementById("dash-btn");
 
   let camera = { x: 0, y: 0 };
+  let lastOwnSnake = null; // zuletzt gerenderte eigene Schlange (für die Todesanimation)
   let client = null;
   // Zuletzt bekannte Platzierung/Feldgröße der eigenen Schlange (aus onState),
   // für die Ergebnis-Karte beim Game Over festgehalten (der Game-Over-Tick selbst
@@ -185,6 +186,7 @@ window.addEventListener("DOMContentLoaded", () => {
       const mySnake = snakes.find((s) => s.player_id === GameState.playerId);
       if (mySnake && mySnake.points.length) {
         camera = { x: mySnake.points[0][0], y: mySnake.points[0][1] };
+        lastOwnSnake = mySnake; // für die Todesanimation (letzter bekannter Zustand)
       }
       renderer.draw({ snakes, food }, camera, viewWorldHeight);
     }
@@ -397,7 +399,16 @@ window.addEventListener("DOMContentLoaded", () => {
       goBestEl.textContent = String(best);
       goRankEl.textContent = lastRank ? `${lastRank}/${lastTotal}` : "–";
       goRecordEl.classList.toggle("hidden", !isRecord);
-      overlay.classList.remove("hidden");
+      // Erst die Todesanimation (Körper zerplatzt, siehe renderer.js), dann das
+      // Ergebnis-Overlay - statt sofort "Game Over". Fällt bei fehlendem letzten
+      // Zustand (z.B. Tod im allerersten Tick) auf sofortiges Overlay zurück.
+      if (lastOwnSnake) {
+        renderer.startDeathAnimation(lastOwnSnake);
+        lastOwnSnake = null;
+        setTimeout(() => overlay.classList.remove("hidden"), DEATH_ANIM_MS);
+      } else {
+        overlay.classList.remove("hidden");
+      }
     };
 
     restartBtn.addEventListener("click", () => {

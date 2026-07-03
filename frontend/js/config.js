@@ -240,6 +240,17 @@ const SNAKE_DASH_GLOW_BLUR = 16;
 // Segmente wirken glatter, kosten aber mehr Stroke-Aufrufe pro Schlange/Frame.
 const SNAKE_TAIL_TAPER_FACTOR = 0.35;
 const SNAKE_TAPER_SEGMENTS = 12;
+
+// Todesanimation der EIGENEN Schlange: statt sofort "Game Over" zerplatzt der Körper
+// in leuchtende Partikel (additiv) + eine kurze Schockwelle; erst danach erscheint der
+// Ergebnis-Screen (main.js verzögert das Overlay um DEATH_ANIM_MS). Rein clientseitig.
+const DEATH_ANIM_MS = 950; // Gesamtdauer der Animation
+const DEATH_PARTICLE_COUNT = 26; // ~so viele Körperpunkte werden zu Partikeln
+const DEATH_PARTICLE_SPEED = 130; // Welteinheiten, mit denen ein Partikel nach außen fliegt
+const DEATH_PARTICLE_JITTER = 45; // zufälliger Geschwindigkeits-Zuschlag je Partikel
+const DEATH_FLASH_MS = 130; // kurzer heller Aufblitz zu Beginn
+const DEATH_SHOCKWAVE_RADIUS = 150; // Endradius des expandierenden Rings
+const DEATH_SHOCKWAVE_COLOR = "255, 90, 90"; // rgb der Schockwelle
 // Dezenter heller Glanzstreifen mittig auf dem Körper (Tuben-Look statt flacher Fläche).
 const SNAKE_SHINE_WIDTH_FACTOR = 0.35; // relativ zur jeweiligen Körperbreite
 const SNAKE_SHINE_ALPHA = 0.25;

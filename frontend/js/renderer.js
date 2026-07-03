@@ -878,8 +878,88 @@ function createRenderer(canvas, initialThemeId) {
       }
     }
 
+    drawDeathAnimation();
+
     ctx.restore();
   }
 
-  return { setBoard, setObstacles, resizeToWindow, draw, setTheme };
+  // Todesanimation der eigenen Schlange (siehe main.js): der Körper zerplatzt in
+  // leuchtende Partikel, die nach außen fliegen und verblassen, plus ein kurzer
+  // Aufblitz und eine expandierende Schockwelle. Rein clientseitig, in Welt-
+  // Koordinaten (wird innerhalb des Welt-Transforms von draw() gezeichnet).
+  let deathAnim = null;
+  function startDeathAnimation(snapshot) {
+    const pts = snapshot.points;
+    if (!pts || pts.length === 0) return;
+    const [hx, hy] = pts[0];
+    const step = Math.max(1, Math.floor(pts.length / DEATH_PARTICLE_COUNT));
+    const particles = [];
+    for (let i = 0; i < pts.length; i += step) {
+      const [x, y] = pts[i];
+      // Flugrichtung rundum zufällig -> die Schlange zerstiebt allseitig (Explosion),
+      // statt einseitig in Körperrichtung wegzufliegen.
+      const ang = Math.random() * Math.PI * 2;
+      const speed = DEATH_PARTICLE_SPEED * (0.5 + Math.random());
+      particles.push({
+        x,
+        y,
+        vx: Math.cos(ang) * speed + (Math.random() - 0.5) * DEATH_PARTICLE_JITTER,
+        vy: Math.sin(ang) * speed + (Math.random() - 0.5) * DEATH_PARTICLE_JITTER,
+        r: snapshot.radius * (0.6 + Math.random() * 0.7),
+      });
+    }
+    deathAnim = {
+      particles,
+      cx: hx,
+      cy: hy,
+      color: snapshot.color,
+      start: performance.now(),
+    };
+  }
+  function isDeathAnimating() {
+    return deathAnim !== null;
+  }
+  function drawDeathAnimation() {
+    if (!deathAnim) return;
+    const t = (performance.now() - deathAnim.start) / DEATH_ANIM_MS;
+    if (t >= 1) {
+      deathAnim = null;
+      return;
+    }
+    const ease = 1 - Math.pow(1 - t, 2); // schnelles Auseinanderfliegen, dann auslaufend
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.imageSmoothingEnabled = true;
+    // Kurzer heller Aufblitz zu Beginn (der Kopf "explodiert").
+    const flash = 1 - Math.min(1, (performance.now() - deathAnim.start) / DEATH_FLASH_MS);
+    if (flash > 0) {
+      ctx.globalAlpha = flash * 0.9;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(deathAnim.cx, deathAnim.cy, deathAnim.particles[0].r * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Expandierende Schockwelle.
+    const ringR = DEATH_SHOCKWAVE_RADIUS * ease;
+    ctx.globalAlpha = (1 - t) * 0.6;
+    ctx.strokeStyle = `rgba(${DEATH_SHOCKWAVE_COLOR}, 1)`;
+    ctx.lineWidth = 3 + 4 * (1 - t);
+    ctx.beginPath();
+    ctx.arc(deathAnim.cx, deathAnim.cy, ringR, 0, Math.PI * 2);
+    ctx.stroke();
+    // Partikel: fliegen nach außen, schrumpfen und verblassen (in Schlangenfarbe).
+    for (const p of deathAnim.particles) {
+      const px = p.x + p.vx * ease;
+      const py = p.y + p.vy * ease;
+      const rr = Math.max(0, p.r * (1 - 0.55 * t));
+      ctx.globalAlpha = (1 - t) * 0.85;
+      ctx.fillStyle = deathAnim.color;
+      ctx.beginPath();
+      ctx.arc(px, py, rr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  return { setBoard, setObstacles, resizeToWindow, draw, setTheme, startDeathAnimation, isDeathAnimating };
 }

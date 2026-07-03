@@ -225,14 +225,6 @@ const SNAKE_DASH_GLOW_BLUR = 16;
 // Segmente wirken glatter, kosten aber mehr Stroke-Aufrufe pro Schlange/Frame.
 const SNAKE_TAIL_TAPER_FACTOR = 0.35;
 const SNAKE_TAPER_SEGMENTS = 12;
-// Selbstüberlappungs-Look (siehe drawSnakeBodyLayered in renderer.js): Der Körper
-// wird für ein korrektes Über/Unter in überlappenden, zusammenhängenden Chunks von
-// Schwanz zu Kopf gezeichnet. CHUNK_POINTS = Länge eines Chunks in Punkten, OVERLAP
-// = wie viele Punkte sich benachbarte Chunks teilen (verdeckt die Naht, damit dort
-// keine dunkle Kante bleibt). Größerer Chunk = weniger Nähte, aber gröbere
-// Breiten-Stufung der Verjüngung.
-const SNAKE_BODY_CHUNK_POINTS = 22;
-const SNAKE_BODY_CHUNK_OVERLAP = 9;
 // Dezenter heller Glanzstreifen mittig auf dem Körper (Tuben-Look statt flacher Fläche).
 const SNAKE_SHINE_WIDTH_FACTOR = 0.35; // relativ zur jeweiligen Körperbreite
 const SNAKE_SHINE_ALPHA = 0.25;

@@ -536,66 +536,6 @@ function createRenderer(canvas, initialThemeId) {
     if (alpha !== undefined) ctx.globalAlpha = 1;
   }
 
-  // Körper + Kontur zusammen von SCHWANZ zu KOPF in überlappenden Kapseln (je
-  // Segment erst Kontur, dann Füllung). Anders als zwei getrennte Voll-Durchgänge
-  // (erst ganze Kontur, dann ganzer Körper) legt so jede weiter kopfwärts liegende
-  // Windung ihre dunkle Kontur ÜBER den darunterliegenden Körper - bei
-  // Selbstüberlappung entsteht ein sauberes Über/Unter statt einer verschmolzenen
-  // Farbfläche. Die seitliche Kontur benachbarter Kapseln liegt kolinear, ergibt
-  // also eine durchgehende Außenkontur ohne Streifen. Läuft rückwärts (Schwanz
-  // zuerst), damit der Kopf zuletzt und damit ganz oben liegt.
-  function drawSnakeCap(pt, bodyWidth, outlineWidth, outlineColor, bodyColor) {
-    const [x, y] = pt;
-    ctx.fillStyle = outlineColor;
-    ctx.beginPath();
-    ctx.arc(x, y, bodyWidth / 2 + outlineWidth, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = bodyColor;
-    ctx.beginPath();
-    ctx.arc(x, y, bodyWidth / 2, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  function drawSnakeBodyLayered(points, radius, outlineWidth, outlineColor, bodyColor) {
-    const n = points.length;
-    if (n === 0) return;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    if (n === 1) {
-      drawSnakeCap(points[0], radius * 2, outlineWidth, outlineColor, bodyColor);
-      return;
-    }
-    // Durchgang 1: durchgehende Kontur unter dem ganzen Körper (glatte Außenkante,
-    // rund konturierte Kopf/Schwanz-Spitzen als Basis).
-    drawTaperedBody(points, 2 * radius + 2 * outlineWidth, outlineColor);
-    // Durchgang 2: Über/Unter bei Selbstüberlappung. Der Körper wird in überlappenden,
-    // zusammenhängenden Chunks von Schwanz zu Kopf gezeichnet (runde Verbindungen und
-    // Kappen -> glatte Außenkante, keine Zacken), je erst Kontur, dann Füllung. Ein
-    // späterer, kopfwärtiger Chunk legt seine dunkle Kontur über den darunterliegenden
-    // Körper, sodass die überkreuzende Windung sichtbar oben liegt. An der (im Körper
-    // liegenden) Naht jedes Chunks bleibt bewusst ein leichter, regelmäßiger dunkler
-    // Übergang stehen - der akzeptierte Kompromiss für ein echtes Über/Unter (ein
-    // perfekt glatter Verlauf UND echtes Über/Unter schließen sich in dieser
-    // Canvas-Technik gegenseitig aus; siehe Git-Historie).
-    const strokeChunk = (tail, head, width, style) => {
-      ctx.strokeStyle = style;
-      ctx.lineWidth = width;
-      ctx.beginPath();
-      ctx.moveTo(points[tail][0], points[tail][1]);
-      for (let i = tail - 1; i >= head; i--) ctx.lineTo(points[i][0], points[i][1]);
-      ctx.stroke();
-    };
-    const span = SNAKE_BODY_CHUNK_POINTS;
-    const stepBack = Math.max(1, span - SNAKE_BODY_CHUNK_OVERLAP);
-    for (let tail = n - 1; tail > 0; tail -= stepBack) {
-      const head = Math.max(0, tail - span);
-      const w = 2 * radius * taperFactorAt((tail + head) / 2, n); // mittlere Breite des Chunks
-      strokeChunk(tail, head, w + outlineWidth * 2, outlineColor);
-      strokeChunk(tail, head, w, bodyColor);
-      if (head === 0) break;
-    }
-  }
-
   // Zeichnet die optionale Oberflächen-Textur ("stripes"/"dots") auf den
   // bereits gezeichneten Körper - "solid" braucht keine Zusatzzeichnung.
   function drawSnakePattern(snake, points) {
@@ -836,7 +776,8 @@ function createRenderer(canvas, initialThemeId) {
       // Farbechtheit aufzugeben.
       const scaled = !!theme.snakeScales;
       const outlineWidth = scaled ? SNAKE_SCALE_OUTLINE_WIDTH : SNAKE_OUTLINE_WIDTH;
-      drawSnakeBodyLayered(points, snake.radius, outlineWidth, SNAKE_OUTLINE_COLOR, snake.color);
+      drawTaperedBody(points, snake.radius * 2 + outlineWidth * 2, SNAKE_OUTLINE_COLOR);
+      drawTaperedBody(points, snake.radius * 2, snake.color);
       if (scaled) drawSnakeScales(snake, points);
       drawTaperedBody(points, snake.radius * 2 * SNAKE_SHINE_WIDTH_FACTOR, "#ffffff", SNAKE_SHINE_ALPHA);
       drawSnakePattern(snake, points);

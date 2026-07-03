@@ -390,6 +390,42 @@ function createRenderer(canvas, initialThemeId) {
   // ergibt eine unregelmäßige Wald-Silhouette statt gleichförmiger Schindeln.
   // Die Bäume bleiben an jedem Rand aufrecht (nicht gedreht) - so wirkt es an
   // allen Seiten wie eine natürliche Waldkante.
+  // Rotes Warn-Glühen an den tödlichen Baum-Rändern. Wird VOR den Bäumen gezeichnet
+  // (die Bäume liegen also darüber), und startet an der Board-Kante (y/x=0) mitten im
+  // Baum-Bereich, um von dort über DANGER_EDGE_BAND ins Feld auszufädeln - so quillt
+  // das Rot hinter den Baumstämmen hervor und läuft ins Feld aus, während die Bäume
+  // den oberen Teil verdecken. Intensität steigt mit der Nähe (Puls).
+  function drawTreeEdgeGlow(camera) {
+    const edges = borderEdges();
+    if (edges.length === 0) return;
+    const glowPhase = (performance.now() % SPIKE_GLOW_PERIOD_MS) / SPIKE_GLOW_PERIOD_MS;
+    const pulse = 0.5 + 0.5 * Math.sin(glowPhase * Math.PI * 2);
+    const treed = (e) => edges.includes(e);
+    function band(edgePos, nx, ny, distance) {
+      const proximity = Math.max(0, 1 - distance / SPIKE_GLOW_PROXIMITY);
+      if (proximity <= 0) return;
+      const alpha = proximity * DANGER_EDGE_ALPHA * (0.75 + 0.25 * pulse);
+      const b = DANGER_EDGE_BAND;
+      let gx0, gy0, gx1, gy1, rx, ry, rw, rh;
+      if (nx !== 0) {
+        gx0 = edgePos; gy0 = 0; gx1 = edgePos + nx * b; gy1 = 0;
+        rx = Math.min(edgePos, edgePos + nx * b); ry = 0; rw = b; rh = board.height;
+      } else {
+        gx0 = 0; gy0 = edgePos; gx1 = 0; gy1 = edgePos + ny * b;
+        rx = 0; ry = Math.min(edgePos, edgePos + ny * b); rw = board.width; rh = b;
+      }
+      const g = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
+      g.addColorStop(0, `rgba(${DANGER_EDGE_RGB}, ${alpha})`);
+      g.addColorStop(1, `rgba(${DANGER_EDGE_RGB}, 0)`);
+      ctx.fillStyle = g;
+      ctx.fillRect(rx, ry, rw, rh);
+    }
+    if (treed("top")) band(0, 0, 1, camera.y);
+    if (treed("bottom")) band(board.height, 0, -1, board.height - camera.y);
+    if (treed("left")) band(0, 1, 0, camera.x);
+    if (treed("right")) band(board.width, -1, 0, board.width - camera.x);
+  }
+
   function drawBorderTrees() {
     const tree = themedSprite("borderSprite");
     if (!tree) return;
@@ -513,44 +549,6 @@ function createRenderer(canvas, initialThemeId) {
       drawSpikeRow(board.width, 0, board.width, board.height, -1, 0);
     }
 
-    // Baum-Ränder tragen keine Spikes, sind aber genauso tödlich -> als Warnung leuchtet
-    // die Spielfeldkante rot: ein ADDITIVES rotes Glühen (globalCompositeOperation
-    // "lighter"), das direkt an der Todeskante am kräftigsten ist und über
-    // DANGER_EDGE_BAND ins Feld ausfädelt. Additiv statt Deckfarbe, damit die Kante
-    // wirklich LEUCHTET (heller wird) statt die Baumstämme braun/matschig zu übertönen.
-    // nx/ny = Einheitsnormale ins Feld hinein; Intensität steigt mit der Nähe (Puls).
-    function drawEdgeDangerGlow(edgePos, nx, ny, distance) {
-      const proximity = Math.max(0, 1 - distance / SPIKE_GLOW_PROXIMITY);
-      if (proximity <= 0) return;
-      const alpha = proximity * DANGER_EDGE_ALPHA * (0.75 + 0.25 * pulse);
-      const band = DANGER_EDGE_BAND;
-      let gx0, gy0, gx1, gy1, rx, ry, rw, rh;
-      if (nx !== 0) {
-        // vertikale Kante (links/rechts): Verlauf entlang x, Streifen über volle Höhe
-        gx0 = edgePos; gy0 = 0; gx1 = edgePos + nx * band; gy1 = 0;
-        rx = Math.min(edgePos, edgePos + nx * band); ry = 0; rw = band; rh = board.height;
-      } else {
-        // horizontale Kante (oben/unten): Verlauf entlang y, Streifen über volle Breite
-        gx0 = 0; gy0 = edgePos; gx1 = 0; gy1 = edgePos + ny * band;
-        rx = 0; ry = Math.min(edgePos, edgePos + ny * band); rw = board.width; rh = band;
-      }
-      const g = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
-      g.addColorStop(0, `rgba(${DANGER_EDGE_RGB}, ${alpha})`);
-      g.addColorStop(1, `rgba(${DANGER_EDGE_RGB}, 0)`);
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      ctx.fillStyle = g;
-      ctx.fillRect(rx, ry, rw, rh);
-      ctx.restore();
-    }
-    // Start des Glühens auf die Stammfuß-Linie (Baum-Unterkante, TREE_FOOT_INSET ins
-    // Feld versetzt) legen statt auf die Board-Kante (y/x=0) - sonst läge das Glühen
-    // mitten in den Baumstämmen. So beginnt es erst unter den Bäumen im Feld.
-    const inset = TREE_FOOT_INSET;
-    if (treed("top")) drawEdgeDangerGlow(inset, 0, 1, camera.y);
-    if (treed("bottom")) drawEdgeDangerGlow(board.height - inset, 0, -1, board.height - camera.y);
-    if (treed("left")) drawEdgeDangerGlow(inset, 1, 0, camera.x);
-    if (treed("right")) drawEdgeDangerGlow(board.width - inset, -1, 0, board.width - camera.x);
 
     ctx.shadowBlur = 0;
     ctx.shadowColor = "transparent";
@@ -746,6 +744,7 @@ function createRenderer(canvas, initialThemeId) {
       drawOutOfBoundsShade(camera, scale);
     }
 
+    drawTreeEdgeGlow(camera); // rotes Kanten-Glühen UNTER die Bäume (die liegen drüber)
     drawBorderTrees();
     drawBoundary(camera);
     drawObstacles(camera);

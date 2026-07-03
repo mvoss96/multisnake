@@ -36,6 +36,11 @@ const STAR_LAYERS = [
   { count: 90, parallax: 0.04, alpha: 0.32, size: 1 }, // ferne Ebene (langsam)
   { count: 45, parallax: 0.1, alpha: 0.6, size: 2 }, // nahe Ebene (schneller)
 ];
+// Alles AUSSERHALB des Spielfelds (dynamicBg-Themes) wird abgedunkelt, damit das
+// eigentliche Feld sich klar abhebt (siehe drawOutOfBoundsShade in renderer.js).
+// Kräftiges, fast deckendes Schwarz - der Aurora-Grund bleibt nur innerhalb des
+// Boards voll sichtbar, draußen fast schwarz.
+const WORLD_OOB_SHADE = "rgba(0, 0, 0, 0.82)";
 
 // Pixel-Art-Raster (nur Themes mit pixelPerfect, siehe themes.js/renderer.js):
 // EINE globale Art-Pixel-Größe in Welteinheiten pro Quell-Texel. JEDES gethemete

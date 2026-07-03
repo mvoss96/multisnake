@@ -146,6 +146,27 @@ function createRenderer(canvas, initialThemeId) {
     }
   }
 
+  // Bereich AUSSERHALB des Spielfelds abdunkeln (nur dynamicBg-Themes): ein fast
+  // deckendes Schwarz über alles, mit dem Board-Rechteck als "Loch" (even-odd) -
+  // so bleibt der Aurora-Grund nur im Feld voll sichtbar, außenrum wird es fast
+  // schwarz und das Spielfeld hebt sich klar ab. Wird in Welt-Koordinaten
+  // gezeichnet (nach dem Kamera-Transform); die Außenkante deckt den ganzen
+  // sichtbaren Ausschnitt (aus Kamera + Zoom hergeleitet) plus Reserve ab.
+  function drawOutOfBoundsShade(camera, scale) {
+    const halfW = canvas.width / (2 * scale);
+    const halfH = canvas.height / (2 * scale);
+    const pad = Math.max(halfW, halfH); // großzügige Reserve gegen Ränder beim Schwenk
+    const left = camera.x - halfW - pad;
+    const top = camera.y - halfH - pad;
+    const w = 2 * (halfW + pad);
+    const h = 2 * (halfH + pad);
+    ctx.beginPath();
+    ctx.rect(left, top, w, h); // äußeres Rechteck = sichtbarer Ausschnitt
+    ctx.rect(0, 0, board.width, board.height); // inneres = Board (gegenläufig -> Loch)
+    ctx.fillStyle = WORLD_OOB_SHADE;
+    ctx.fill("evenodd");
+  }
+
   // Statische Hindernisse (Felsen), einmalig aus der welcome-Nachricht gesetzt
   // (siehe main.js). Liste von { x, y, radius, kind }.
   let obstacles = [];
@@ -667,6 +688,12 @@ function createRenderer(canvas, initialThemeId) {
       for (const edge of edges) {
         drawEdgeFade(edge, overhang);
       }
+    }
+
+    // Außerhalb des Felds abdunkeln, bevor Rand/Spikes/Deko darüber gezeichnet
+    // werden (die bleiben so voll sichtbar).
+    if (theme.dynamicBg) {
+      drawOutOfBoundsShade(camera, scale);
     }
 
     drawBorderTrees();

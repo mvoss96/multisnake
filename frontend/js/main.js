@@ -122,6 +122,62 @@ window.addEventListener("DOMContentLoaded", () => {
 
   let camera = { x: 0, y: 0 };
   let lastOwnSnake = null; // zuletzt gerenderte eigene Schlange (für die Todesanimation)
+  let dbgEls = null; // Debug-Konsole (nur wenn welcome.debug_enabled), einmal verdrahtet
+
+  // Debug-Konsole verdrahten (einmalig). Sendet die bestehenden debug_*-Befehle über
+  // den Client; Panel per Toggle-Button oder Taste ` ein-/ausblendbar.
+  function setupDebugConsole(client) {
+    const el = (id) => document.getElementById(id);
+    const toggle = el("dbg-toggle");
+    const panel = el("debug-console");
+    const bots = el("dbg-bots");
+    const pause = el("dbg-pause");
+    const invuln = el("dbg-invuln");
+    const tx = el("dbg-tx");
+    const ty = el("dbg-ty");
+    const info = el("dbg-info");
+    toggle.classList.remove("hidden");
+    const setOpen = (open) => panel.classList.toggle("hidden", !open);
+    const toggleOpen = () => setOpen(panel.classList.contains("hidden"));
+    toggle.addEventListener("click", toggleOpen);
+    el("dbg-close").addEventListener("click", () => setOpen(false));
+    window.addEventListener("keydown", (e) => {
+      const tag = (e.target && e.target.tagName) || "";
+      if (e.code === "Backquote" && tag !== "INPUT" && tag !== "TEXTAREA") {
+        e.preventDefault();
+        toggleOpen();
+      }
+    });
+    const applyBots = () => {
+      let n = parseInt(bots.value, 10);
+      if (Number.isNaN(n)) return;
+      n = Math.max(0, Math.min(50, n));
+      bots.value = String(n);
+      client.sendDebugBotCount(n);
+    };
+    el("dbg-bots-apply").addEventListener("click", applyBots);
+    bots.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") applyBots();
+    });
+    pause.addEventListener("change", () => client.sendDebugPause(pause.checked));
+    invuln.addEventListener("change", () => client.sendDebugInvulnerable(invuln.checked));
+    el("dbg-tp").addEventListener("click", () => {
+      const x = parseFloat(tx.value);
+      const y = parseFloat(ty.value);
+      if (!Number.isNaN(x) && !Number.isNaN(y)) client.sendDebugTeleport(x, y);
+    });
+    return { pause, invuln, info };
+  }
+
+  // Zustand der Konsole aus dem State spiegeln (Pause/Unverwundbar/Schlangenzahl),
+  // ohne die gerade fokussierte Checkbox zu überschreiben.
+  function syncDebugConsole(msg) {
+    if (!dbgEls) return;
+    if (document.activeElement !== dbgEls.pause) dbgEls.pause.checked = !!msg.paused;
+    const me = msg.snakes.find((s) => s.player_id === GameState.playerId);
+    if (me && document.activeElement !== dbgEls.invuln) dbgEls.invuln.checked = !!me.invulnerable;
+    dbgEls.info.textContent = `Schlangen im Spiel: ${msg.snakes.length}`;
+  }
   let client = null;
   // Zuletzt bekannte Platzierung/Feldgröße der eigenen Schlange (aus onState),
   // für die Ergebnis-Karte beim Game Over festgehalten (der Game-Over-Tick selbst
@@ -313,6 +369,7 @@ window.addEventListener("DOMContentLoaded", () => {
       renderer.setObstacles(msg.obstacles || []);
       camera = { x: msg.board.width / 2, y: msg.board.height / 2 };
       overlay.classList.add("hidden");
+      if (msg.debug_enabled && !dbgEls) dbgEls = setupDebugConsole(client);
       client.sendJoin(pendingName);
     };
 
@@ -385,6 +442,7 @@ window.addEventListener("DOMContentLoaded", () => {
       }
 
       updateLeaderboard(msg.snakes);
+      syncDebugConsole(msg);
     };
 
     client.onGameOver = (msg) => {

@@ -97,6 +97,29 @@
   </div>
 </div>
 
+<!-- Debug-Konsole: nur eingeblendet, wenn der Server die debug_*-Befehle
+     freigeschaltet hat (welcome.debug_enabled, siehe main.js). Toggle per Button
+     oder Taste `. Auf dem öffentlichen Deployment (Debug aus) existiert sie nicht. -->
+<button id="dbg-toggle" class="hidden" title="Debug-Konsole (Taste `)">🐞</button>
+<div id="debug-console" class="hidden">
+  <div class="dbg-head"><span>Debug</span><button id="dbg-close" aria-label="schließen">×</button></div>
+  <div class="dbg-row">
+    <label for="dbg-bots">Bots</label>
+    <input id="dbg-bots" type="number" min="0" max="50" step="1" placeholder="0–50">
+    <button id="dbg-bots-apply">Setzen</button>
+  </div>
+  <label class="dbg-check"><input id="dbg-pause" type="checkbox"> Pause</label>
+  <label class="dbg-check"><input id="dbg-invuln" type="checkbox"> Unverwundbar (ich)</label>
+  <div class="dbg-row">
+    <label>Teleport</label>
+    <input id="dbg-tx" type="number" placeholder="x">
+    <input id="dbg-ty" type="number" placeholder="y">
+    <button id="dbg-tp">Go</button>
+  </div>
+  <div class="dbg-info" id="dbg-info"></div>
+  <div class="dbg-hint">Taste <kbd>`</kbd> zum Ein-/Ausblenden</div>
+</div>
+
 <script src="js/config.js"></script>
 <script src="js/themes.js"></script>
 <script src="js/state.js"></script>

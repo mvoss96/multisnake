@@ -95,6 +95,10 @@ class WelcomeMessage(BaseModel):
     # Statische Hindernisse (Felsen) - einmalig beim Verbinden mitgesendet, danach
     # unveränderlich; das Frontend speichert und zeichnet sie (kein per-Tick-Broadcast).
     obstacles: list[ObstacleState] = []
+    # Ob die debug_*-Befehle serverseitig freigeschaltet sind (ENABLE_DEBUG_COMMANDS,
+    # siehe main.py). Nur dann blendet das Frontend die Debug-Konsole ein - auf dem
+    # öffentlichen Deployment (Debug aus) gibt es also keine tote/wirkungslose Konsole.
+    debug_enabled: bool = False
 
 
 class GameOverMessage(BaseModel):
@@ -135,7 +139,9 @@ class StateMessage(BaseModel):
     paused: bool
 
 
-def welcome_message(player_id: str, board: Board, obstacles: list[Obstacle]) -> WelcomeMessage:
+def welcome_message(
+    player_id: str, board: Board, obstacles: list[Obstacle], debug_enabled: bool = False
+) -> WelcomeMessage:
     return WelcomeMessage(
         player_id=player_id,
         board=BoardInfo(width=board.width, height=board.height),
@@ -143,6 +149,7 @@ def welcome_message(player_id: str, board: Board, obstacles: list[Obstacle]) -> 
             ObstacleState(x=o.position.x, y=o.position.y, radius=o.radius, kind=o.kind)
             for o in obstacles
         ],
+        debug_enabled=debug_enabled,
     )
 
 

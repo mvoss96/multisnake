@@ -23,6 +23,10 @@ function setupInput(client, onToggleControlMode) {
   }
 
   window.addEventListener("keydown", (event) => {
+    // Tippt der Nutzer gerade in ein Eingabefeld (z.B. Debug-Konsole, Namensfeld),
+    // nicht die Schlange steuern.
+    const tag = (event.target && event.target.tagName) || "";
+    if (tag === "INPUT" || tag === "TEXTAREA") return;
     if (event.code === "Tab") {
       event.preventDefault();
       if (onToggleControlMode) onToggleControlMode();

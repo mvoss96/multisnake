@@ -37,20 +37,6 @@ const STAR_LAYERS = [
   { count: 45, parallax: 0.1, alpha: 0.6, size: 2 }, // nahe Ebene (schneller)
 ];
 
-// Licht/Halo (nur dynamicBg-Themes): dunkle Welt (Vignette), Futter & Schlangen
-// leuchten als additive Lichtquellen ("lighter"). Bewusst dezent gehalten.
-const WORLD_VIGNETTE_ALPHA = 0.45; // Abdunkelung zum Rand hin
-const GLOW_FOOD_ALPHA = 0.4;
-const GLOW_FOOD_RADIUS_FACTOR = 4.5; // × Futter-Radius
-// Glow-Farbe je Futter-Stufe (1/2/5) - grob passend zu den Sprites/Kreisen.
-const GLOW_FOOD_COLORS = ["#ff6b6b", "#c07bff", "#5aa0ff"];
-const GLOW_SNAKE_ALPHA = 0.16; // Glow entlang des Körpers (Spielerfarbe)
-const GLOW_SNAKE_RADIUS_FACTOR = 2.4; // × Schlangen-Radius
-const GLOW_SNAKE_STEP = 5; // nur jeden N-ten Körperpunkt beleuchten (Performance)
-const GLOW_HEAD_ALPHA = 0.4; // Kopf-"Scheinwerfer"
-const GLOW_HEAD_RADIUS_FACTOR = 4;
-const GLOW_DASH_BOOST = 1.5; // Kopf-Glow beim Dash kurz heller/größer
-
 // Pixel-Art-Raster (nur Themes mit pixelPerfect, siehe themes.js/renderer.js):
 // EINE globale Art-Pixel-Größe in Welteinheiten pro Quell-Texel. JEDES gethemete
 // Sprite wird mit  quellAuflösung * PIXEL_UNIT  gezeichnet - so hat ein Sprite-

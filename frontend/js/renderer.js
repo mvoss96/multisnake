@@ -399,29 +399,38 @@ function createRenderer(canvas, initialThemeId) {
   function drawEdgeDangerGlow(camera) {
     const glowPhase = (performance.now() % SPIKE_GLOW_PERIOD_MS) / SPIKE_GLOW_PERIOD_MS;
     const pulse = 0.5 + 0.5 * Math.sin(glowPhase * Math.PI * 2);
-    function band(edgePos, nx, ny, distance) {
+    // Ein lokaler, elliptischer Glüh-Fleck, zentriert auf die Projektion des Spielers
+    // (Kamera ~ eigener Kopf) auf die Kante. horizontal = Kante verläuft entlang x
+    // (oben/unten); perpSign = Richtung ins Feld (+/-). Halbachsen: entlang der Kante
+    // DANGER_EDGE_REACH, senkrecht ins Feld DANGER_EDGE_BAND. Über ein anisotropes
+    // scale() wird ein Einheits-Radialverlauf zur passenden Ellipse. distance =
+    // senkrechter Abstand des Spielers zur Kante (steuert die Gesamt-Deckkraft).
+    function spot(centerX, centerY, horizontal, perpSign, alongPos, distance) {
       const proximity = Math.max(0, 1 - distance / SPIKE_GLOW_PROXIMITY);
       if (proximity <= 0) return;
       const alpha = proximity * DANGER_EDGE_ALPHA * (0.75 + 0.25 * pulse);
-      const b = DANGER_EDGE_BAND;
-      let gx0, gy0, gx1, gy1, rx, ry, rw, rh;
-      if (nx !== 0) {
-        gx0 = edgePos; gy0 = 0; gx1 = edgePos + nx * b; gy1 = 0;
-        rx = Math.min(edgePos, edgePos + nx * b); ry = 0; rw = b; rh = board.height;
+      ctx.save();
+      if (horizontal) {
+        ctx.translate(alongPos, centerY);
+        ctx.scale(DANGER_EDGE_REACH, DANGER_EDGE_BAND * perpSign);
       } else {
-        gx0 = 0; gy0 = edgePos; gx1 = 0; gy1 = edgePos + ny * b;
-        rx = 0; ry = Math.min(edgePos, edgePos + ny * b); rw = board.width; rh = b;
+        ctx.translate(centerX, alongPos);
+        ctx.scale(DANGER_EDGE_BAND * perpSign, DANGER_EDGE_REACH);
       }
-      const g = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
       g.addColorStop(0, `rgba(${DANGER_EDGE_RGB}, ${alpha})`);
       g.addColorStop(1, `rgba(${DANGER_EDGE_RGB}, 0)`);
       ctx.fillStyle = g;
-      ctx.fillRect(rx, ry, rw, rh);
+      // Nur die ins Feld weisende Hälfte der Ellipse füllen (die andere liegt hinter
+      // der Kante und würde ohnehin von Bäumen/Spikes verdeckt).
+      if (horizontal) ctx.fillRect(-1, 0, 2, 1);
+      else ctx.fillRect(0, -1, 1, 2);
+      ctx.restore();
     }
-    band(0, 0, 1, camera.y); // oben
-    band(board.height, 0, -1, board.height - camera.y); // unten
-    band(0, 1, 0, camera.x); // links
-    band(board.width, -1, 0, board.width - camera.x); // rechts
+    spot(0, 0, true, 1, camera.x, camera.y); // oben
+    spot(0, board.height, true, -1, camera.x, board.height - camera.y); // unten
+    spot(0, 0, false, 1, camera.y, camera.x); // links
+    spot(board.width, 0, false, -1, camera.y, board.width - camera.x); // rechts
   }
 
   function drawBorderTrees() {

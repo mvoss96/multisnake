@@ -81,6 +81,22 @@ def test_spike_zone_death_margin_exact_boundary(
     assert dead_player.snake is None
 
 
+def test_invulnerable_snake_is_blocked_at_map_edge(
+    game_room: GameRoom, test_config: SimpleNamespace, spawn_snake_at: SpawnSnakeAt
+) -> None:
+    margin = test_config.SPIKE_ZONE_DEPTH + test_config.SNAKE_RADIUS
+    # Kopf in der Todeszone (jenseits der Todeslinie), aber unverwundbar.
+    player = spawn_snake_at("inv", margin - 30, 200)
+    assert player.snake is not None
+    player.snake.invulnerable = True
+
+    game_room.tick(0.0)  # dt=0: keine Bewegung, nur die Rand-Klemmung
+
+    assert player.snake is not None and player.snake.alive
+    # Nicht durchgegangen/gestorben: der Kopf wurde in den sicheren Bereich geklemmt.
+    assert player.snake.head().x >= margin - 1e-6
+
+
 def test_one_sided_collision_kills_only_the_rammer(
     game_room: GameRoom, spawn_snake_at: SpawnSnakeAt
 ) -> None:

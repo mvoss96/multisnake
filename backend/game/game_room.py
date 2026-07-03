@@ -341,10 +341,18 @@ class GameRoom:
             if not snake or not snake.alive:
                 continue
             if snake.invulnerable:
-                # Unverwundbar (Debug): stirbt nicht - wird aber an Felsen BLOCKIERT
-                # statt durchzugehen. Ragt der Kopf in einen Fels, wird er entlang der
-                # Verbindungslinie auf die Fels-Oberfläche zurückgeschoben. Rand und
-                # andere Schlangen ignoriert die Schlange weiterhin.
+                # Unverwundbar (Debug): stirbt nicht - wird aber an Hindernissen
+                # BLOCKIERT statt durchzugehen. Auch der KARTENRAND ist ein Hindernis:
+                # der Kopf wird in den sicheren Bereich (genau an die Todeslinie,
+                # margin = Spike-Tiefe + Radius) geklemmt, sodass die Schlange am Rand
+                # stehen bleibt. Andere Schlangen ignoriert sie weiterhin.
+                margin = self.config.SPIKE_ZONE_DEPTH + snake.radius
+                h = snake.head()
+                cx = min(max(h.x, margin), self.board.width - margin)
+                cy = min(max(h.y, margin), self.board.height - margin)
+                if cx != h.x or cy != h.y:
+                    snake.points[0] = Vector2(cx, cy)
+                # Ragt der Kopf in einen Fels, wird er auf dessen Oberfläche zurückgeschoben.
                 for o in self.obstacles:
                     h = snake.head()
                     d = h.distance_to(o.position)

@@ -143,7 +143,10 @@ window.addEventListener("DOMContentLoaded", () => {
     el("dbg-close").addEventListener("click", () => setOpen(false));
     window.addEventListener("keydown", (e) => {
       const tag = (e.target && e.target.tagName) || "";
-      if (e.code === "Backquote" && tag !== "INPUT" && tag !== "TEXTAREA") {
+      // "^" (deutsches Layout, Taste links der 1) bzw. dieselbe physische Taste
+      // (code "Backquote") blendet die Konsole ein/aus.
+      const isToggleKey = e.key === "^" || e.code === "Backquote";
+      if (isToggleKey && tag !== "INPUT" && tag !== "TEXTAREA") {
         e.preventDefault();
         toggleOpen();
       }
@@ -166,6 +169,7 @@ window.addEventListener("DOMContentLoaded", () => {
       const y = parseFloat(ty.value);
       if (!Number.isNaN(x) && !Number.isNaN(y)) client.sendDebugTeleport(x, y);
     });
+    el("dbg-reset").addEventListener("click", () => client.sendDebugReset());
     return { pause, invuln, info };
   }
 

@@ -53,6 +53,12 @@ class DebugBotsMessage(BaseModel):
     count: int = Field(ge=0, le=50)
 
 
+class DebugResetMessage(BaseModel):
+    # Setzt die Spielwelt zurück (Hindernisse/Futter neu, Bots auf Standard,
+    # unpausiert, alle Schlangen respawnen) - kein OS-Prozess-Neustart.
+    type: Literal["debug_reset"] = "debug_reset"
+
+
 ClientMessage = Annotated[
     JoinMessage
     | DirectionMessage
@@ -62,7 +68,8 @@ ClientMessage = Annotated[
     | DebugTeleportMessage
     | DebugSpawnAtMessage
     | DebugInvulnerableMessage
-    | DebugBotsMessage,
+    | DebugBotsMessage
+    | DebugResetMessage,
     Field(discriminator="type"),
 ]
 

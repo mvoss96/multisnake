@@ -19,6 +19,7 @@ from game.protocol import (
     DebugBotsMessage,
     DebugInvulnerableMessage,
     DebugPauseMessage,
+    DebugResetMessage,
     DebugSpawnAtMessage,
     DebugTeleportMessage,
     DirectionMessage,
@@ -143,6 +144,8 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                     game_room.debug_set_invulnerable(player_id, enabled)
                 case DebugBotsMessage(count=count) if DEBUG_COMMANDS_ENABLED:
                     game_room.debug_set_bot_count(count)
+                case DebugResetMessage() if DEBUG_COMMANDS_ENABLED:
+                    game_room.debug_reset()
     except WebSocketDisconnect:
         pass
     finally:

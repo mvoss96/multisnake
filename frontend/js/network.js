@@ -78,4 +78,8 @@ class WebSocketClient {
   sendDebugBotCount(count) {
     this.send({ type: "debug_bots", count });
   }
+
+  sendDebugReset() {
+    this.send({ type: "debug_reset" });
+  }
 }

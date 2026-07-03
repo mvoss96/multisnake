@@ -180,6 +180,24 @@ class GameRoom:
     def debug_set_bot_count(self, count: int) -> None:
         self._set_bot_count(count)
 
+    def debug_reset(self) -> None:
+        """Debug: Spielwelt zurücksetzen (KEIN OS-Prozess-Neustart): Futter neu, Bots
+        auf den Standard (relativ zur Menschenzahl), unpausiert, und alle vorhandenen
+        Schlangen (Mensch wie Bot) frisch respawnen. Verbindungen bleiben bestehen; tote
+        Menschen (ohne Schlange) werden nicht zwangs-respawnt. Die statischen Hindernisse
+        bleiben bewusst UNVERÄNDERT - sie werden nur einmal beim welcome übertragen, ein
+        Neu-Generieren würde die Clients desynchronisieren (unsichtbare Felsen)."""
+        self.paused = False
+        self.food_manager = FoodManager(self.config)
+        self.food_manager.ensure_min_food(self.board, self.obstacles)
+        # Bots komplett neu auf den Standard bringen (frische Bots + Schlangen).
+        self._set_bot_count(0)
+        self._rebalance_bots()
+        # Vorhandene Schlangen frisch setzen (Bots wie lebende Menschen).
+        for player in self.players.all():
+            if player.player_type == "ai" or player.snake is not None:
+                self._spawn_snake_for(player)
+
     def _set_bot_count(self, count: int) -> None:
         bots = [p for p in self.players.all() if p.player_type == "ai"]
         if count > len(bots):

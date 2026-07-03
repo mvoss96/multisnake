@@ -65,6 +65,20 @@ def test_debug_set_bot_count_adds_and_removes_bots(game_room: GameRoom) -> None:
     assert len([p for p in game_room.players.all() if p.player_type == "ai"]) == 1
 
 
+def test_debug_reset_restores_world(game_room: GameRoom, test_config: SimpleNamespace) -> None:
+    game_room.paused = True
+    game_room.debug_set_bot_count(1)
+    game_room.food_manager.foods.clear()
+
+    game_room.debug_reset()
+
+    assert game_room.paused is False
+    ai = [p for p in game_room.players.all() if p.player_type == "ai"]
+    assert len(ai) == test_config.NUM_BOTS  # zurück auf Standard (keine Menschen im Fixture)
+    assert all(p.snake is not None for p in ai)  # frisch respawnt
+    assert len(game_room.food_manager.foods) > 0  # Futter neu aufgefüllt
+
+
 def test_spike_zone_death_margin_exact_boundary(
     game_room: GameRoom, test_config: SimpleNamespace, spawn_snake_at: SpawnSnakeAt
 ) -> None:

@@ -536,6 +536,66 @@ function createRenderer(canvas, initialThemeId) {
     if (alpha !== undefined) ctx.globalAlpha = 1;
   }
 
+  // Körper + Kontur zusammen von SCHWANZ zu KOPF in überlappenden Kapseln (je
+  // Segment erst Kontur, dann Füllung). Anders als zwei getrennte Voll-Durchgänge
+  // (erst ganze Kontur, dann ganzer Körper) legt so jede weiter kopfwärts liegende
+  // Windung ihre dunkle Kontur ÜBER den darunterliegenden Körper - bei
+  // Selbstüberlappung entsteht ein sauberes Über/Unter statt einer verschmolzenen
+  // Farbfläche. Die seitliche Kontur benachbarter Kapseln liegt kolinear, ergibt
+  // also eine durchgehende Außenkontur ohne Streifen. Läuft rückwärts (Schwanz
+  // zuerst), damit der Kopf zuletzt und damit ganz oben liegt.
+  function drawSnakeCap(pt, bodyWidth, outlineWidth, outlineColor, bodyColor) {
+    const [x, y] = pt;
+    ctx.fillStyle = outlineColor;
+    ctx.beginPath();
+    ctx.arc(x, y, bodyWidth / 2 + outlineWidth, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.arc(x, y, bodyWidth / 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawSnakeBodyLayered(points, radius, outlineWidth, outlineColor, bodyColor) {
+    const n = points.length;
+    if (n === 0) return;
+    ctx.lineJoin = "round";
+    if (n === 1) {
+      drawSnakeCap(points[0], radius * 2, outlineWidth, outlineColor, bodyColor);
+      return;
+    }
+    // Schwanz-Kappe zuerst (liegt ganz unten): runde, konturierte Spitze.
+    drawSnakeCap(points[n - 1], 2 * radius * taperFactorAt(n - 1, n), outlineWidth, outlineColor, bodyColor);
+    // Körper Schwanz -> Kopf, je Segment erst Kontur, dann Füllung. Die Kontur mit
+    // BUTT-Cap gezeichnet: eine runde Kappe würde die Füllung des bereits
+    // gezeichneten (schwanzwärtigen) Segments rückwärts wieder überdecken und den
+    // Körper dunkel "zubügeln". Butt endet bündig an der Segmentgrenze, die eigene
+    // Füllung (Round-Cap) stellt die Farbe wieder her -> durchgehend gefüllter
+    // Körper mit sauberer Seitenkontur, und kopfwärtige Windungen liegen bei
+    // Selbstüberlappung korrekt mit ihrer Kontur über dem darunterliegenden Körper.
+    for (let i = n - 1; i >= 1; i--) {
+      const w = 2 * radius * taperFactorAt(i - 0.5, n); // Körperbreite an der Segmentmitte
+      const [x1, y1] = points[i];
+      const [x2, y2] = points[i - 1];
+      ctx.lineCap = "butt";
+      ctx.strokeStyle = outlineColor;
+      ctx.lineWidth = w + outlineWidth * 2;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.lineCap = "round";
+      ctx.strokeStyle = bodyColor;
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+    // Kopf-Kappe zuletzt (liegt ganz oben): runde, konturierte Kopfspitze.
+    drawSnakeCap(points[0], 2 * radius * taperFactorAt(0, n), outlineWidth, outlineColor, bodyColor);
+  }
+
   // Zeichnet die optionale Oberflächen-Textur ("stripes"/"dots") auf den
   // bereits gezeichneten Körper - "solid" braucht keine Zusatzzeichnung.
   function drawSnakePattern(snake, points) {
@@ -776,8 +836,7 @@ function createRenderer(canvas, initialThemeId) {
       // Farbechtheit aufzugeben.
       const scaled = !!theme.snakeScales;
       const outlineWidth = scaled ? SNAKE_SCALE_OUTLINE_WIDTH : SNAKE_OUTLINE_WIDTH;
-      drawTaperedBody(points, snake.radius * 2 + outlineWidth * 2, SNAKE_OUTLINE_COLOR);
-      drawTaperedBody(points, snake.radius * 2, snake.color);
+      drawSnakeBodyLayered(points, snake.radius, outlineWidth, SNAKE_OUTLINE_COLOR, snake.color);
       if (scaled) drawSnakeScales(snake, points);
       drawTaperedBody(points, snake.radius * 2 * SNAKE_SHINE_WIDTH_FACTOR, "#ffffff", SNAKE_SHINE_ALPHA);
       drawSnakePattern(snake, points);

@@ -564,8 +564,13 @@ function createRenderer(canvas, initialThemeId) {
       drawSnakeCap(points[0], radius * 2, outlineWidth, outlineColor, bodyColor);
       return;
     }
-    // Schwanz-Kappe zuerst (liegt ganz unten): runde, konturierte Spitze.
+    // Schwanz- UND Kopf-Kappe zuerst (liegen UNTER dem Körper): runde, konturierte
+    // Spitzen. Der Körper überzeichnet danach jeweils die zum Hals zeigende Hälfte,
+    // sodass nur die nach außen zeigende, konturierte Rundung stehen bleibt - sonst
+    // (Kopf-Kappe zuletzt, oben) läge ihr voller Konturring auch über die
+    // Hals-Verbindung und der Kopf wirkte "umkreist".
     drawSnakeCap(points[n - 1], 2 * radius * taperFactorAt(n - 1, n), outlineWidth, outlineColor, bodyColor);
+    drawSnakeCap(points[0], 2 * radius * taperFactorAt(0, n), outlineWidth, outlineColor, bodyColor);
     // Körper Schwanz -> Kopf, je Segment erst Kontur, dann Füllung. Die Kontur mit
     // BUTT-Cap gezeichnet: eine runde Kappe würde die Füllung des bereits
     // gezeichneten (schwanzwärtigen) Segments rückwärts wieder überdecken und den
@@ -592,8 +597,6 @@ function createRenderer(canvas, initialThemeId) {
       ctx.lineTo(x2, y2);
       ctx.stroke();
     }
-    // Kopf-Kappe zuletzt (liegt ganz oben): runde, konturierte Kopfspitze.
-    drawSnakeCap(points[0], 2 * radius * taperFactorAt(0, n), outlineWidth, outlineColor, bodyColor);
   }
 
   // Zeichnet die optionale Oberflächen-Textur ("stripes"/"dots") auf den

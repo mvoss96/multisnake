@@ -34,6 +34,9 @@ const THEMES = [
     id: "classic",
     label: "Klassisch",
     bodyClass: null,
+    // Animierter Hintergrund (Aurora-Farbwolken + Parallax-Sternenfeld, siehe
+    // drawDynamicBackground in renderer.js) statt der flachen dunklen Fläche.
+    dynamicBg: true,
     // Klassik ist sonst rein Vektor; Felsen sind die eine Ausnahme (dunkler,
     // facettierter Fels passend zum dunklen Hintergrund) - alles andere bleibt Default.
     sprites: { rock: "rock_dark" },

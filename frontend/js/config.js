@@ -23,6 +23,20 @@ const SNAKE_RADIUS_MAX = 14.0;
 const ZOOM_LERP_FACTOR_OUT = 0.02;
 const ZOOM_LERP_FACTOR_IN = 0.08;
 
+// Classic-Theme: dynamischer Hintergrund (Aurora-Farbwolken + Parallax-Sternenfeld,
+// siehe drawDynamicBackground in renderer.js). Nur Themes mit dynamicBg (themes.js).
+// Screen-Space + leichter Kamera-Versatz (Parallax) = Tiefe/Weite; bewusst dezent.
+const AURORA_BG_BASE = "#080810"; // sehr dunkles Blau-Schwarz als Basis
+const AURORA_BLOB_COLORS = ["70,90,220", "140,70,210", "40,165,175"]; // rgb je Farbwolke
+const AURORA_ALPHA = 0.26; // Deckkraft der Farbwolken (dezent)
+const AURORA_RADIUS_FACTOR = 0.62; // Wolken-Radius relativ zur größeren Canvas-Kante
+const AURORA_DRIFT = 0.1; // Wander-Amplitude (Bruchteil der Canvas-Größe)
+const AURORA_PARALLAX = 0.03; // Wolken-Versatz mit der Kamera (Tiefe)
+const STAR_LAYERS = [
+  { count: 90, parallax: 0.04, alpha: 0.32, size: 1 }, // ferne Ebene (langsam)
+  { count: 45, parallax: 0.1, alpha: 0.6, size: 2 }, // nahe Ebene (schneller)
+];
+
 // Pixel-Art-Raster (nur Themes mit pixelPerfect, siehe themes.js/renderer.js):
 // EINE globale Art-Pixel-Größe in Welteinheiten pro Quell-Texel. JEDES gethemete
 // Sprite wird mit  quellAuflösung * PIXEL_UNIT  gezeichnet - so hat ein Sprite-

@@ -97,6 +97,55 @@ function createRenderer(canvas, initialThemeId) {
     board = { width, height };
   }
 
+  // Dynamischer Hintergrund fürs Classic-Theme (theme.dynamicBg): weiche Aurora-
+  // Farbwolken + zwei Parallax-Sternenebenen. In Screen-Space gezeichnet (vor der
+  // Welt-Transform); die Kamera verschiebt Wolken/Sterne leicht -> Tiefe/Weite.
+  const auroraBlobs = AURORA_BLOB_COLORS.map((color, i) => ({
+    color,
+    cx: [0.25, 0.72, 0.5][i % 3],
+    cy: [0.3, 0.35, 0.72][i % 3],
+    phase: i * 2.1,
+    period: 2600 + i * 900,
+  }));
+  let bgStars = null;
+  function makeStars() {
+    return STAR_LAYERS.map((cfg) => ({
+      ...cfg,
+      list: Array.from({ length: cfg.count }, () => ({
+        x: Math.random(),
+        y: Math.random(),
+        tw: Math.random() * Math.PI * 2,
+      })),
+    }));
+  }
+  function drawDynamicBackground(camera) {
+    const W = canvas.width;
+    const H = canvas.height;
+    const t = performance.now();
+    ctx.fillStyle = AURORA_BG_BASE;
+    ctx.fillRect(0, 0, W, H);
+    const R = Math.max(W, H) * AURORA_RADIUS_FACTOR;
+    for (const b of auroraBlobs) {
+      const bx = b.cx * W + Math.cos(t / b.period + b.phase) * W * AURORA_DRIFT - camera.x * AURORA_PARALLAX;
+      const by = b.cy * H + Math.sin(t / (b.period * 0.8) + b.phase) * H * AURORA_DRIFT - camera.y * AURORA_PARALLAX;
+      const g = ctx.createRadialGradient(bx, by, 0, bx, by, R);
+      g.addColorStop(0, `rgba(${b.color}, ${AURORA_ALPHA})`);
+      g.addColorStop(1, `rgba(${b.color}, 0)`);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
+    if (!bgStars) bgStars = makeStars();
+    for (const layer of bgStars) {
+      for (const s of layer.list) {
+        const sx = (((s.x * W - camera.x * layer.parallax) % W) + W) % W;
+        const sy = (((s.y * H - camera.y * layer.parallax) % H) + H) % H;
+        const tw = 0.6 + 0.4 * Math.sin(t / 700 + s.tw);
+        ctx.fillStyle = `rgba(210, 220, 255, ${layer.alpha * tw})`;
+        ctx.fillRect(sx, sy, layer.size, layer.size);
+      }
+    }
+  }
+
   // Statische Hindernisse (Felsen), einmalig aus der welcome-Nachricht gesetzt
   // (siehe main.js). Liste von { x, y, radius, kind }.
   let obstacles = [];
@@ -558,8 +607,13 @@ function createRenderer(canvas, initialThemeId) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
-    ctx.fillStyle = "#050508";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Screen-Space-Hintergrund: dynamische Aurora (Classic) oder flache Fläche.
+    if (theme.dynamicBg) {
+      drawDynamicBackground(camera);
+    } else {
+      ctx.fillStyle = "#050508";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
     if (theme.pixelPerfect) {
       // Pixel-Art-Raster: die Skalierung so wählen, dass ein Art-Texel auf ganze
@@ -593,22 +647,26 @@ function createRenderer(canvas, initialThemeId) {
       }
       patternCache[boardTileName] = pat;
     }
-    ctx.fillStyle = (boardTile && patternCache[boardTileName]) || "#14141e";
-    // An Rändern mit Baum-Deko zieht das Boden-Tile hinter der Reihe etwas über
-    // die Kante hinaus (treeOverhang(), aus der Sprite-Geometrie hergeleitet),
-    // damit die harte Bodenkante hinter den Kronen verschwindet statt als Linie
-    // zwischen/neben den Bäumen sichtbar zu sein.
-    const edges = borderEdges();
-    const overhang = treeOverhang();
-    const oT = edges.includes("top") ? overhang : 0;
-    const oB = edges.includes("bottom") ? overhang : 0;
-    const oL = edges.includes("left") ? overhang : 0;
-    const oR = edges.includes("right") ? overhang : 0;
-    ctx.fillRect(-oL, -oT, board.width + oL + oR, board.height + oT + oB);
-    // Weicher Verlauf am Außenrand des Überhangs statt Hart-Schnitt - bleibt
-    // sonst bei starkem Rauszoomen (hoher Score) wieder als Kante sichtbar.
-    for (const edge of edges) {
-      drawEdgeFade(edge, overhang);
+    // Board-Fläche nur füllen, wenn KEIN dynamischer Hintergrund aktiv ist - sonst
+    // soll die Aurora durch das ganze Feld scheinen (nicht von #14141e verdeckt).
+    if (!theme.dynamicBg) {
+      ctx.fillStyle = (boardTile && patternCache[boardTileName]) || "#14141e";
+      // An Rändern mit Baum-Deko zieht das Boden-Tile hinter der Reihe etwas über
+      // die Kante hinaus (treeOverhang(), aus der Sprite-Geometrie hergeleitet),
+      // damit die harte Bodenkante hinter den Kronen verschwindet statt als Linie
+      // zwischen/neben den Bäumen sichtbar zu sein.
+      const edges = borderEdges();
+      const overhang = treeOverhang();
+      const oT = edges.includes("top") ? overhang : 0;
+      const oB = edges.includes("bottom") ? overhang : 0;
+      const oL = edges.includes("left") ? overhang : 0;
+      const oR = edges.includes("right") ? overhang : 0;
+      ctx.fillRect(-oL, -oT, board.width + oL + oR, board.height + oT + oB);
+      // Weicher Verlauf am Außenrand des Überhangs statt Hart-Schnitt - bleibt
+      // sonst bei starkem Rauszoomen (hoher Score) wieder als Kante sichtbar.
+      for (const edge of edges) {
+        drawEdgeFade(edge, overhang);
+      }
     }
 
     drawBorderTrees();

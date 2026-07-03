@@ -513,28 +513,35 @@ function createRenderer(canvas, initialThemeId) {
       drawSpikeRow(board.width, 0, board.width, board.height, -1, 0);
     }
 
-    // Baum-Ränder tragen keine Spikes, sind aber genauso tödlich -> als Warnung
-    // eine rote, pulsierend leuchtende Linie direkt auf der Todeskante, deren
-    // Intensität mit der Nähe steigt (gleiche Gefahren-Logik wie bei den Spikes).
-    function drawEdgeDangerGlow(x1, y1, x2, y2, distance) {
+    // Baum-Ränder tragen keine Spikes, sind aber genauso tödlich -> als Warnung ein
+    // WEICHER roter Verlauf, der direkt an der Todeskante am kräftigsten ist und über
+    // DANGER_EDGE_BAND ins Feld ausfädelt (kein harter Strich). nx/ny = Einheitsnormale
+    // ins Feld hinein. Intensität steigt mit der Nähe (leichter Puls).
+    function drawEdgeDangerGlow(edgePos, nx, ny, distance) {
       const proximity = Math.max(0, 1 - distance / SPIKE_GLOW_PROXIMITY);
       if (proximity <= 0) return;
-      ctx.save();
-      ctx.strokeStyle = SPIKE_GLOW_COLOR;
-      ctx.globalAlpha = proximity;
-      ctx.lineWidth = 3;
-      ctx.shadowColor = SPIKE_GLOW_COLOR;
-      ctx.shadowBlur = proximity * (SPIKE_GLOW_BLUR_MIN + (SPIKE_GLOW_BLUR_MAX - SPIKE_GLOW_BLUR_MIN) * pulse);
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.stroke();
-      ctx.restore();
+      const alpha = proximity * DANGER_EDGE_ALPHA * (0.75 + 0.25 * pulse);
+      const band = DANGER_EDGE_BAND;
+      let gx0, gy0, gx1, gy1, rx, ry, rw, rh;
+      if (nx !== 0) {
+        // vertikale Kante (links/rechts): Verlauf entlang x, Streifen über volle Höhe
+        gx0 = edgePos; gy0 = 0; gx1 = edgePos + nx * band; gy1 = 0;
+        rx = Math.min(edgePos, edgePos + nx * band); ry = 0; rw = band; rh = board.height;
+      } else {
+        // horizontale Kante (oben/unten): Verlauf entlang y, Streifen über volle Breite
+        gx0 = 0; gy0 = edgePos; gx1 = 0; gy1 = edgePos + ny * band;
+        rx = 0; ry = Math.min(edgePos, edgePos + ny * band); rw = board.width; rh = band;
+      }
+      const g = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
+      g.addColorStop(0, `rgba(${DANGER_EDGE_RGB}, ${alpha})`);
+      g.addColorStop(1, `rgba(${DANGER_EDGE_RGB}, 0)`);
+      ctx.fillStyle = g;
+      ctx.fillRect(rx, ry, rw, rh);
     }
-    if (treed("top")) drawEdgeDangerGlow(0, 0, board.width, 0, camera.y);
-    if (treed("bottom")) drawEdgeDangerGlow(0, board.height, board.width, board.height, board.height - camera.y);
-    if (treed("left")) drawEdgeDangerGlow(0, 0, 0, board.height, camera.x);
-    if (treed("right")) drawEdgeDangerGlow(board.width, 0, board.width, board.height, board.width - camera.x);
+    if (treed("top")) drawEdgeDangerGlow(0, 0, 1, camera.y);
+    if (treed("bottom")) drawEdgeDangerGlow(board.height, 0, -1, board.height - camera.y);
+    if (treed("left")) drawEdgeDangerGlow(0, 1, 0, camera.x);
+    if (treed("right")) drawEdgeDangerGlow(board.width, -1, 0, board.width - camera.x);
 
     ctx.shadowBlur = 0;
     ctx.shadowColor = "transparent";

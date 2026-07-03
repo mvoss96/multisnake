@@ -178,6 +178,13 @@ const SPIKE_GLOW_BLUR_MAX = 24;
 // drawBoundary/drawObstacles in renderer.js). Bewusst großzügig, damit man die
 // Todeszone rechtzeitig sieht.
 const SPIKE_GLOW_PROXIMITY = 130;
+// Warn-Glühen an Baum-Rändern (die keine Spikes tragen): ein WEICHER roter Verlauf,
+// der an der Todeskante am kräftigsten ist und über DANGER_EDGE_BAND Welteinheiten
+// ins Feld ausfädelt (kein harter Strich). ALPHA = Deckkraft direkt an der Kante bei
+// maximaler Nähe.
+const DANGER_EDGE_BAND = 65;
+const DANGER_EDGE_ALPHA = 0.42;
+const DANGER_EDGE_RGB = "255, 40, 40";
 const SPIKE_CORNER_MARGIN = 9; // Randabstand am Kanten-Anfang/-Ende, frei einstellbar (siehe drawSpikeRow)
 
 // Futter

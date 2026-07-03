@@ -1,5 +1,8 @@
 import asyncio
+import hashlib
+import hmac
 import os
+import secrets
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -38,17 +41,30 @@ connections: dict[str, WebSocket] = {}  # player_id -> WebSocket
 # disable explicitly for the public Docker deployment.
 DEBUG_COMMANDS_ENABLED = os.environ.get("ENABLE_DEBUG_COMMANDS", "true").lower() != "false"
 
-# Admin-Zugang für die /admin-Debug-Konsole: Die Authentifizierung macht der Reverse-
-# Proxy (Caddy basic_auth auf /admin*, inkl. der Admin-WS-Route /admin/ws). Die App
-# selbst prüft kein Passwort - sie VERTRAUT Verbindungen auf /admin/ws als Admin, aber
-# nur wenn TRUST_PROXY_ADMIN=true gesetzt ist. Das Flag ist der Sicherheits-Schalter:
-# solange es aus ist (Default), gewährt /admin/ws KEINE Admin-Rechte - so ist die Route
-# nicht versehentlich offen, bevor die Caddy-basic_auth-Regel steht. Da der Container nur
-# an 127.0.0.1 lauscht, erreicht die App ausschließlich über Caddy; ist /admin* dort
-# geschützt, sind /admin/ws-Verbindungen also authentifiziert.
+# Admin-Zugang für die /admin-Debug-Konsole: Die Authentifizierung (Passwort) macht der
+# Reverse-Proxy Caddy per basic_auth auf der /admin-SEITE. Die App prüft kein Passwort;
+# sie setzt beim Ausliefern von /admin ein SIGNIERTES Cookie und wertet es später am
+# /ws-Handshake aus (Cookies werden - anders als Basic-Auth - zuverlässig beim
+# WebSocket-Handshake mitgesendet). Das Cookie wird NUR gesetzt, wenn TRUST_PROXY_ADMIN
+# gesetzt ist (Sicherheits-Schalter: solange aus, gibt es keinen Admin - so wird nicht
+# versehentlich jeder /admin-Besucher Admin, bevor Caddy /admin schützt). Signiert wird
+# mit einem Prozess-Geheimnis (oder ADMIN_COOKIE_SECRET, falls gesetzt, damit Cookies
+# einen Neustart überleben); fälschen ist ohne das Geheimnis nicht möglich.
 TRUST_PROXY_ADMIN = os.environ.get("TRUST_PROXY_ADMIN", "false").lower() == "true"
+_ADMIN_SECRET = os.environ.get("ADMIN_COOKIE_SECRET", "") or secrets.token_hex(32)
 # player_ids der pro-Verbindung als Admin erkannten Clients.
 admin_ids: set[str] = set()
+
+
+def _admin_cookie_value() -> str:
+    return hmac.new(_ADMIN_SECRET.encode(), b"multisnake-admin", hashlib.sha256).hexdigest()
+
+
+def _valid_admin_cookie(value: str | None) -> bool:
+    if not TRUST_PROXY_ADMIN or not value:
+        return False
+    return secrets.compare_digest(value, _admin_cookie_value())
+
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
@@ -112,18 +128,36 @@ async def add_no_cache_header(request: Request, call_next: RequestResponseEndpoi
     return response
 
 
-# /admin liefert dieselbe SPA wie / - der Reverse-Proxy (Caddy) schützt den Pfad per
-# basic_auth. Die App macht hier KEINE Auth (das Frontend verbindet dann auf /admin/ws).
-# Muss VOR dem StaticFiles-Mount stehen.
+# /admin liefert dieselbe SPA wie / - Caddy schützt den Pfad per basic_auth. Wird die
+# Seite ausgeliefert, war die Caddy-Auth also erfolgreich: dann (und nur bei
+# TRUST_PROXY_ADMIN) setzt die App das signierte Admin-Cookie, mit dem sich die spätere
+# /ws-Verbindung als Admin ausweist. Muss VOR dem StaticFiles-Mount stehen.
 @app.get("/admin")
-async def admin_page() -> FileResponse:
-    return FileResponse(str(FRONTEND_DIR / "index.html"))
+async def admin_page(request: Request) -> FileResponse:
+    resp = FileResponse(str(FRONTEND_DIR / "index.html"))
+    if TRUST_PROXY_ADMIN:
+        # Secure nur hinter TLS (Caddy setzt X-Forwarded-Proto=https); lokal über http
+        # bliebe das Cookie sonst ungesendet.
+        https = request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
+        resp.set_cookie(
+            "admin_session",
+            _admin_cookie_value(),
+            max_age=86400,
+            httponly=True,
+            secure=https,
+            samesite="strict",
+            path="/",
+        )
+    return resp
 
 
-async def _serve_ws(websocket: WebSocket, is_admin: bool) -> None:
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket) -> None:
     await websocket.accept()
     player_id = str(uuid.uuid4())
     connections[player_id] = websocket
+    # Admin, wenn die Verbindung das signierte Cookie von /admin mitbringt.
+    is_admin = _valid_admin_cookie(websocket.cookies.get("admin_session"))
     if is_admin:
         admin_ids.add(player_id)
     await websocket.send_json(
@@ -181,20 +215,6 @@ async def _serve_ws(websocket: WebSocket, is_admin: bool) -> None:
         connections.pop(player_id, None)
         admin_ids.discard(player_id)
         game_room.remove_player(player_id)
-
-
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket) -> None:
-    # Öffentliche Spieler-Verbindung - nie Admin.
-    await _serve_ws(websocket, is_admin=False)
-
-
-@app.websocket("/admin/ws")
-async def admin_websocket_endpoint(websocket: WebSocket) -> None:
-    # Admin-Verbindung: Caddy schützt /admin* per basic_auth, daher gilt eine Verbindung
-    # hier als authentifiziert - aber nur wenn TRUST_PROXY_ADMIN gesetzt ist (sonst nicht
-    # als Admin, damit die Route vor der Caddy-Regel nicht offen ist).
-    await _serve_ws(websocket, is_admin=TRUST_PROXY_ADMIN)
 
 
 app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")

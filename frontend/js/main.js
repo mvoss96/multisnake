@@ -360,11 +360,10 @@ window.addEventListener("DOMContentLoaded", () => {
     if (client) return; // already connected from an earlier submit
 
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    // Auf /admin die vom Reverse-Proxy (Caddy basic_auth) geschützte Admin-WS-Route
-    // nutzen - der Browser sendet dort die zwischengespeicherten Basic-Auth-Credentials
-    // mit; der Server stuft solche Verbindungen als Admin ein (welcome.is_admin).
-    const wsPath = /^\/admin\/?$/.test(window.location.pathname) ? "/admin/ws" : "/ws";
-    client = new WebSocketClient(`${protocol}://${window.location.host}${wsPath}`);
+    // Immer /ws. Admin-Rechte kommen über das Cookie, das der Server beim Ausliefern von
+    // /admin setzt (Caddy hat den Pfad zuvor per basic_auth geschützt) - der Browser
+    // sendet Cookies zuverlässig beim WS-Handshake mit; der Server meldet welcome.is_admin.
+    client = new WebSocketClient(`${protocol}://${window.location.host}/ws`);
     window.__debugClient = client; // Konsole: window.__debugClient.sendDebugTeleport(x, y) etc.
 
     client.onConnectionChange = (isConnected) => {

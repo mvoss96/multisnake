@@ -282,22 +282,31 @@ async def test_debug_bots_is_ignored_when_debug_commands_disabled(
         assert (player.snake.points[0].x, player.snake.points[0].y) != (12.0, 34.0)
 
 
-def test_admin_route_serves_the_spa(client: TestClient) -> None:
-    # /admin liefert die SPA (die Auth macht Caddy, nicht die App).
-    resp = client.get("/admin")
-    assert resp.status_code == 200
-    assert "<canvas" in resp.text
+def test_admin_route_sets_cookie_only_when_proxy_trusted(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(main, "TRUST_PROXY_ADMIN", False)
+    off = client.get("/admin")
+    assert off.status_code == 200
+    assert "<canvas" in off.text
+    assert off.cookies.get("admin_session") is None  # kein Admin-Cookie wenn nicht vertraut
+
+    monkeypatch.setattr(main, "TRUST_PROXY_ADMIN", True)
+    on = client.get("/admin")
+    assert on.status_code == 200
+    assert on.cookies.get("admin_session")  # Cookie gesetzt (Caddy hat /admin geschützt)
 
 
 @pytest.mark.asyncio
-async def test_admin_ws_grants_admin_when_proxy_trusted(
+async def test_admin_cookie_unlocks_debug_over_ws(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # Global aus, aber TRUST_PROXY_ADMIN gesetzt (Caddy schützt /admin*): /admin/ws
-    # gilt als Admin -> debug_* Befehle wirken.
+    # Global aus. Das von /admin gesetzte Cookie weist die /ws-Verbindung als Admin aus.
     monkeypatch.setattr(main, "DEBUG_COMMANDS_ENABLED", False)
     monkeypatch.setattr(main, "TRUST_PROXY_ADMIN", True)
-    with client.websocket_connect("/admin/ws") as ws:
+    cookie = client.get("/admin").cookies["admin_session"]
+
+    with client.websocket_connect("/ws", headers={"Cookie": f"admin_session={cookie}"}) as ws:
         welcome = ws.receive_json()
         assert welcome["is_admin"] is True
 
@@ -306,26 +315,9 @@ async def test_admin_ws_grants_admin_when_proxy_trusted(
 
 
 @pytest.mark.asyncio
-async def test_admin_ws_is_not_admin_when_proxy_untrusted(
+async def test_ws_without_admin_cookie_stays_locked(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # Ohne TRUST_PROXY_ADMIN (Default) gewährt selbst /admin/ws keine Admin-Rechte -
-    # die Route ist also nicht offen, bevor die Caddy-Regel steht.
-    monkeypatch.setattr(main, "DEBUG_COMMANDS_ENABLED", False)
-    monkeypatch.setattr(main, "TRUST_PROXY_ADMIN", False)
-    with client.websocket_connect("/admin/ws") as ws:
-        welcome = ws.receive_json()
-        assert welcome["is_admin"] is False
-
-        await _send_and_settle(ws, {"type": "debug_bots", "count": 3})
-        assert _bot_count(main.game_room) == 0
-
-
-@pytest.mark.asyncio
-async def test_public_ws_is_never_admin(
-    client: TestClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    # Selbst bei vertrautem Proxy bleibt die öffentliche /ws-Route nie Admin.
     monkeypatch.setattr(main, "DEBUG_COMMANDS_ENABLED", False)
     monkeypatch.setattr(main, "TRUST_PROXY_ADMIN", True)
     with client.websocket_connect("/ws") as ws:

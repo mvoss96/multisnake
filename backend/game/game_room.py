@@ -249,6 +249,38 @@ class GameRoom:
             dy = (nearest_head.y - food.position.y) / nearest_dist
             food.position = Vector2(food.position.x + dx * pull, food.position.y + dy * pull)
 
+    def _collision_survivor(self, a: Snake, b: Snake) -> Snake:
+        """Bei einer gegenseitigen Kollision überlebt die 'größere' Snake: höherer
+        Score, bei Gleichstand der längere Körper, dann per Zufall - so gewinnt bei
+        Kopf-an-Kopf die stärkere, und bei exaktem Gleichstand entscheidet der Zufall
+        (statt einer systematischen Bevorzugung)."""
+        if a.score != b.score:
+            return a if a.score > b.score else b
+        if len(a.points) != len(b.points):
+            return a if len(a.points) > len(b.points) else b
+        return self._rng.choice([a, b])
+
+    def _resolve_snake_collisions(
+        self, all_players: list[Player], head_hits: dict[str, set[str]]
+    ) -> None:
+        """Wertet die gesammelten Kopf-Treffer aus und tötet die betroffenen Snakes -
+        mit der Garantie, dass bei einer GEGENSEITIGEN Kollision (A trifft B und B
+        trifft A, z.B. Kopf an Kopf) niemals beide sterben: dort überlebt der Gewinner
+        aus _collision_survivor, nur der Verlierer stirbt."""
+        snakes_by_id = {p.snake.id: p.snake for p in all_players if p.snake}
+        to_die = set(head_hits.keys())
+        for a_id, hits in head_hits.items():
+            for b_id in hits:
+                if b_id <= a_id:
+                    continue  # jedes ungeordnete Paar nur einmal betrachten
+                if a_id not in head_hits.get(b_id, frozenset()):
+                    continue  # nicht gegenseitig -> A ist einseitig reingefahren, stirbt
+                if a_id in to_die and b_id in to_die:
+                    survivor = self._collision_survivor(snakes_by_id[a_id], snakes_by_id[b_id])
+                    to_die.discard(survivor.id)
+        for sid in to_die:
+            snakes_by_id[sid].alive = False
+
     def tick(self, dt: float) -> list[tuple[str, int]]:
         self.tick_count += 1
         self.food_manager.tick(dt)
@@ -299,6 +331,11 @@ class GameRoom:
             for p in s.points:
                 body_grid.insert(p, s)
 
+        # Snake-vs-Snake-Kollisionen werden erst GESAMMELT (welcher Kopf berührt den
+        # Körper welcher fremden Snake) und danach in _resolve_snake_collisions
+        # aufgelöst - so kann garantiert werden, dass bei einer gegenseitigen
+        # (Kopf-an-Kopf-)Kollision NIE beide sterben. Wand-/Felsen-Tode bleiben sofort.
+        head_hits: dict[str, set[str]] = {}
         for player in all_players:
             snake = player.snake
             if not snake or not snake.alive:
@@ -317,12 +354,15 @@ class GameRoom:
             # reach deckt den größtmöglichen other.radius ab, damit das Grid keinen
             # echten Treffer verpasst; der exakte Check bleibt dahinter identisch.
             reach = snake.radius + self.config.SNAKE_MAX_RADIUS
-            for point, other in body_grid.query(head, reach):
-                if other.id == snake.id:
-                    continue
-                if head.distance_to(point) < snake.radius + other.radius:
-                    snake.alive = False
-                    break
+            hits = {
+                other.id
+                for point, other in body_grid.query(head, reach)
+                if other.id != snake.id and head.distance_to(point) < snake.radius + other.radius
+            }
+            if hits:
+                head_hits[snake.id] = hits
+
+        self._resolve_snake_collisions(all_players, head_hits)
 
         # Broad-Phase: alle Food-Positionen einmal ins Grid, pro Kopf nur nahe Foods.
         # Das Grid wird vor der Schleife gebaut und währenddessen NICHT verändert -

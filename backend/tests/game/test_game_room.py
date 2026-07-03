@@ -81,29 +81,49 @@ def test_spike_zone_death_margin_exact_boundary(
     assert dead_player.snake is None
 
 
-def test_snake_vs_snake_collision_kills_the_colliding_snake(
+def test_one_sided_collision_kills_only_the_rammer(
     game_room: GameRoom, spawn_snake_at: SpawnSnakeAt
 ) -> None:
+    # blocker's HEAD is far away, but its BODY reaches back to (150, 150); the victim
+    # rams that body point. Only the rammer dies, the rammed snake survives.
     victim = spawn_snake_at("victim", 150, 150)
-    blocker = spawn_snake_at("blocker", 151, 150)  # well within collision radius
+    blocker = spawn_snake_at("blocker", 250, 150)
+    assert blocker.snake is not None
+    blocker.snake.points.append(Vector2(150, 150))  # tail segment under the victim's head
 
     game_room.tick(0.0)
 
     assert victim.snake is None
-    assert blocker.snake is None
+    assert blocker.snake is not None and blocker.snake.alive
 
 
-def test_collision_hit_just_within_combined_radius_kills(
+def test_mutual_head_on_collision_never_kills_both(
     game_room: GameRoom, spawn_snake_at: SpawnSnakeAt
 ) -> None:
-    # Combined radius = SNAKE_RADIUS + SNAKE_RADIUS = 14; heads 13 apart are inside it.
-    victim = spawn_snake_at("victim", 150, 150)
-    blocker = spawn_snake_at("blocker", 163, 150)
+    # Two heads within the combined radius ram each other (mutual). Exactly one must
+    # survive - never both dead, never both alive.
+    a = spawn_snake_at("a", 150, 150)
+    b = spawn_snake_at("b", 151, 150)
 
     game_room.tick(0.0)
 
-    assert victim.snake is None
-    assert blocker.snake is None
+    alive = [p for p in (a, b) if p.snake is not None and p.snake.alive]
+    assert len(alive) == 1
+
+
+def test_mutual_head_on_collision_spares_the_bigger_snake(
+    game_room: GameRoom, spawn_snake_at: SpawnSnakeAt
+) -> None:
+    # On a mutual (head-on) collision the higher-scoring snake survives, the other dies.
+    small = spawn_snake_at("small", 150, 150)
+    big = spawn_snake_at("big", 151, 150)
+    assert small.snake is not None and big.snake is not None
+    big.snake.score = 10  # bigger -> wins the head-on
+
+    game_room.tick(0.0)
+
+    assert small.snake is None
+    assert big.snake is not None and big.snake.alive
 
 
 def test_collision_near_miss_just_outside_combined_radius_survives(

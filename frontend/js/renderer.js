@@ -565,13 +565,35 @@ function createRenderer(canvas, initialThemeId) {
       drawSnakeCap(points[0], radius * 2, outlineWidth, outlineColor, bodyColor);
       return;
     }
-    // Durchgehende Kontur, dann durchgehende Füllung - je ein zusammenhängender Zug
-    // mit runden Verbindungen/Kappen. Überall glatt (auch an engen Kurven/Spiralen),
-    // keine Nähte/Zacken. Bei Selbstüberlappung verschmelzen zwei gleichfarbige
-    // Stränge allerdings ohne trennende Kontur (bewusster Kompromiss - siehe die
-    // ausführliche Diskussion zum Über/Unter-Zielkonflikt in der Git-Historie).
+    // Durchgang 1: durchgehende Kontur unter dem ganzen Körper (glatte Außenkante,
+    // rund konturierte Kopf/Schwanz-Spitzen als Basis).
     drawTaperedBody(points, 2 * radius + 2 * outlineWidth, outlineColor);
-    drawTaperedBody(points, 2 * radius, bodyColor);
+    // Durchgang 2: Über/Unter bei Selbstüberlappung. Der Körper wird in überlappenden,
+    // zusammenhängenden Chunks von Schwanz zu Kopf gezeichnet (runde Verbindungen und
+    // Kappen -> glatte Außenkante, keine Zacken), je erst Kontur, dann Füllung. Ein
+    // späterer, kopfwärtiger Chunk legt seine dunkle Kontur über den darunterliegenden
+    // Körper, sodass die überkreuzende Windung sichtbar oben liegt. An der (im Körper
+    // liegenden) Naht jedes Chunks bleibt bewusst ein leichter, regelmäßiger dunkler
+    // Übergang stehen - der akzeptierte Kompromiss für ein echtes Über/Unter (ein
+    // perfekt glatter Verlauf UND echtes Über/Unter schließen sich in dieser
+    // Canvas-Technik gegenseitig aus; siehe Git-Historie).
+    const strokeChunk = (tail, head, width, style) => {
+      ctx.strokeStyle = style;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(points[tail][0], points[tail][1]);
+      for (let i = tail - 1; i >= head; i--) ctx.lineTo(points[i][0], points[i][1]);
+      ctx.stroke();
+    };
+    const span = SNAKE_BODY_CHUNK_POINTS;
+    const stepBack = Math.max(1, span - SNAKE_BODY_CHUNK_OVERLAP);
+    for (let tail = n - 1; tail > 0; tail -= stepBack) {
+      const head = Math.max(0, tail - span);
+      const w = 2 * radius * taperFactorAt((tail + head) / 2, n); // mittlere Breite des Chunks
+      strokeChunk(tail, head, w + outlineWidth * 2, outlineColor);
+      strokeChunk(tail, head, w, bodyColor);
+      if (head === 0) break;
+    }
   }
 
   // Zeichnet die optionale Oberflächen-Textur ("stripes"/"dots") auf den

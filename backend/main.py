@@ -3,6 +3,8 @@ import hashlib
 import hmac
 import os
 import secrets
+import time
+import traceback
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -55,6 +57,32 @@ _ADMIN_SECRET = os.environ.get("ADMIN_COOKIE_SECRET", "") or secrets.token_hex(3
 # player_ids der pro-Verbindung als Admin erkannten Clients.
 admin_ids: set[str] = set()
 
+# CSWSH-Schutz: WS-Handshakes nur von erlaubten Origins akzeptieren. Browser senden
+# immer einen Origin-Header, sodass eine fremde Seite (z.B. evil.com) den Handshake nicht
+# durchbekommt und keine fremde Session steuern kann. Nicht-Browser-Clients (curl/native)
+# ohne Origin sind kein CSRF-Vektor und werden durchgelassen. Kommagetrennt per env;
+# auf dem VPS auf die echte Domain (https://snake.marcusvoss.de) setzen.
+ALLOWED_WS_ORIGINS = {
+    o.strip()
+    for o in os.environ.get(
+        "ALLOWED_WS_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000"
+    ).split(",")
+    if o.strip()
+}
+
+# Obergrenze gleichzeitiger WS-Verbindungen (jede spawnt eine Schlange) - simpler Schutz
+# gegen Verbindungs-Fluten. <=0 => unbegrenzt.
+MAX_WS_CONNECTIONS = int(os.environ.get("MAX_WS_CONNECTIONS", "100"))
+
+# Nachrichten-Ratenlimit je Verbindung (Nachrichten pro Sekunde). Legitime Eingaben
+# (Richtung/Dash) liegen weit darunter; ein Flood-Loop wird getrennt. <=0 => aus.
+WS_MAX_MSGS_PER_SEC = int(os.environ.get("WS_MAX_MSGS_PER_SEC", "250"))
+
+
+def _origin_allowed(origin: str | None) -> bool:
+    # Kein Origin (Nicht-Browser-Client) ist kein CSWSH-Vektor -> erlaubt.
+    return origin is None or origin in ALLOWED_WS_ORIGINS
+
 
 def _admin_cookie_value() -> str:
     return hmac.new(_ADMIN_SECRET.encode(), b"multisnake-admin", hashlib.sha256).hexdigest()
@@ -102,7 +130,13 @@ async def game_loop() -> None:
     loop = asyncio.get_running_loop()
     while True:
         start = loop.time()
-        await broadcast_tick()
+        # Ein Fehler in EINEM Tick (z.B. durch vergiftete Entity-Daten) darf niemals die
+        # Loop-Task beenden - sonst tickt der Raum für ALLE Spieler nie wieder (DoS bis
+        # Prozess-Neustart). Fehler loggen und weiter ticken.
+        try:
+            await broadcast_tick()
+        except Exception:
+            traceback.print_exc()
         await asyncio.sleep(sleep_duration(loop.time() - start, config.TICK_DT))
 
 
@@ -153,6 +187,13 @@ async def admin_page(request: Request) -> FileResponse:
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:
+    # Vor dem accept: fremde Origins (CSWSH) und Verbindungs-Fluten abweisen.
+    if not _origin_allowed(websocket.headers.get("origin")):
+        await websocket.close(code=1008)  # Policy Violation
+        return
+    if 0 < MAX_WS_CONNECTIONS <= len(connections):
+        await websocket.close(code=1013)  # Try Again Later
+        return
     await websocket.accept()
     player_id = str(uuid.uuid4())
     connections[player_id] = websocket
@@ -170,9 +211,20 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         ).model_dump()
     )
 
+    window_start = time.monotonic()
+    msgs_in_window = 0
     try:
         while True:
             raw = await websocket.receive_text()
+            # Ratenlimit je Verbindung: mehr als WS_MAX_MSGS_PER_SEC Nachrichten/Sekunde
+            # gilt als Flut -> Verbindung trennen (kein globales Rate-Limit vorhanden).
+            now = time.monotonic()
+            if now - window_start >= 1.0:
+                window_start = now
+                msgs_in_window = 0
+            msgs_in_window += 1
+            if 0 < WS_MAX_MSGS_PER_SEC < msgs_in_window:
+                break
             try:
                 msg = parse_client_message(raw)
             except ValidationError:

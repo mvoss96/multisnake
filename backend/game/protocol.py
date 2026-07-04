@@ -15,7 +15,10 @@ class JoinMessage(BaseModel):
 
 class DirectionMessage(BaseModel):
     type: Literal["direction"] = "direction"
-    angle: float
+    # allow_inf_nan=False weist NaN/Infinity ab (die Pydantics float-Validierung sonst
+    # durchlässt): ein nicht-endlicher Winkel würde über die Trig in snake.move() die
+    # Kopf-Koordinaten mit NaN vergiften und so die Simulation lahmlegen (DoS).
+    angle: float = Field(allow_inf_nan=False)
 
 
 class RestartMessage(BaseModel):
@@ -33,14 +36,14 @@ class DebugPauseMessage(BaseModel):
 
 class DebugTeleportMessage(BaseModel):
     type: Literal["debug_teleport"] = "debug_teleport"
-    x: float
-    y: float
+    x: float = Field(allow_inf_nan=False)
+    y: float = Field(allow_inf_nan=False)
 
 
 class DebugSpawnAtMessage(BaseModel):
     type: Literal["debug_spawn_at"] = "debug_spawn_at"
-    x: float
-    y: float
+    x: float = Field(allow_inf_nan=False)
+    y: float = Field(allow_inf_nan=False)
 
 
 class DebugInvulnerableMessage(BaseModel):

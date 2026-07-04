@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 from starlette.testclient import WebSocketTestSession
+from starlette.websockets import WebSocketDisconnect
 
 import main
 from game import config
@@ -280,6 +281,50 @@ async def test_debug_bots_is_ignored_when_debug_commands_disabled(
         player = main.game_room.players.get(player_id)
         assert player is not None and player.snake is not None
         assert (player.snake.points[0].x, player.snake.points[0].y) != (12.0, 34.0)
+
+
+def test_ws_rejects_foreign_origin(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(main, "ALLOWED_WS_ORIGINS", {"http://localhost:8000"})
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect("/ws", headers={"origin": "http://evil.example"}) as ws:
+            ws.receive_json()
+
+
+def test_ws_allows_configured_origin(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(main, "ALLOWED_WS_ORIGINS", {"http://localhost:8000"})
+    with client.websocket_connect("/ws", headers={"origin": "http://localhost:8000"}) as ws:
+        assert ws.receive_json()["type"] == "welcome"
+
+
+def test_ws_allows_missing_origin(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Nicht-Browser-Clients senden keinen Origin und sind kein CSWSH-Vektor.
+    monkeypatch.setattr(main, "ALLOWED_WS_ORIGINS", {"http://localhost:8000"})
+    with client.websocket_connect("/ws") as ws:
+        assert ws.receive_json()["type"] == "welcome"
+
+
+def test_ws_rejects_when_connection_cap_reached(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(main, "MAX_WS_CONNECTIONS", 1)
+    monkeypatch.setitem(main.connections, "existing", object())
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect("/ws") as ws:
+            ws.receive_json()
+
+
+def test_ws_disconnects_on_message_flood(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(main, "WS_MAX_MSGS_PER_SEC", 5)
+    with client.websocket_connect("/ws") as ws:
+        ws.receive_json()  # welcome
+        # dash erzeugt keine Antwort; alle senden, dann lesen bis der Server trennt.
+        with pytest.raises(WebSocketDisconnect):
+            for _ in range(50):
+                ws.send_text('{"type": "dash"}')
+            while True:
+                ws.receive_json()
 
 
 def test_admin_route_sets_cookie_only_when_proxy_trusted(

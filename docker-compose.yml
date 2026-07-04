@@ -8,6 +8,14 @@ services:
     restart: unless-stopped
     environment:
       - ENABLE_DEBUG_COMMANDS=false
+      # CSWSH-Schutz: nur WS-Handshakes von diesen Origins akzeptieren (Browser senden
+      # immer Origin). MUSS die öffentliche Domain enthalten, sonst weist der Server
+      # echte Spieler ab. Kommagetrennt; per .env überschreibbar.
+      - ALLOWED_WS_ORIGINS=${ALLOWED_WS_ORIGINS:-https://snake.marcusvoss.de}
+      # Anti-Flut: Obergrenze gleichzeitiger Verbindungen und Nachrichten-Rate je
+      # Verbindung (Nachrichten/Sekunde). <=0 => aus.
+      - MAX_WS_CONNECTIONS=${MAX_WS_CONNECTIONS:-100}
+      - WS_MAX_MSGS_PER_SEC=${WS_MAX_MSGS_PER_SEC:-250}
       # Admin-Debug-Konsole via /admin: die Auth (Passwort) macht Caddy (basic_auth auf
       # /admin). Nur auf true setzen, WENN Caddy /admin schützt - dann setzt /admin ein
       # Admin-Cookie, das die /ws-Verbindung als Admin ausweist. Default false => es wird

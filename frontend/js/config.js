@@ -289,7 +289,6 @@ const SNAKE_SCALE_OUTLINE_WIDTH = 4.5; // dickere Kontur im geschuppten Modus (s
 // passt zum Pixel-Look und braucht keine Binärdateien. Gains sind 0..1. Genutzt von
 // js/audio.js (globales `Sound`). Ton standardmäßig an, per Mute-Button umschaltbar.
 const AUDIO_MASTER_GAIN = 0.35; // Gesamt-Lautstärke der Soundeffekte
-const AUDIO_MUSIC_GAIN = 0.28; // Ambient-Loop etwas leiser als die SFX, aber klar hörbar
 const AUDIO_DEFAULT_MUTED = false; // Standard bei erstem Besuch (localStorage überschreibt)
 // Futter essen: kurzer Blip, dessen Tonhöhe mit dem Score-Zuwachs steigt (größere
 // Happen klingen höher). Gedeckelt, damit große Happen nicht schrill werden.
@@ -298,18 +297,16 @@ const AUDIO_EAT_FREQ_PER_POINT = 55; // Hz zusätzlich je zusätzlichem Score-Pu
 const AUDIO_EAT_MAX_FREQ = 1100; // obere Grenze
 const AUDIO_EAT_DURATION_MS = 90;
 const AUDIO_EAT_MIN_INTERVAL_MS = 45; // Blips nicht stapeln (mehrere Happen in einem Tick)
-// Dash-Start: schneller Aufwärts-Sweep (Whoosh).
-const AUDIO_DASH_FREQ_FROM = 200;
-const AUDIO_DASH_FREQ_TO = 780;
-const AUDIO_DASH_DURATION_MS = 220;
+// Dash-Start: rausch-basierter Whoosh - weißes Rauschen durch ein Bandpass-Filter,
+// dessen Mittenfrequenz nach oben wandert (klingt natürlicher als ein Ton-Sweep).
+const AUDIO_DASH_DURATION_MS = 260;
+const AUDIO_DASH_FILTER_FROM = 400; // Hz: Bandpass-Mitte am Anfang
+const AUDIO_DASH_FILTER_TO = 3200; // Hz: am Ende (aufsteigender Whoosh)
+const AUDIO_DASH_FILTER_Q = 0.8; // breiteres Band -> mehr Körper (Bandpass dämpft Rauschen stark)
+const AUDIO_DASH_GAIN = 2.5; // hoch, weil das Bandpass-Filter dem Rauschen viel Energie nimmt
 // Dash wieder bereit: dezenter Zwei-Ton-Chime.
 const AUDIO_DASH_READY_FREQS = [660, 880];
 const AUDIO_DASH_READY_DURATION_MS = 110;
 // Eigener Tod: abfallender Ton, zeitlich an die Auflöse-Animation (DEATH_ANIM_MS) angelehnt.
 const AUDIO_DEATH_FREQ_FROM = 440;
 const AUDIO_DEATH_FREQ_TO = 70;
-// Ambient-Loop: ein paar leise, leicht verstimmte Sinus-Töne (offener Akkord) mit
-// sehr langsamem LFO auf der Lautstärke (sanftes An-/Abschwellen).
-const AUDIO_AMBIENT_FREQS = [220, 277.18, 329.63]; // A3, C#4, E4 (mittige, hörbare Lage)
-const AUDIO_AMBIENT_DETUNE_CENTS = 6;
-const AUDIO_AMBIENT_LFO_HZ = 0.09;

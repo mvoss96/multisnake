@@ -9,9 +9,7 @@ const Sound = (() => {
 
   let ctx = null;
   let masterGain = null; // SFX-Summe -> destination
-  let musicGain = null; // Ambient, leiser -> masterGain
   let muted = readMuted();
-  let ambient = null; // { oscillators, lfo } solange der Loop läuft
   let lastEatAt = 0;
 
   function readMuted() {
@@ -27,9 +25,6 @@ const Sound = (() => {
       masterGain = ctx.createGain();
       masterGain.gain.value = muted ? 0 : AUDIO_MASTER_GAIN;
       masterGain.connect(ctx.destination);
-      musicGain = ctx.createGain();
-      musicGain.gain.value = AUDIO_MUSIC_GAIN;
-      musicGain.connect(masterGain);
     }
     if (ctx.state === "suspended") ctx.resume();
   }
@@ -41,8 +36,8 @@ const Sound = (() => {
   // Ein einzelner Ton mit kurzer Attack + exponentiellem Ausklingen; optional ein
   // Frequenz-Slide (Whoosh/Tod). Räumt sich nach Ablauf selbst auf (stop + disconnect),
   // damit sich keine Nodes ansammeln.
-  function blip({ freq, type = "square", durMs, gain = 1, slideTo = null, dest = null }) {
-    const target = dest || masterGain;
+  function blip({ freq, type = "square", durMs, gain = 1, slideTo = null }) {
+    const target = masterGain;
     if (!ctx || muted || !target) return;
     const t0 = currentTime();
     const dur = durMs / 1000;
@@ -79,14 +74,41 @@ const Sound = (() => {
     blip({ freq, type: "square", durMs: AUDIO_EAT_DURATION_MS, gain: 0.6 });
   }
 
+  // Kurzer Puffer mit weißem Rauschen (einmal pro Whoosh erzeugt, danach verworfen).
+  function makeNoiseBuffer(durSec) {
+    const len = Math.max(1, Math.ceil(ctx.sampleRate * durSec));
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    return buf;
+  }
+
+  // Dash: weißes Rauschen durch ein aufsteigendes Bandpass-Filter = "Whoosh".
   function dashStart() {
-    blip({
-      freq: AUDIO_DASH_FREQ_FROM,
-      type: "sawtooth",
-      durMs: AUDIO_DASH_DURATION_MS,
-      gain: 0.7,
-      slideTo: AUDIO_DASH_FREQ_TO,
-    });
+    if (!ctx || muted) return;
+    const t0 = currentTime();
+    const dur = AUDIO_DASH_DURATION_MS / 1000;
+    const src = ctx.createBufferSource();
+    src.buffer = makeNoiseBuffer(dur + 0.05);
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.Q.value = AUDIO_DASH_FILTER_Q;
+    bp.frequency.setValueAtTime(AUDIO_DASH_FILTER_FROM, t0);
+    bp.frequency.exponentialRampToValueAtTime(AUDIO_DASH_FILTER_TO, t0 + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(AUDIO_DASH_GAIN, t0 + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(bp);
+    bp.connect(g);
+    g.connect(masterGain);
+    src.start(t0);
+    src.stop(t0 + dur + 0.05);
+    src.onended = () => {
+      src.disconnect();
+      bp.disconnect();
+      g.disconnect();
+    };
   }
 
   function dashReady() {
@@ -108,53 +130,6 @@ const Sound = (() => {
     });
   }
 
-  // Leiser, dauerhafter Ambient-Akkord über musicGain. Idempotent.
-  function startAmbient() {
-    if (!ctx || ambient) return;
-    const t0 = currentTime();
-    const bed = ctx.createGain();
-    bed.gain.value = 1;
-    bed.connect(musicGain);
-    // Sehr langsamer LFO auf die Ambient-Lautstärke (sanftes An-/Abschwellen).
-    const lfo = ctx.createOscillator();
-    lfo.type = "sine";
-    lfo.frequency.value = AUDIO_AMBIENT_LFO_HZ;
-    const lfoGain = ctx.createGain();
-    lfoGain.gain.value = 0.35; // moduliert bed.gain um den Basiswert 1 (0.65..1.35, kein Verstummen)
-    lfo.connect(lfoGain);
-    lfoGain.connect(bed.gain);
-    const oscillators = [];
-    for (const f of AUDIO_AMBIENT_FREQS) {
-      const osc = ctx.createOscillator();
-      osc.type = "triangle"; // etwas mehr Obertöne als Sinus -> auf kleinen Lautsprechern hörbar
-      osc.frequency.value = f;
-      osc.detune.value = (Math.random() * 2 - 1) * AUDIO_AMBIENT_DETUNE_CENTS;
-      osc.connect(bed);
-      osc.start(t0);
-      oscillators.push(osc);
-    }
-    lfo.start(t0);
-    ambient = { oscillators, lfo };
-  }
-
-  function stopAmbient() {
-    if (!ambient) return;
-    const t0 = currentTime();
-    for (const o of ambient.oscillators) {
-      try {
-        o.stop(t0);
-      } catch {
-        // bereits gestoppt
-      }
-    }
-    try {
-      ambient.lfo.stop(t0);
-    } catch {
-      // bereits gestoppt
-    }
-    ambient = null;
-  }
-
   function setMuted(value) {
     muted = !!value;
     localStorage.setItem(STORAGE_KEY, muted ? "1" : "0");
@@ -169,5 +144,5 @@ const Sound = (() => {
     return muted;
   }
 
-  return { unlock, setMuted, isMuted, eat, dashStart, dashReady, death, startAmbient, stopAmbient };
+  return { unlock, setMuted, isMuted, eat, dashStart, dashReady, death };
 })();

@@ -379,10 +379,8 @@ window.addEventListener("DOMContentLoaded", () => {
     pendingName = name;
     nameModal.classList.add("hidden");
     if (isTouchDevice) requestFullscreenIfSupported();
-    // Play-Klick ist eine Nutzergeste -> Audio-Kontext freischalten (Autoplay-Policy)
-    // und den Ambient-Loop starten.
+    // Play-Klick ist eine Nutzergeste -> Audio-Kontext freischalten (Autoplay-Policy).
     Sound.unlock();
-    Sound.startAmbient();
 
     if (client) return; // already connected from an earlier submit
 

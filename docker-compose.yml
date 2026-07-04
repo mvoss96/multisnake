@@ -9,9 +9,10 @@ services:
     environment:
       - ENABLE_DEBUG_COMMANDS=false
       # CSWSH-Schutz: nur WS-Handshakes von diesen Origins akzeptieren (Browser senden
-      # immer Origin). MUSS die öffentliche Domain enthalten, sonst weist der Server
-      # echte Spieler ab. Kommagetrennt; per .env überschreibbar.
-      - ALLOWED_WS_ORIGINS=${ALLOWED_WS_ORIGINS:-https://snake.marcusvoss.de}
+      # immer Origin). Der Default deckt nur lokale Entwicklung ab; die öffentliche
+      # Domain gehört als deployment-spezifischer Wert in die nicht-committete VPS-.env
+      # (ALLOWED_WS_ORIGINS=https://<domain>), sonst weist der Server echte Spieler ab.
+      - ALLOWED_WS_ORIGINS=${ALLOWED_WS_ORIGINS:-http://localhost:8000,http://127.0.0.1:8000}
       # Anti-Flut: Obergrenze gleichzeitiger Verbindungen und Nachrichten-Rate je
       # Verbindung (Nachrichten/Sekunde). <=0 => aus.
       - MAX_WS_CONNECTIONS=${MAX_WS_CONNECTIONS:-100}

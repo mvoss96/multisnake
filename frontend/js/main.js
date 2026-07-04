@@ -123,10 +123,6 @@ window.addEventListener("DOMContentLoaded", () => {
   let camera = { x: 0, y: 0 };
   let lastOwnSnake = null; // zuletzt gerenderte eigene Schlange (für die Todesanimation)
   let dbgEls = null; // Debug-Konsole (nur wenn welcome.debug_enabled), einmal verdrahtet
-  // Sound-Trigger: eigene Werte vom Vortick, um Flanken zu erkennen (Score steigt =
-  // Futter gegessen, dashing false->true = Dash gestartet).
-  let lastOwnScore = null;
-  let lastDashing = false;
 
   // Debug-Konsole verdrahten (einmalig). Sendet die bestehenden debug_*-Befehle über
   // den Client; Panel per Toggle-Button oder Taste ` ein-/ausblendbar.
@@ -280,21 +276,6 @@ window.addEventListener("DOMContentLoaded", () => {
   updateControlToggleLabel();
   controlToggleBtn.addEventListener("click", toggleControlMode);
 
-  // Mute-Umschalter: Icon spiegelt den (persistierten) Zustand; Klick ist zugleich
-  // eine Nutzergeste, über die der Audio-Kontext freigeschaltet werden kann.
-  const muteBtn = document.getElementById("mute-toggle");
-  function updateMuteLabel() {
-    const m = Sound.isMuted();
-    muteBtn.textContent = m ? "🔇" : "🔊";
-    muteBtn.classList.toggle("muted", m);
-  }
-  updateMuteLabel();
-  muteBtn.addEventListener("click", () => {
-    Sound.unlock();
-    Sound.setMuted(!Sound.isMuted());
-    updateMuteLabel();
-  });
-
   // Debug-Info (Länge/Breite der eigenen Schlange) ein-/ausblenden per Klick/Tap
   // auf den Score - praktisch zum Nachvollziehen des Score-basierten Wachstums,
   // ohne die Konsole zu bemühen.
@@ -305,7 +286,6 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   let lastDashSig = "";
-  let lastDashReady = false;
   function updateDashMeter(charge, dashing) {
     // Beide Anzeigen (kompakter HUD-Ring für Desktop, großer Button für Touch)
     // teilen sich dieselbe Füll-Logik + Bereit/Aktiv-Zustände.
@@ -320,9 +300,6 @@ window.addEventListener("DOMContentLoaded", () => {
     // Nur bei tatsaechlicher Aenderung ins DOM schreiben - onState laeuft 30x/s, die
     // Anzeige aendert sich aber viel seltener (spart Reflows, v.a. auf Mobile).
     const ready = !dashing && charge >= 1;
-    // Chime beim Übergang "nicht bereit" -> "bereit" (vor dem Early-Return prüfen).
-    if (ready && !lastDashReady) Sound.dashReady();
-    lastDashReady = ready;
     const sig = `${dashing ? 1 : 0}:${ready ? 1 : 0}:${filled}:${offset.toFixed(1)}`;
     if (sig === lastDashSig) return;
     lastDashSig = sig;
@@ -379,8 +356,6 @@ window.addEventListener("DOMContentLoaded", () => {
     pendingName = name;
     nameModal.classList.add("hidden");
     if (isTouchDevice) requestFullscreenIfSupported();
-    // Play-Klick ist eine Nutzergeste -> Audio-Kontext freischalten (Autoplay-Policy).
-    Sound.unlock();
 
     if (client) return; // already connected from an earlier submit
 
@@ -434,14 +409,6 @@ window.addEventListener("DOMContentLoaded", () => {
       const mySnake = msg.snakes.find((s) => s.player_id === GameState.playerId);
       if (mySnake) {
         GameState.ownDirection = mySnake.direction;
-        // Sound-Flanken: Score gestiegen -> Futter gegessen (Tonhöhe nach Zuwachs);
-        // dashing false->true -> Dash gestartet.
-        if (lastOwnScore !== null && mySnake.score > lastOwnScore) {
-          Sound.eat(mySnake.score - lastOwnScore);
-        }
-        lastOwnScore = mySnake.score;
-        if (mySnake.dashing && !lastDashing) Sound.dashStart();
-        lastDashing = !!mySnake.dashing;
         // Platzierung merken (Rang nach Score) - für die Game-Over-Ergebnis-Karte.
         lastTotal = msg.snakes.length;
         lastRank =
@@ -505,10 +472,6 @@ window.addEventListener("DOMContentLoaded", () => {
       // Erst die Todesanimation (Körper zerplatzt, siehe renderer.js), dann das
       // Ergebnis-Overlay - statt sofort "Game Over". Fällt bei fehlendem letzten
       // Zustand (z.B. Tod im allerersten Tick) auf sofortiges Overlay zurück.
-      Sound.death();
-      // Trigger für ein frisches Leben zurücksetzen (Respawn beginnt sauber).
-      lastOwnScore = null;
-      lastDashing = false;
       if (lastOwnSnake) {
         renderer.startDeathAnimation(lastOwnSnake);
         lastOwnSnake = null;

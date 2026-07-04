@@ -74,6 +74,18 @@ body.theme-pixel button {
   color: #fff;
 }
 
+/* Mute-Umschalter: reines Emoji-Icon (🔊/🔇 per JS gesetzt); im stummen Zustand
+   abgedimmt, damit "Ton aus" auch ohne Ton sichtbar ist. */
+#mute-toggle {
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px 8px;
+}
+
+#mute-toggle.muted {
+  opacity: 0.45;
+}
+
 /* Kreisförmige Dash-Ladeanzeige fürs Desktop-HUD - dieselbe Optik (Füllung per
    SVG-Fortschrittsring, Farbwechsel bei bereit/aktiv) wie #dash-btn für Touch,
    nur kompakt und nicht klickbar, da Dash hier über die Umschalt-Taste ausgelöst

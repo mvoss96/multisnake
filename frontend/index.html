@@ -13,8 +13,9 @@
 <div id="hud">
   <div id="score">Score: 0</div>
   <button id="control-toggle" class="hud-btn"></button>
+  <button id="mute-toggle" class="hud-btn" title="Ton an/aus">🔊</button>
   <div id="dash-ring" title="Dash (Umschalt)">
-    <svg class="dash-progress" viewBox="0 0 100 100">
+    <svg class="dash-progress" viewBox="0 0 100 100" width="40" height="40">
       <circle class="dash-progress-track" cx="50" cy="50" r="44" pathLength="100" transform="rotate(-90 50 50)"></circle>
       <circle class="dash-progress-fill" cx="50" cy="50" r="44" pathLength="100" transform="rotate(-90 50 50)"></circle>
     </svg>
@@ -28,7 +29,7 @@
 </div>
 
 <div id="dash-btn">
-  <svg class="dash-progress" viewBox="0 0 100 100">
+  <svg class="dash-progress" viewBox="0 0 100 100" width="40" height="40">
     <circle class="dash-progress-track" cx="50" cy="50" r="44" pathLength="100" transform="rotate(-90 50 50)"></circle>
     <circle class="dash-progress-fill" cx="50" cy="50" r="44" pathLength="100" transform="rotate(-90 50 50)"></circle>
   </svg>
@@ -130,6 +131,7 @@
 <script src="js/input.js"></script>
 <script src="js/touch.js"></script>
 <script src="js/renderer.js"></script>
+<script src="js/audio.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

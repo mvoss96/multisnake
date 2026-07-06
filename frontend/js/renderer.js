@@ -118,7 +118,11 @@ function createRenderer(canvas, initialThemeId) {
       })),
     }));
   }
-  function drawDynamicBackground(camera) {
+  // Der dynamische Hintergrund ist bewusst NICHT an die Kamera/Spielerposition gekoppelt
+  // (das wirkte, als klebte der Hintergrund an der Schlange). Stattdessen bewegt er sich
+  // nur eigenständig: die Aurora über ihren cos/sin-Drift, die Sterne über eine langsame
+  // konstante Drift (STAR_AUTO_DRIFT_*), pro Ebene tiefenrichtig skaliert.
+  function drawDynamicBackground() {
     const W = canvas.width;
     const H = canvas.height;
     const t = performance.now();
@@ -126,8 +130,8 @@ function createRenderer(canvas, initialThemeId) {
     ctx.fillRect(0, 0, W, H);
     const R = Math.max(W, H) * AURORA_RADIUS_FACTOR;
     for (const b of auroraBlobs) {
-      const bx = b.cx * W + Math.cos(t / b.period + b.phase) * W * AURORA_DRIFT - camera.x * AURORA_PARALLAX;
-      const by = b.cy * H + Math.sin(t / (b.period * 0.8) + b.phase) * H * AURORA_DRIFT - camera.y * AURORA_PARALLAX;
+      const bx = b.cx * W + Math.cos(t / b.period + b.phase) * W * AURORA_DRIFT;
+      const by = b.cy * H + Math.sin(t / (b.period * 0.8) + b.phase) * H * AURORA_DRIFT;
       const g = ctx.createRadialGradient(bx, by, 0, bx, by, R);
       g.addColorStop(0, `rgba(${b.color}, ${AURORA_ALPHA})`);
       g.addColorStop(1, `rgba(${b.color}, 0)`);
@@ -135,10 +139,12 @@ function createRenderer(canvas, initialThemeId) {
       ctx.fillRect(0, 0, W, H);
     }
     if (!bgStars) bgStars = makeStars();
+    const starDriftX = t * STAR_AUTO_DRIFT_X;
+    const starDriftY = t * STAR_AUTO_DRIFT_Y;
     for (const layer of bgStars) {
       for (const s of layer.list) {
-        const sx = (((s.x * W - camera.x * layer.parallax) % W) + W) % W;
-        const sy = (((s.y * H - camera.y * layer.parallax) % H) + H) % H;
+        const sx = (((s.x * W - starDriftX * layer.parallax) % W) + W) % W;
+        const sy = (((s.y * H - starDriftY * layer.parallax) % H) + H) % H;
         const tw = 0.6 + 0.4 * Math.sin(t / 700 + s.tw);
         ctx.fillStyle = `rgba(210, 220, 255, ${layer.alpha * tw})`;
         ctx.fillRect(sx, sy, layer.size, layer.size);
@@ -666,7 +672,7 @@ function createRenderer(canvas, initialThemeId) {
     ctx.save();
     // Screen-Space-Hintergrund: dynamische Aurora (Classic) oder flache Fläche.
     if (theme.dynamicBg) {
-      drawDynamicBackground(camera);
+      drawDynamicBackground();
     } else {
       ctx.fillStyle = "#050508";
       ctx.fillRect(0, 0, canvas.width, canvas.height);

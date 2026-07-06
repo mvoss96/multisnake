@@ -23,19 +23,26 @@ const SNAKE_RADIUS_MAX = 14.0;
 const ZOOM_LERP_FACTOR_OUT = 0.02;
 const ZOOM_LERP_FACTOR_IN = 0.08;
 
-// Classic-Theme: dynamischer Hintergrund (Aurora-Farbwolken + Parallax-Sternenfeld,
+// Classic-Theme: dynamischer Hintergrund (Aurora-Farbwolken + driftendes Sternenfeld,
 // siehe drawDynamicBackground in renderer.js). Nur Themes mit dynamicBg (themes.js).
-// Screen-Space + leichter Kamera-Versatz (Parallax) = Tiefe/Weite; bewusst dezent.
+// Bewusst NICHT an die Kamera/Spielerposition gekoppelt (das wirkte, als klebte der
+// Hintergrund an der Schlange) - er bewegt sich nur eigenständig, langsam und dezent.
 const AURORA_BG_BASE = "#03030a"; // fast schwarzes Blau als Basis (dunkel, damit das Leuchten trägt)
 const AURORA_BLOB_COLORS = ["70,90,220", "140,70,210", "40,165,175"]; // rgb je Farbwolke
 const AURORA_ALPHA = 0.18; // Deckkraft der Farbwolken (dezent, dunkler gehalten)
 const AURORA_RADIUS_FACTOR = 0.62; // Wolken-Radius relativ zur größeren Canvas-Kante
 const AURORA_DRIFT = 0.1; // Wander-Amplitude (Bruchteil der Canvas-Größe)
-const AURORA_PARALLAX = 0.03; // Wolken-Versatz mit der Kamera (Tiefe)
 const STAR_LAYERS = [
   { count: 90, parallax: 0.04, alpha: 0.32, size: 1 }, // ferne Ebene (langsam)
   { count: 45, parallax: 0.1, alpha: 0.6, size: 2 }, // nahe Ebene (schneller)
 ];
+// Langsame Eigenbewegung des Sternenfelds, unabhängig von der Spielerposition - wirkt
+// wie eine sehr langsam driftende virtuelle Kamera, sodass sich der Hintergrund auch
+// bei stillstehender Schlange bewegt. Welt-Einheiten pro ms; skaliert pro Ebene mit
+// deren parallax, bleibt also tiefenrichtig (ferne Ebene driftet langsamer). Die
+// Aurora bewegt sich bereits über AURORA_DRIFT eigenständig.
+const STAR_AUTO_DRIFT_X = 0.07;
+const STAR_AUTO_DRIFT_Y = 0.04;
 // Alles AUSSERHALB des Spielfelds (dynamicBg-Themes) wird abgedunkelt, damit das
 // eigentliche Feld sich klar abhebt (siehe drawOutOfBoundsShade in renderer.js).
 // Kräftiges, fast deckendes Schwarz - der Aurora-Grund bleibt nur innerhalb des

@@ -906,7 +906,15 @@ function createRenderer(canvas, initialThemeId) {
       const isPixelFont = theme.pixelPerfect;
       ctx.textAlign = "center";
       const labelX = snap(hx);
-      const nameY = snap(hy - snake.radius - 12);
+      // Beim Anführer die Labels um die Kronenhöhe nach oben schieben - sonst verdeckt die
+      // (danach, oben drüber gezeichnete) Krone knapp über dem Kopf die Punktzahl.
+      const isLeader = leader && snake.id === leader.id;
+      let crownReserve = 0;
+      if (isLeader) {
+        const crownSprite = themedSprite("crown");
+        crownReserve = (crownSprite ? spriteWorldSize(crownSprite).h : 22) + 4;
+      }
+      const nameY = snap(hy - snake.radius - 12 - crownReserve);
       const scoreY = snap(nameY - (isPixelFont ? 12 : 14));
       const drawLabelLine = (text, y, font, fill) => {
         ctx.font = font;
@@ -946,7 +954,7 @@ function createRenderer(canvas, initialThemeId) {
         ctx.fill();
       }
 
-      if (leader && snake.id === leader.id) {
+      if (isLeader) {
         // Anführer-Abzeichen: Pixel-Krone-Sprite falls das Theme sie themt, sonst Vektor.
         const crownSprite = themedSprite("crown");
         if (crownSprite) {

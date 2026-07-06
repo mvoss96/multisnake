@@ -197,6 +197,10 @@ const DANGER_EDGE_BAND = 70; // wie weit das Glühen senkrecht ins Feld reicht
 const DANGER_EDGE_REACH = 190;
 const DANGER_EDGE_ALPHA = 0.85;
 const DANGER_EDGE_RGB = "255, 30, 30";
+// In einer Ecke ist man zwei Kanten gleichzeitig nah. Statt zwei sich kreuzender
+// Kanten-Streifen (sah komisch aus) blenden die Streifen dort aus und die ECKE selbst
+// glüht: ein radialer Verlauf, der von der Ecke diagonal ins Feld ausfädelt.
+const DANGER_CORNER_REACH = 120; // Radius des Ecken-Glühens ins Feld
 const SPIKE_CORNER_MARGIN = 9; // Randabstand am Kanten-Anfang/-Ende, frei einstellbar (siehe drawSpikeRow)
 
 // Futter
@@ -241,7 +245,8 @@ const FOOD_SHADOW_LIFT_FADE = 0.35; // max. zusätzliche Transparenz am höchste
 // Snakes bekommen eine dunkle Outline, damit sie sich vom bunten Futter abheben.
 const SNAKE_OUTLINE_COLOR = "#05050a";
 const SNAKE_OUTLINE_WIDTH = 2.5;
-const SNAKE_DASH_GLOW_COLOR = "#8fd9ff";
+// Schein rund um die Schlange WÄHREND des Dashs - in Spielerfarbe (snake.color),
+// nicht mehr festfarbig. Nur die Blur-Stärke ist hier konfigurierbar.
 const SNAKE_DASH_GLOW_BLUR = 16;
 // "Dash bereit"-Signal an der EIGENEN Schlange: ein pulsierender Gold-Schein rund um den
 // Körper (Gold wie der bereite HUD-Ring). Blur pulsiert zwischen MIN und MAX; PULSE_MS ist
@@ -250,15 +255,13 @@ const SNAKE_DASH_READY_GLOW_COLOR = "#ffd700";
 const SNAKE_DASH_READY_GLOW_BLUR_MIN = 3;
 const SNAKE_DASH_READY_GLOW_BLUR_MAX = 12;
 const SNAKE_DASH_READY_PULSE_MS = 900;
-// "Das bist du"-Marker: ein kleiner, sanft auf-/abwippender Pfeil (Dreieck, Spitze nach
-// unten) über den Labels der eigenen Schlange - ersetzt den früheren Gold-Ring (der mit
-// der Dash-Bereit-Aura kollidierte). In Spielerfarbe mit dunkler Kontur (auf jedem
-// Hintergrund lesbar). Maße in Welt-Einheiten (skalieren mit dem Zoom wie die Labels).
+// "Das bist du"-Marker: ein kleiner, fester Pfeil (Dreieck, Spitze nach unten) über den
+// Labels der eigenen Schlange - ersetzt den früheren Gold-Ring (der mit der Dash-Bereit-
+// Aura kollidierte). In Spielerfarbe mit dunkler Kontur (auf jedem Hintergrund lesbar).
+// Maße in Welt-Einheiten (skalieren mit dem Zoom wie die Labels).
 const SNAKE_SELF_ARROW_WIDTH = 12;
 const SNAKE_SELF_ARROW_HEIGHT = 9;
 const SNAKE_SELF_ARROW_GAP = 8; // Abstand der Pfeilspitze über der oberen Label-Zeile
-const SNAKE_SELF_ARROW_BOB_AMPLITUDE = 4; // Wipp-Weite
-const SNAKE_SELF_ARROW_BOB_MS = 800; // Dauer einer Wipp-Periode
 // Verjüngung zum Schwanzende hin (Breite des letzten Segments relativ zum Kopf)
 // und Anzahl der Teilstücke, in die der Körper dafür zerlegt wird - mehr
 // Segmente wirken glatter, kosten aber mehr Stroke-Aufrufe pro Schlange/Frame.

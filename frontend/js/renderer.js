@@ -405,38 +405,69 @@ function createRenderer(canvas, initialThemeId) {
   function drawEdgeDangerGlow(camera) {
     const glowPhase = (performance.now() % SPIKE_GLOW_PERIOD_MS) / SPIKE_GLOW_PERIOD_MS;
     const pulse = 0.5 + 0.5 * Math.sin(glowPhase * Math.PI * 2);
-    // Ein lokaler, elliptischer Glüh-Fleck, zentriert auf die Projektion des Spielers
-    // (Kamera ~ eigener Kopf) auf die Kante. horizontal = Kante verläuft entlang x
-    // (oben/unten); perpSign = Richtung ins Feld (+/-). Halbachsen: entlang der Kante
-    // DANGER_EDGE_REACH, senkrecht ins Feld DANGER_EDGE_BAND. Über ein anisotropes
-    // scale() wird ein Einheits-Radialverlauf zur passenden Ellipse. distance =
-    // senkrechter Abstand des Spielers zur Kante (steuert die Gesamt-Deckkraft).
-    function spot(centerX, centerY, horizontal, perpSign, alongPos, distance) {
-      const proximity = Math.max(0, 1 - distance / SPIKE_GLOW_PROXIMITY);
-      if (proximity <= 0) return;
-      const alpha = proximity * DANGER_EDGE_ALPHA * (0.75 + 0.25 * pulse);
+    const base = DANGER_EDGE_ALPHA * (0.75 + 0.25 * pulse);
+
+    // Ein länglicher Glüh-Streifen ENTLANG einer Kante (REACH lang, BAND tief), zentriert
+    // auf die Projektion des Spielers; nur die ins Feld weisende Hälfte gefüllt.
+    function edgeStreak(horizontal, edgePos, perpSign, alongPos, alpha) {
+      if (alpha <= 0.003) return;
       ctx.save();
       if (horizontal) {
-        ctx.translate(alongPos, centerY);
+        ctx.translate(alongPos, edgePos);
         ctx.scale(DANGER_EDGE_REACH, DANGER_EDGE_BAND * perpSign);
       } else {
-        ctx.translate(centerX, alongPos);
+        ctx.translate(edgePos, alongPos);
         ctx.scale(DANGER_EDGE_BAND * perpSign, DANGER_EDGE_REACH);
       }
       const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
       g.addColorStop(0, `rgba(${DANGER_EDGE_RGB}, ${alpha})`);
       g.addColorStop(1, `rgba(${DANGER_EDGE_RGB}, 0)`);
       ctx.fillStyle = g;
-      // Nur die ins Feld weisende Hälfte der Ellipse füllen (die andere liegt hinter
-      // der Kante und würde ohnehin von Bäumen/Spikes verdeckt).
       if (horizontal) ctx.fillRect(-1, 0, 2, 1);
       else ctx.fillRect(0, -1, 1, 2);
       ctx.restore();
     }
-    spot(0, 0, true, 1, camera.x, camera.y); // oben
-    spot(0, board.height, true, -1, camera.x, board.height - camera.y); // unten
-    spot(0, 0, false, 1, camera.y, camera.x); // links
-    spot(board.width, 0, false, -1, camera.y, board.width - camera.x); // rechts
+
+    // Radiales Ecken-Glühen: von der Ecke (cx,cy) diagonal ins Feld, nur der Feld-Quadrant
+    // (sx/sy = Richtung ins Feld). Ersetzt in der Ecke die beiden Kanten-Streifen.
+    function cornerGlow(cx, cy, sx, sy, alpha) {
+      if (alpha <= 0.003) return;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(sx, sy);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, DANGER_CORNER_REACH);
+      g.addColorStop(0, `rgba(${DANGER_EDGE_RGB}, ${alpha})`);
+      g.addColorStop(1, `rgba(${DANGER_EDGE_RGB}, 0)`);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, DANGER_CORNER_REACH, DANGER_CORNER_REACH);
+      ctx.restore();
+    }
+
+    // Jeweils NÄCHSTGELEGENE waagerechte + senkrechte Kante (in-Feld-Abstand, Kanten-Pos,
+    // Richtung ins Feld). Man kann nur je einer waagerechten und einer senkrechten Kante
+    // gleichzeitig nah sein - die sich in genau EINER Ecke treffen.
+    const [dH, hy, hSign] =
+      camera.y <= board.height - camera.y ? [camera.y, 0, 1] : [board.height - camera.y, board.height, -1];
+    const [dV, vx, vSign] =
+      camera.x <= board.width - camera.x ? [camera.x, 0, 1] : [board.width - camera.x, board.width, -1];
+    const proxH = Math.max(0, 1 - dH / SPIKE_GLOW_PROXIMITY);
+    const proxV = Math.max(0, 1 - dV / SPIKE_GLOW_PROXIMITY);
+    // "In der Ecke" = BEIDE Kanten nah. Dann glüht die Ecke; die Kanten-Streifen blenden
+    // dafür anteilig aus (kein Kreuz/keine Naht mehr).
+    const corner = Math.min(proxH, proxV);
+
+    // Aufs Spielfeld beschränken (clip): sonst quellen die Kanten-Streifen ENTLANG der
+    // Kante über die Ecke hinaus nach AUSSEN, und man sieht dort die getrennten Kanten
+    // hinter dem Rand. Innerhalb bleibt nur das saubere Ecken-/Kanten-Glühen.
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, board.width, board.height);
+    ctx.clip();
+    ctx.globalCompositeOperation = "lighten"; // Überlappungen nehmen das Hellere, nicht die Summe
+    edgeStreak(true, hy, hSign, camera.x, proxH * (1 - corner) * base);
+    edgeStreak(false, vx, vSign, camera.y, proxV * (1 - corner) * base);
+    cornerGlow(vx, hy, vSign, hSign, corner * base);
+    ctx.restore();
   }
 
   function drawBorderTrees() {
@@ -811,7 +842,7 @@ function createRenderer(canvas, initialThemeId) {
       const dashReady = isMe && !snake.dashing && snake.dash_charge >= 1;
       let dashGlow = false;
       if (snake.dashing) {
-        ctx.shadowColor = SNAKE_DASH_GLOW_COLOR;
+        ctx.shadowColor = snake.color;
         ctx.shadowBlur = SNAKE_DASH_GLOW_BLUR;
         dashGlow = true;
       } else if (dashReady) {
@@ -898,11 +929,10 @@ function createRenderer(canvas, initialThemeId) {
         snake.color
       );
 
-      // "Das bist du"-Marker: sanft wippender Pfeil (Spitze nach unten) über den Labels.
+      // "Das bist du"-Marker: fester Pfeil (Spitze nach unten) über den Labels.
       if (isMe) {
         const scoreFontPx = isPixelFont ? 11 : 13;
-        const bob = SNAKE_SELF_ARROW_BOB_AMPLITUDE * Math.sin((performance.now() / SNAKE_SELF_ARROW_BOB_MS) * Math.PI * 2);
-        const tipY = scoreY - scoreFontPx - SNAKE_SELF_ARROW_GAP + bob; // knapp über der Score-Zeile
+        const tipY = scoreY - scoreFontPx - SNAKE_SELF_ARROW_GAP; // knapp über der Score-Zeile
         const topY = tipY - SNAKE_SELF_ARROW_HEIGHT;
         ctx.beginPath();
         ctx.moveTo(labelX - SNAKE_SELF_ARROW_WIDTH / 2, topY);

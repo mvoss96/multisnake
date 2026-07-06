@@ -76,10 +76,10 @@ const INTERP_MAX_MS = 200;
 // fließen NICHT in die EMA ein - sonst würde ein einzelner Hänger die Dauer verzerren.
 const INTERP_SAMPLE_MAX_MS = 500;
 
-// Debug-Overlay (Klick/Tap auf den Score, siehe main.js): neben Länge/Breite auch
-// Spieleranzahl, FPS und Netz-Stabilität. Die Netz-Stabilität wird qualitativ aus dem
-// Ankunfts-Jitter der State-Nachrichten (mittlere absolute Abweichung vom geglätteten
-// Tickabstand) abgeleitet; FPS und Jitter laufen als geglättete Mittelwerte (EMA).
+// Dev-Overlay (Klick/Tap auf die Platz-Anzeige #hud-status, siehe main.js): neben Platz
+// auch Score, Länge/Breite, Spieleranzahl, FPS und Netz-Stabilität. Die Netz-Stabilität
+// wird qualitativ aus dem Ankunfts-Jitter der State-Nachrichten (mittlere absolute
+// Abweichung vom geglätteten Tickabstand) abgeleitet; FPS und Jitter laufen als EMA.
 const FPS_SMOOTHING = 0.1; // EMA-Gewicht neuer FPS-Messwerte
 const NET_JITTER_SMOOTHING = 0.2; // EMA-Gewicht neuer Jitter-Messwerte
 const NET_JITTER_OK_MS = 8; // <= stabil

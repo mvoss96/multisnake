@@ -102,7 +102,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   applyTheme(activeThemeId);
-  const scoreEl = document.getElementById("score");
+  const statusEl = document.getElementById("hud-status"); // Platz-Anzeige (Klick -> Dev-Overlay)
   const overlay = document.getElementById("game-over-overlay");
   const finalScoreEl = document.getElementById("final-score");
   const goBestEl = document.getElementById("go-best");
@@ -197,8 +197,8 @@ window.addEventListener("DOMContentLoaded", () => {
   let currState = null;
   let stateArrival = 0;
   let interpDurationMs = INTERP_INITIAL_MS;
-  let lastScoreText = "";
-  // Diagnosewerte fürs Debug-Overlay (Klick auf den Score): geglättete FPS aus der
+  let lastStatusText = "";
+  // Diagnosewerte fürs Dev-Overlay (Klick auf die Platz-Anzeige): geglättete FPS aus der
   // Renderschleife und geglätteter Netz-Jitter aus den State-Ankunftsabständen.
   let fpsEma = 0;
   let lastFrameTime = 0;
@@ -276,14 +276,15 @@ window.addEventListener("DOMContentLoaded", () => {
   updateControlToggleLabel();
   controlToggleBtn.addEventListener("click", toggleControlMode);
 
-  // Debug-Info (Länge/Breite der eigenen Schlange) ein-/ausblenden per Klick/Tap
-  // auf den Score - praktisch zum Nachvollziehen des Score-basierten Wachstums,
-  // ohne die Konsole zu bemühen.
+  // Dev-Overlay (FPS/Netz/Länge/Breite/Score) per Klick/Tap auf die Platz-Anzeige
+  // ein-/ausblenden - praktisch zum Nachvollziehen, ohne die Konsole zu bemühen.
   let showDebugInfo = false;
-  scoreEl.style.cursor = "pointer";
-  scoreEl.addEventListener("click", () => {
-    showDebugInfo = !showDebugInfo;
-  });
+  if (statusEl) {
+    statusEl.style.cursor = "pointer";
+    statusEl.addEventListener("click", () => {
+      showDebugInfo = !showDebugInfo;
+    });
+  }
 
   let lastDashSig = "";
   function updateDashMeter(charge, dashing) {
@@ -409,11 +410,13 @@ window.addEventListener("DOMContentLoaded", () => {
       const mySnake = msg.snakes.find((s) => s.player_id === GameState.playerId);
       if (mySnake) {
         GameState.ownDirection = mySnake.direction;
-        // Platzierung merken (Rang nach Score) - für die Game-Over-Ergebnis-Karte.
+        // Platzierung merken (Rang nach Score) - für die HUD-Anzeige + Game-Over-Karte.
         lastTotal = msg.snakes.length;
         lastRank =
           msg.snakes.filter((s) => s.score > mySnake.score).length + 1;
-        let scoreText;
+        // HUD oben links: standardmäßig der Platz; per Klick (showDebugInfo) zusätzlich
+        // Score, Länge/Breite, Spieleranzahl, FPS und Netz-Stabilität.
+        let statusText = `Platz ${lastRank}/${lastTotal}`;
         if (showDebugInfo) {
           const netHz = interpDurationMs > 0 ? 1000 / interpDurationMs : 0;
           const netLabel =
@@ -422,16 +425,14 @@ window.addEventListener("DOMContentLoaded", () => {
               : netJitterMs <= NET_JITTER_POOR_MS
                 ? "ok"
                 : "instabil";
-          scoreText =
-            `Score: ${mySnake.score} | Länge: ${Math.round(mySnake.length)} | Breite: ${mySnake.radius.toFixed(1)}` +
-            ` | Spieler: ${msg.snakes.length} | FPS: ${Math.round(fpsEma)}` +
+          statusText =
+            `Platz ${lastRank}/${lastTotal} | Score: ${mySnake.score} | Länge: ${Math.round(mySnake.length)}` +
+            ` | Breite: ${mySnake.radius.toFixed(1)} | Spieler: ${msg.snakes.length} | FPS: ${Math.round(fpsEma)}` +
             ` | Netz: ${netHz.toFixed(1)} Hz (Jitter ${netJitterMs.toFixed(1)} ms, ${netLabel})`;
-        } else {
-          scoreText = `Score: ${mySnake.score}`;
         }
-        if (scoreText !== lastScoreText) {
-          scoreEl.textContent = scoreText;
-          lastScoreText = scoreText;
+        if (statusEl && statusText !== lastStatusText) {
+          statusEl.textContent = statusText;
+          lastStatusText = statusText;
         }
         updateDashMeter(mySnake.dash_charge, mySnake.dashing);
 

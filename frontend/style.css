@@ -48,7 +48,7 @@ body.theme-pixel button {
   border-radius: 8px;
 }
 
-#score {
+#hud-status {
   font-size: 20px;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -491,7 +491,7 @@ body.touch-device #dash-btn {
     padding: 6px 10px;
   }
 
-  #score {
+  #hud-status {
     font-size: 16px;
   }
 
@@ -624,7 +624,7 @@ body.theme-pixel #leaderboard {
   box-sizing: border-box;
 }
 
-/* Heller Text auf der dunklen Holzfläche (wie #score im HUD); die bunten
+/* Heller Text auf der dunklen Holzfläche (wie #hud-status im HUD); die bunten
    Spieler-Namen (inline gesetzte Farben) bekommen einen dunklen Schein als
    Kontrast-Kante. */
 body.theme-pixel #leaderboard h3 {
@@ -635,7 +635,7 @@ body.theme-pixel #leaderboard-list li {
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
 }
 
-body.theme-pixel #score,
+body.theme-pixel #hud-status,
 body.theme-pixel #hud .hud-btn {
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
 }
@@ -739,7 +739,7 @@ body.theme-pixel #dash-btn.active .dash-icon {
    Der Pixel-Font bringt eigenes Spacing mit und rendert etwas kräftiger; daher
    letter-spacing raus und ein paar Größen sauber ganzzahlig nachziehen, damit
    nichts umbricht/überläuft. Alles nur unter body.theme-pixel - Klassik bleibt. */
-body.theme-pixel #score {
+body.theme-pixel #hud-status {
   font-size: 18px;
   letter-spacing: 0;
 }

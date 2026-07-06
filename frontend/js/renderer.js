@@ -863,17 +863,36 @@ function createRenderer(canvas, initialThemeId) {
         ctx.stroke();
       }
 
-      // Namens-Label: im Pixel-Theme der Pixel-Font (muss geladen sein, siehe
-      // document.fonts.load in main.js) auf gesnappter Position, sonst System-Font.
-      ctx.font = theme.pixelPerfect ? 'bold 11px "PixelFont", monospace' : "bold 13px sans-serif";
+      // Label über dem Kopf: oben die Punktzahl (größer, weil wichtiger als der Name),
+      // darunter der kleinere Name - beide in Spielerfarbe. Im Pixel-Theme die Pixel-Font (muss
+      // geladen sein, siehe document.fonts.load in main.js), sonst System-Font; Position
+      // gesnappt. Score liegt ÜBER dem Namen, damit ihn beim Anführer die Krone (knapp
+      // über dem Kopf) nicht verdeckt.
+      const isPixelFont = theme.pixelPerfect;
       ctx.textAlign = "center";
       const labelX = snap(hx);
-      const labelY = snap(hy - snake.radius - 12);
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
-      ctx.lineWidth = 3;
-      ctx.strokeText(snake.name, labelX, labelY);
-      ctx.fillStyle = snake.color;
-      ctx.fillText(snake.name, labelX, labelY);
+      const nameY = snap(hy - snake.radius - 12);
+      const scoreY = snap(nameY - (isPixelFont ? 12 : 14));
+      const drawLabelLine = (text, y, font, fill) => {
+        ctx.font = font;
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
+        ctx.lineWidth = 3;
+        ctx.strokeText(text, labelX, y);
+        ctx.fillStyle = fill;
+        ctx.fillText(text, labelX, y);
+      };
+      drawLabelLine(
+        String(snake.score),
+        scoreY,
+        isPixelFont ? 'bold 11px "PixelFont", monospace' : "bold 13px sans-serif",
+        snake.color
+      );
+      drawLabelLine(
+        snake.name,
+        nameY,
+        isPixelFont ? 'bold 7px "PixelFont", monospace' : "bold 9px sans-serif",
+        snake.color
+      );
 
       if (leader && snake.id === leader.id) {
         // Anführer-Abzeichen: Pixel-Krone-Sprite falls das Theme sie themt, sonst Vektor.

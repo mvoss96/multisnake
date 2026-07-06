@@ -250,6 +250,16 @@ const SNAKE_DASH_READY_GLOW_COLOR = "#ffd700";
 const SNAKE_DASH_READY_GLOW_BLUR_MIN = 3;
 const SNAKE_DASH_READY_GLOW_BLUR_MAX = 12;
 const SNAKE_DASH_READY_PULSE_MS = 900;
+// "Das bist du"-Marker: ein kleiner, sanft auf-/abwippender Pfeil (Dreieck, Spitze nach
+// unten) über den Labels der eigenen Schlange - ersetzt den früheren Gold-Ring (der mit
+// der Dash-Bereit-Aura kollidierte). Weiß mit dunkler Kontur, damit er auf jedem
+// Hintergrund lesbar ist. Maße in Welt-Einheiten (skalieren mit dem Zoom wie die Labels).
+const SNAKE_SELF_ARROW_COLOR = "#ffffff";
+const SNAKE_SELF_ARROW_WIDTH = 12;
+const SNAKE_SELF_ARROW_HEIGHT = 9;
+const SNAKE_SELF_ARROW_GAP = 8; // Abstand der Pfeilspitze über der oberen Label-Zeile
+const SNAKE_SELF_ARROW_BOB_AMPLITUDE = 4; // Wipp-Weite
+const SNAKE_SELF_ARROW_BOB_MS = 800; // Dauer einer Wipp-Periode
 // Verjüngung zum Schwanzende hin (Breite des letzten Segments relativ zum Kopf)
 // und Anzahl der Teilstücke, in die der Körper dafür zerlegt wird - mehr
 // Segmente wirken glatter, kosten aber mehr Stroke-Aufrufe pro Schlange/Frame.

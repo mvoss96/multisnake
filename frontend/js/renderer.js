@@ -867,14 +867,6 @@ function createRenderer(canvas, initialThemeId) {
         ctx.fill();
       }
 
-      if (isMe) {
-        ctx.strokeStyle = "#ffd700";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(hx, hy, snake.radius + 10, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
       // Label über dem Kopf: oben die Punktzahl (größer, weil wichtiger als der Name),
       // darunter der kleinere Name - beide in Spielerfarbe. Im Pixel-Theme die Pixel-Font (muss
       // geladen sein, siehe document.fonts.load in main.js), sonst System-Font; Position
@@ -905,6 +897,24 @@ function createRenderer(canvas, initialThemeId) {
         isPixelFont ? 'bold 7px "PixelFont", monospace' : "bold 9px sans-serif",
         snake.color
       );
+
+      // "Das bist du"-Marker: sanft wippender Pfeil (Spitze nach unten) über den Labels.
+      if (isMe) {
+        const scoreFontPx = isPixelFont ? 11 : 13;
+        const bob = SNAKE_SELF_ARROW_BOB_AMPLITUDE * Math.sin((performance.now() / SNAKE_SELF_ARROW_BOB_MS) * Math.PI * 2);
+        const tipY = scoreY - scoreFontPx - SNAKE_SELF_ARROW_GAP + bob; // knapp über der Score-Zeile
+        const topY = tipY - SNAKE_SELF_ARROW_HEIGHT;
+        ctx.beginPath();
+        ctx.moveTo(labelX - SNAKE_SELF_ARROW_WIDTH / 2, topY);
+        ctx.lineTo(labelX + SNAKE_SELF_ARROW_WIDTH / 2, topY);
+        ctx.lineTo(labelX, tipY);
+        ctx.closePath();
+        ctx.fillStyle = SNAKE_SELF_ARROW_COLOR;
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fill();
+      }
 
       if (leader && snake.id === leader.id) {
         // Anführer-Abzeichen: Pixel-Krone-Sprite falls das Theme sie themt, sonst Vektor.

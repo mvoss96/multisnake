@@ -909,7 +909,7 @@ function createRenderer(canvas, initialThemeId) {
         ctx.lineTo(labelX + SNAKE_SELF_ARROW_WIDTH / 2, topY);
         ctx.lineTo(labelX, tipY);
         ctx.closePath();
-        ctx.fillStyle = SNAKE_SELF_ARROW_COLOR;
+        ctx.fillStyle = snake.color;
         ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
         ctx.lineWidth = 2;
         ctx.stroke();

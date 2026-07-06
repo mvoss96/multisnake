@@ -252,9 +252,8 @@ const SNAKE_DASH_READY_GLOW_BLUR_MAX = 12;
 const SNAKE_DASH_READY_PULSE_MS = 900;
 // "Das bist du"-Marker: ein kleiner, sanft auf-/abwippender Pfeil (Dreieck, Spitze nach
 // unten) über den Labels der eigenen Schlange - ersetzt den früheren Gold-Ring (der mit
-// der Dash-Bereit-Aura kollidierte). Weiß mit dunkler Kontur, damit er auf jedem
-// Hintergrund lesbar ist. Maße in Welt-Einheiten (skalieren mit dem Zoom wie die Labels).
-const SNAKE_SELF_ARROW_COLOR = "#ffffff";
+// der Dash-Bereit-Aura kollidierte). In Spielerfarbe mit dunkler Kontur (auf jedem
+// Hintergrund lesbar). Maße in Welt-Einheiten (skalieren mit dem Zoom wie die Labels).
 const SNAKE_SELF_ARROW_WIDTH = 12;
 const SNAKE_SELF_ARROW_HEIGHT = 9;
 const SNAKE_SELF_ARROW_GAP = 8; // Abstand der Pfeilspitze über der oberen Label-Zeile

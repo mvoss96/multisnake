@@ -806,9 +806,21 @@ function createRenderer(canvas, initialThemeId) {
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
 
+      // Dash-Schein um den Körper: blau während des Dashs, ODER pulsierendes Gold an der
+      // eigenen Schlange, solange der Dash aufgeladen/bereit ist (Signal "jetzt möglich").
+      const dashReady = isMe && !snake.dashing && snake.dash_charge >= 1;
+      let dashGlow = false;
       if (snake.dashing) {
         ctx.shadowColor = SNAKE_DASH_GLOW_COLOR;
         ctx.shadowBlur = SNAKE_DASH_GLOW_BLUR;
+        dashGlow = true;
+      } else if (dashReady) {
+        const pulse = 0.5 + 0.5 * Math.sin((performance.now() / SNAKE_DASH_READY_PULSE_MS) * Math.PI * 2);
+        ctx.shadowColor = SNAKE_DASH_READY_GLOW_COLOR;
+        ctx.shadowBlur =
+          SNAKE_DASH_READY_GLOW_BLUR_MIN +
+          pulse * (SNAKE_DASH_READY_GLOW_BLUR_MAX - SNAKE_DASH_READY_GLOW_BLUR_MIN);
+        dashGlow = true;
       }
 
       // Schlangen sind in beiden Themes farbecht-Vektor (server-zugewiesene
@@ -825,7 +837,7 @@ function createRenderer(canvas, initialThemeId) {
       drawTaperedBody(points, snake.radius * 2 * SNAKE_SHINE_WIDTH_FACTOR, "#ffffff", SNAKE_SHINE_ALPHA);
       drawSnakePattern(snake, points);
 
-      if (snake.dashing) {
+      if (dashGlow) {
         ctx.shadowBlur = 0;
         ctx.shadowColor = "transparent";
       }

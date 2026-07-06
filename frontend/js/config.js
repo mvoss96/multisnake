@@ -243,6 +243,13 @@ const SNAKE_OUTLINE_COLOR = "#05050a";
 const SNAKE_OUTLINE_WIDTH = 2.5;
 const SNAKE_DASH_GLOW_COLOR = "#8fd9ff";
 const SNAKE_DASH_GLOW_BLUR = 16;
+// "Dash bereit"-Signal an der EIGENEN Schlange: ein pulsierender Gold-Schein rund um den
+// Körper (Gold wie der bereite HUD-Ring). Blur pulsiert zwischen MIN und MAX; PULSE_MS ist
+// die Dauer einer vollen Puls-Periode.
+const SNAKE_DASH_READY_GLOW_COLOR = "#ffd700";
+const SNAKE_DASH_READY_GLOW_BLUR_MIN = 3;
+const SNAKE_DASH_READY_GLOW_BLUR_MAX = 12;
+const SNAKE_DASH_READY_PULSE_MS = 900;
 // Verjüngung zum Schwanzende hin (Breite des letzten Segments relativ zum Kopf)
 // und Anzahl der Teilstücke, in die der Körper dafür zerlegt wird - mehr
 // Segmente wirken glatter, kosten aber mehr Stroke-Aufrufe pro Schlange/Frame.

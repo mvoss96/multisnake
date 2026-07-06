@@ -52,6 +52,15 @@ function setupTouchControls(client, canvas) {
   });
 
   canvas.addEventListener("pointermove", (event) => {
+    // Wird die rechte Maustaste gedrückt, WÄHREND die linke schon hält, feuert der
+    // Browser kein neues pointerdown (nur die erste Taste tut das), sondern ein
+    // pointermove mit event.button === 2. Hier ebenfalls als Dash behandeln - das
+    // Bit-2 in event.buttons stellt sicher, dass es der Tasten-DRUCK ist (nicht das
+    // Loslassen, das ebenfalls button === 2 meldet).
+    if (event.button === 2 && event.buttons & 2) {
+      client.sendDash();
+      return;
+    }
     if (event.pointerId !== activePointerId) return;
     updateFromEvent(event);
   });

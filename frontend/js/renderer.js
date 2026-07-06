@@ -118,11 +118,11 @@ function createRenderer(canvas, initialThemeId) {
       })),
     }));
   }
-  // Der dynamische Hintergrund ist bewusst NICHT an die Kamera/Spielerposition gekoppelt
-  // (das wirkte, als klebte der Hintergrund an der Schlange). Stattdessen bewegt er sich
-  // nur eigenständig: die Aurora über ihren cos/sin-Drift, die Sterne über eine langsame
-  // konstante Drift (STAR_AUTO_DRIFT_*), pro Ebene tiefenrichtig skaliert.
-  function drawDynamicBackground() {
+  // Die Sterne sind an die Welt gekoppelt (camera + langsame Eigendrift) und ziehen beim
+  // Fahren als ferne Kulisse vorbei; pro Ebene über layer.parallax tiefenrichtig skaliert.
+  // Die Aurora dagegen ist NICHT kamera-gekoppelt - sie ist bloßer Umgebungs-Schein und
+  // wandert nur über ihren eigenen cos/sin-Drift.
+  function drawDynamicBackground(camera) {
     const W = canvas.width;
     const H = canvas.height;
     const t = performance.now();
@@ -143,8 +143,8 @@ function createRenderer(canvas, initialThemeId) {
     const starDriftY = t * STAR_AUTO_DRIFT_Y;
     for (const layer of bgStars) {
       for (const s of layer.list) {
-        const sx = (((s.x * W - starDriftX * layer.parallax) % W) + W) % W;
-        const sy = (((s.y * H - starDriftY * layer.parallax) % H) + H) % H;
+        const sx = (((s.x * W - (camera.x + starDriftX) * layer.parallax) % W) + W) % W;
+        const sy = (((s.y * H - (camera.y + starDriftY) * layer.parallax) % H) + H) % H;
         const tw = 0.6 + 0.4 * Math.sin(t / 700 + s.tw);
         ctx.fillStyle = `rgba(210, 220, 255, ${layer.alpha * tw})`;
         ctx.fillRect(sx, sy, layer.size, layer.size);
@@ -672,7 +672,7 @@ function createRenderer(canvas, initialThemeId) {
     ctx.save();
     // Screen-Space-Hintergrund: dynamische Aurora (Classic) oder flache Fläche.
     if (theme.dynamicBg) {
-      drawDynamicBackground();
+      drawDynamicBackground(camera);
     } else {
       ctx.fillStyle = "#050508";
       ctx.fillRect(0, 0, canvas.width, canvas.height);

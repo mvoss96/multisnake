@@ -906,15 +906,8 @@ function createRenderer(canvas, initialThemeId) {
       const isPixelFont = theme.pixelPerfect;
       ctx.textAlign = "center";
       const labelX = snap(hx);
-      // Beim Anführer die Labels um die Kronenhöhe nach oben schieben - sonst verdeckt die
-      // (danach, oben drüber gezeichnete) Krone knapp über dem Kopf die Punktzahl.
       const isLeader = leader && snake.id === leader.id;
-      let crownReserve = 0;
-      if (isLeader) {
-        const crownSprite = themedSprite("crown");
-        crownReserve = (crownSprite ? spriteWorldSize(crownSprite).h : 22) + 4;
-      }
-      const nameY = snap(hy - snake.radius - 12 - crownReserve);
+      const nameY = snap(hy - snake.radius - 12);
       const scoreY = snap(nameY - (isPixelFont ? 12 : 14));
       const drawLabelLine = (text, y, font, fill) => {
         ctx.font = font;
@@ -937,10 +930,25 @@ function createRenderer(canvas, initialThemeId) {
         snake.color
       );
 
-      // "Das bist du"-Marker: fester Pfeil (Spitze nach unten) über den Labels.
+      // Über den (unveränderten) Labels aufwärts stapeln, sodass nichts die Punktzahl
+      // verdeckt: zuerst die Krone (Anführer) DIREKT über der Punktzahl, darüber der
+      // "Du"-Pfeil (eigene Schlange). stackTopY wandert dabei nach oben.
+      let stackTopY = scoreY - (isPixelFont ? 11 : 13) - 4; // knapp über der Score-Oberkante
+      if (isLeader) {
+        // Anführer-Abzeichen: Pixel-Krone-Sprite falls das Theme sie themt, sonst Vektor.
+        const crownSprite = themedSprite("crown");
+        if (crownSprite) {
+          const { w: cw, h: ch } = spriteWorldSize(crownSprite);
+          ctx.drawImage(crownSprite, snap(hx - cw / 2), snap(stackTopY - ch), cw, ch);
+          stackTopY -= ch + 3;
+        } else {
+          drawCrown(hx, stackTopY - 9);
+          stackTopY -= 20;
+        }
+      }
+      // "Das bist du"-Marker: fester Pfeil (Spitze nach unten) über dem Stapel.
       if (isMe) {
-        const scoreFontPx = isPixelFont ? 11 : 13;
-        const tipY = scoreY - scoreFontPx - SNAKE_SELF_ARROW_GAP; // knapp über der Score-Zeile
+        const tipY = stackTopY - SNAKE_SELF_ARROW_GAP;
         const topY = tipY - SNAKE_SELF_ARROW_HEIGHT;
         ctx.beginPath();
         ctx.moveTo(labelX - SNAKE_SELF_ARROW_WIDTH / 2, topY);
@@ -952,18 +960,6 @@ function createRenderer(canvas, initialThemeId) {
         ctx.lineWidth = 2;
         ctx.stroke();
         ctx.fill();
-      }
-
-      if (isLeader) {
-        // Anführer-Abzeichen: Pixel-Krone-Sprite falls das Theme sie themt, sonst Vektor.
-        const crownSprite = themedSprite("crown");
-        if (crownSprite) {
-          const { w: cw, h: ch } = spriteWorldSize(crownSprite);
-          const cy = hy - snake.radius - 10; // Unterkante der Krone knapp über dem Kopf
-          ctx.drawImage(crownSprite, snap(hx - cw / 2), snap(cy - ch), cw, ch);
-        } else {
-          drawCrown(hx, hy - snake.radius - 30);
-        }
       }
     }
 

@@ -23,12 +23,12 @@ const SNAKE_RADIUS_MAX = 14.0;
 const ZOOM_LERP_FACTOR_OUT = 0.02;
 const ZOOM_LERP_FACTOR_IN = 0.08;
 
-// Classic-Theme: dynamischer Hintergrund (Aurora-Farbwolken + Parallax-Sternenfeld,
+// Classic-Theme: dynamischer Hintergrund (Aurora-Farbwolken + driftendes Sternenfeld,
 // siehe drawDynamicBackground in renderer.js). Nur Themes mit dynamicBg (themes.js).
-// Die STERNE sind an die Welt gekoppelt und ziehen beim Fahren als ferne Kulisse
-// vorbei (fraktionaler Parallax = Tiefe), plus eine leichte Eigenbewegung, damit es
-// auch im Stand lebt. Die AURORA ist bewusst NICHT an die Kamera gekoppelt (bloßer
-// Umgebungs-Schein), sie wandert nur über ihren eigenen AURORA_DRIFT.
+// Der Hintergrund ist bewusst KOMPLETT von der Kamera/Schlange entkoppelt und bewegt
+// sich rein eigenständig: die Sterne driften stetig (überwiegend horizontal) über den
+// Bildschirm, die Aurora wandert über ihren eigenen AURORA_DRIFT. Die Schlangenbewegung
+// verschiebt den Hintergrund NICHT (das wirkte, als klebte er an der Schlange).
 const AURORA_BG_BASE = "#03030a"; // fast schwarzes Blau als Basis (dunkel, damit das Leuchten trägt)
 const AURORA_BLOB_COLORS = ["70,90,220", "140,70,210", "40,165,175"]; // rgb je Farbwolke
 const AURORA_ALPHA = 0.18; // Deckkraft der Farbwolken (dezent, dunkler gehalten)
@@ -38,12 +38,12 @@ const STAR_LAYERS = [
   { count: 90, parallax: 0.04, alpha: 0.32, size: 1 }, // ferne Ebene (langsam)
   { count: 45, parallax: 0.1, alpha: 0.6, size: 2 }, // nahe Ebene (schneller)
 ];
-// Leichte Eigenbewegung des Sternenfelds zusätzlich zur Welt-Kopplung (wie eine sehr
-// langsam driftende virtuelle Kamera), damit es auch im Stand nicht tot wirkt. Bewusst
-// dezent - beim Fahren dominiert der Welt-Parallax. Welt-Einheiten pro ms; skaliert
-// pro Ebene mit deren parallax (ferne Ebene driftet langsamer).
-const STAR_AUTO_DRIFT_X = 0.02;
-const STAR_AUTO_DRIFT_Y = 0.012;
+// Eigenständige Drift des Sternenfelds (unabhängig von der Kamera/Schlange): überwiegend
+// horizontal, stetig und gut sichtbar. Welt-Einheiten pro ms; skaliert pro Ebene mit
+// deren parallax (nahe Ebene driftet schneller = Tiefe), also driften die Ebenen
+// unterschiedlich schnell und erzeugen so den Parallax-Effekt ganz ohne Kamera.
+const STAR_AUTO_DRIFT_X = 0.14;
+const STAR_AUTO_DRIFT_Y = 0.025;
 // Alles AUSSERHALB des Spielfelds (dynamicBg-Themes) wird abgedunkelt, damit das
 // eigentliche Feld sich klar abhebt (siehe drawOutOfBoundsShade in renderer.js).
 // Kräftiges, fast deckendes Schwarz - der Aurora-Grund bleibt nur innerhalb des

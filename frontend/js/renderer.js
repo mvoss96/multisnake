@@ -249,8 +249,18 @@ function createRenderer(canvas, initialThemeId) {
   }
 
   function resizeToWindow() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Backing-Store an die Geräte-Pixeldichte koppeln: sonst skaliert der Browser eine
+    // 1x-Leinwand auf Retina/Mobile (iPhone: devicePixelRatio 3) hoch -> alles, vor allem
+    // Text (Name/Punkte), wird unscharf. Die CSS-Größe bleibt die Fenstergröße, nur der
+    // Backing-Store bekommt mehr Pixel. dpr auf 2 gedeckelt, damit die Leinwand auf sehr
+    // großen High-DPI-Bildschirmen nicht die Canvas-Größenlimits sprengt. Da alle
+    // Render-Rechnungen aus canvas.width/height kommen, bleibt die sichtbare Weltgröße
+    // gleich - nur die Auflösung steigt.
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(window.innerWidth * dpr);
+    canvas.height = Math.round(window.innerHeight * dpr);
+    canvas.style.width = window.innerWidth + "px";
+    canvas.style.height = window.innerHeight + "px";
   }
 
   // viewWorldHeight ist nicht mehr konstant - main.js interpoliert sie anhand der
